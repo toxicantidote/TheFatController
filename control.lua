@@ -83,6 +83,11 @@ local function on_configuration_changed(data)
           destroyGui(p.gui.top.fatControllerButtons)
           destroyGui(p.gui.left.fatController)
         end
+        if type(global.character) == "table" then
+          for i, c in pairs(global.character) do
+            swapPlayer(game.players[i], c)
+          end
+        end
         global = nil
       end
     end
@@ -776,6 +781,10 @@ end
 
 local onEntityDied = function (event)
   if global.unlocked and global.guiSettings ~= nil then
+    local entities = {locomotive=true, ["cargo-wagon"]=true, player=true}
+    if not entities[event.entity.type] then
+      return
+    end
     for forceName,trains in pairs(global.trainsByForce) do
       updateTrains(trains)
     end
