@@ -512,24 +512,26 @@ function on_gui_click(event)
     elseif endsWith(event.element.name,"_toggleFollowMode") then
       local trainInfo = getTrainInfoFromElementName(trains, event.element.name)
       if trainInfo ~= nil and trainInfo.train ~= nil and trainInfo.train.valid then
+        debugDump(trainInfo.train.speed,true)
+        local carriage = trainInfo.train.speed >= 0 and trainInfo.train.locomotives.front_movers[1] or trainInfo.train.locomotives.back_movers[1]
         if global.character[event.element.player_index] == nil then --Move to train
-          if trainInfo.train.carriages[1].passenger ~= nil then
+          if carriage.passenger ~= nil then
             player.print({"msg-intrain"})
-        else
-          global.character[event.element.player_index] = player.character
-          guiSettings.followEntity = trainInfo.train.carriages[1] -- HERE
-
-          --fatControllerEntity =
-          swapPlayer(player,newFatControllerEntity(player))
-          --event.element.style = "fatcontroller_selected_button"
-          event.element.caption = "X"
-          trainInfo.train.carriages[1].passenger = player.character
-        end
+          else
+            global.character[event.element.player_index] = player.character
+            guiSettings.followEntity = carriage -- HERE
+  
+            --fatControllerEntity =
+            swapPlayer(player,newFatControllerEntity(player))
+            --event.element.style = "fatcontroller_selected_button"
+            event.element.caption = "X"
+            carriage.passenger = player.character
+          end
         elseif guiSettings.followEntity ~= nil and trainInfo.train ~= nil and trainInfo.train.valid then
           if player.vehicle ~= nil then
             player.vehicle.passenger = nil
           end
-          if guiSettings.followEntity == trainInfo.train.carriages[1] or trainInfo.train.carriages[1].passenger ~= nil then --Go back to player
+          if guiSettings.followEntity.train == trainInfo.train then --Go back to player
             swapPlayer(player, global.character[event.element.player_index])
             --event.element.style = "fatcontroller_button_style"
             event.element.caption = "c"
@@ -540,12 +542,11 @@ function on_gui_click(event)
             guiSettings.followEntity = nil
           else -- Go to different train
 
-            guiSettings.followEntity = trainInfo.train.carriages[1] -- AND HERE
+            guiSettings.followEntity = carriage -- AND HERE
             --event.element.style = "fatcontroller_selected_button"
             event.element.caption = "X"
 
-            trainInfo.train.carriages[1].passenger = player.character
-            --game.players[1].vehicle = trainInfo.train.carriages[1]
+            carriage.passenger = player.character
           end
         end
 
@@ -910,8 +911,8 @@ function getHighestInventoryCount(trainInfo)
     end
 
     if largestItem.name ~= nil then
-      local isItem = game.item_prototypes[largestItem.name]
-      local displayName = isItem and isItem.localised_name or {"", largestItem.name}
+      local isItem = game.item_prototypes[largestItem.name] or game.fluid_prototypes[largestItem.name]
+      local displayName = isItem and isItem.localised_name or largestItem.name
       local suffix = itemsCount > 1 and "..." or ""
       inventory = {"", displayName,": ",largestItem.count, suffix}
     else
