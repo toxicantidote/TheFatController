@@ -512,7 +512,6 @@ function on_gui_click(event)
     elseif endsWith(event.element.name,"_toggleFollowMode") then
       local trainInfo = getTrainInfoFromElementName(trains, event.element.name)
       if trainInfo ~= nil and trainInfo.train ~= nil and trainInfo.train.valid then
-        debugDump(trainInfo.train.speed,true)
         local carriage = trainInfo.train.speed >= 0 and trainInfo.train.locomotives.front_movers[1] or trainInfo.train.locomotives.back_movers[1]
         if global.character[event.element.player_index] == nil then --Move to train
           if carriage.passenger ~= nil then
