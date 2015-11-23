@@ -85,7 +85,9 @@ local function on_configuration_changed(data)
         end
         if type(global.character) == "table" then
           for i, c in pairs(global.character) do
-            swapPlayer(game.players[i], c)
+            if game.players[i].connected then
+              swapPlayer(game.players[i], c)
+            end
           end
         end
         global = nil
@@ -162,7 +164,7 @@ function init_gui(player)
   filterTrainInfoList(global.trainsByForce[forceName], guiSettings.activeFilterList)
 
   updateTrains(global.trainsByForce[forceName])
-  refreshTrainInfoGui(global.trainsByForce[forceName], guiSettings, player.character)
+  refreshTrainInfoGui(global.trainsByForce[forceName], guiSettings, player)
 
   return guiSettings
 end
@@ -199,8 +201,10 @@ onTickAfterUnlocked = function(event)
         end
         refreshAllTrainInfoGuis(global.trainsByForce, global.guiSettings, game.players, false)
         for i,player in pairs(game.players) do
-          refreshTrainInfoGui(global.trainsByForce[player.force.name], global.guiSettings[i], player.character)
-          global.guiSettings[i].pageCount = getPageCount(global.trainsByForce[player.force.name], global.guiSettings[i])
+          if player.connected then
+            refreshTrainInfoGui(global.trainsByForce[player.force.name], global.guiSettings[i], player)
+            global.guiSettings[i].pageCount = getPageCount(global.trainsByForce[player.force.name], global.guiSettings[i])
+          end
         end
       end
     end
@@ -216,7 +220,7 @@ onTickAfterUnlocked = function(event)
           if not guiSettings.followEntity.valid then
             removeTrainInfoFromEntity(global.trainsByForce[game.players[i].force.name], guiSettings.followEntity)
             newTrainInfoWindow(guiSettings)
-            refreshTrainInfoGui(global.trainsByForce[game.players[i].force.name], guiSettings, game.players[i].character)
+            refreshTrainInfoGui(global.trainsByForce[game.players[i].force.name], guiSettings, game.players[i])
           end
           global.character[i] = nil
           guiSettings.followEntity = nil
@@ -476,6 +480,7 @@ function on_gui_click(event)
     local rematchStationList = false
     local guiSettings = global.guiSettings[event.element.player_index]
     local player = game.players[event.element.player_index]
+    if not player.connected then return end
     local trains = global.trainsByForce[player.force.name]
     debugLog("CLICK! " .. event.element.name .. game.tick)
 
@@ -516,16 +521,16 @@ function on_gui_click(event)
         if global.character[event.element.player_index] == nil then --Move to train
           if carriage.passenger ~= nil then
             player.print({"msg-intrain"})
-          else
-            global.character[event.element.player_index] = player.character
-            guiSettings.followEntity = carriage -- HERE
-  
-            --fatControllerEntity =
-            swapPlayer(player,newFatControllerEntity(player))
-            --event.element.style = "fatcontroller_selected_button"
-            event.element.caption = "X"
-            carriage.passenger = player.character
-          end
+        else
+          global.character[event.element.player_index] = player.character
+          guiSettings.followEntity = carriage -- HERE
+
+          --fatControllerEntity =
+          swapPlayer(player,newFatControllerEntity(player))
+          --event.element.style = "fatcontroller_selected_button"
+          event.element.caption = "X"
+          carriage.passenger = player.character
+        end
         elseif guiSettings.followEntity ~= nil and trainInfo.train ~= nil and trainInfo.train.valid then
           if player.vehicle ~= nil then
             player.vehicle.passenger = nil
@@ -673,7 +678,7 @@ function on_gui_click(event)
     end
 
     if refreshGui then
-      refreshTrainInfoGui(trains, guiSettings, player.character)
+      refreshTrainInfoGui(trains, guiSettings, player)
     end
   end)
   if err then debugDump(err,true) end
@@ -790,17 +795,18 @@ local onEntityDied = function (event)
     end
 
     for i, player in pairs(game.players) do
+      if not player.connected then return end
       local guiSettings = global.guiSettings[i]
       if guiSettings.followEntity ~= nil and guiSettings.followEntity == event.entity then --Go back to player
         if game.players[i].vehicle ~= nil then
           game.players[i].vehicle.passenger = nil
       end
-      swapPlayer(game.players[i], global.character[i])
-      if guiSettings.fatControllerButtons.returnToPlayer ~= nil then
-        guiSettings.fatControllerButtons.returnToPlayer.destroy()
-      end
-      global.character[i] = nil
-      guiSettings.followEntity = nil
+        swapPlayer(game.players[i], global.character[i])
+        if guiSettings.fatControllerButtons.returnToPlayer ~= nil then
+          guiSettings.fatControllerButtons.returnToPlayer.destroy()
+        end
+        global.character[i] = nil
+        guiSettings.followEntity = nil
       end
     end
     refreshAllTrainInfoGuis(global.trainsByForce, global.guiSettings, game.players, true)
@@ -815,7 +821,7 @@ function refreshAllTrainInfoGuis(trainsByForce, guiSettings, players, destroy)
         guiSettings[i].fatControllerGui.trainInfo.destroy()
         newTrainInfoWindow(guiSettings[i])
       end
-      refreshTrainInfoGui(trainsByForce[player.force.name], guiSettings[i], player.character)
+      refreshTrainInfoGui(trainsByForce[player.force.name], guiSettings[i], player)
     end
   end
 end
@@ -826,6 +832,7 @@ script.on_event(defines.events.on_preplayer_mined_item, onEntityDied)
 
 function swapPlayer(player, character)
   --player.teleport(character.position)
+  if not player.connected then return end
   if player.character ~= nil and player.character.valid and player.character.name == "fatcontroller" then
     player.character.destroy()
   end
@@ -1170,7 +1177,9 @@ function containsEntity(entityTable, entityA)
   return false
 end
 
-function refreshTrainInfoGui(trains, guiSettings, character)
+function refreshTrainInfoGui(trains, guiSettings, player)
+  if not player.connected then return end
+  local character = player.character
   local gui = guiSettings.fatControllerGui.trainInfo
   if gui ~= nil and trains ~= nil then
     local removeTrainInfo = {}
