@@ -187,6 +187,23 @@ end
 
 onTickAfterUnlocked = function(event)
   local status, err = pcall(function()
+    if global.to_swap then
+      local tmp = {}
+      for i, c in pairs(global.to_swap) do
+        if game.players[c.index].connected then
+          local guiSettings = global.guiSettings[c.index]
+          swapPlayer(game.players[c.index], global.character[c.index])
+          global.character[c.index] = nil
+          if guiSettings.fatControllerButtons.returnToPlayer ~= nil then
+            guiSettings.fatControllerButtons.returnToPlayer.destroy()
+          end
+          guiSettings.followEntity = nil
+        else
+          table.insert(tmp, {index=c.index, character=c.character})
+        end
+      end
+      global.to_swap = #tmp > 0 and tmp or false
+    end
     if event.tick%60==13 then
       local updateGui = false
       for i,guiSettings in pairs(global.guiSettings) do
@@ -795,18 +812,24 @@ local onEntityDied = function (event)
     end
 
     for i, player in pairs(game.players) do
-      if not player.connected then return end
       local guiSettings = global.guiSettings[i]
       if guiSettings.followEntity ~= nil and guiSettings.followEntity == event.entity then --Go back to player
         if game.players[i].vehicle ~= nil then
           game.players[i].vehicle.passenger = nil
-      end
-        swapPlayer(game.players[i], global.character[i])
-        if guiSettings.fatControllerButtons.returnToPlayer ~= nil then
-          guiSettings.fatControllerButtons.returnToPlayer.destroy()
         end
-        global.character[i] = nil
-        guiSettings.followEntity = nil
+        if player.connected then
+          swapPlayer(game.players[i], global.character[i])
+          global.character[i] = nil
+          if guiSettings.fatControllerButtons.returnToPlayer ~= nil then
+            guiSettings.fatControllerButtons.returnToPlayer.destroy()
+          end
+          guiSettings.followEntity = nil
+        else
+          if not global.to_swap then
+            global.to_swap = {}
+          end
+          table.insert(global.to_swap, {index=i, character=global.character[i]})
+        end
       end
     end
     refreshAllTrainInfoGuis(global.trainsByForce, global.guiSettings, game.players, true)
