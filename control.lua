@@ -111,6 +111,7 @@ end
 local function on_force_created(event)
   init_force(event.force)
 end
+
 local function on_forces_merging(event)
 
 end
@@ -1484,4 +1485,16 @@ remote.add_interface("fat",
     saveVar = function(name)
       saveVar(global, name)
     end,
+    
+    remove_invalid_players = function(name)
+      local delete = {}
+      for i,p in pairs(global.guiSettings) do
+        if not game.players[i] then
+          delete[i] = true
+        end
+      end
+      for j,c in pairs(delete) do
+        global.guiSettings[j] = nil
+      end
+    end
   })
