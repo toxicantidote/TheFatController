@@ -36,6 +36,7 @@ local function init_players()
 end
 
 local function init_force(force)
+  init_global()
   global.trainsByForce[force.name] = global.trainsByForce[force.name] or {}
   if force.technologies["rail-signals"].researched then
     global.unlockedByForce[force.name] = true
@@ -207,8 +208,9 @@ onTickAfterUnlocked = function(event)
     end
     if event.tick%60==13 then
       local updateGui = false
+      -- move to on_gui_click ???
       for i,guiSettings in pairs(global.guiSettings) do
-        if guiSettings.fatControllerGui ~= nil and guiSettings.fatControllerGui.trainInfo ~= nil then
+        if game.players[i] and game.players[i].connected and guiSettings.fatControllerGui ~= nil and guiSettings.fatControllerGui.trainInfo ~= nil then
           updateGui = true
         end
       end
@@ -1486,7 +1488,7 @@ remote.add_interface("fat",
       saveVar(global, name)
     end,
     
-    remove_invalid_players = function(name)
+    remove_invalid_players = function()
       local delete = {}
       for i,p in pairs(global.guiSettings) do
         if not game.players[i] then
