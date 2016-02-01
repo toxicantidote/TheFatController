@@ -10,6 +10,7 @@ local function init_global()
   global.character = global.charactor or {}
   global.unlocked = global.unlocked or false
   global.unlockedByForce = global.unlockedByForce or {}
+  global.PAGE_SIZE = 60
   global.version = "0.3.1"
 end
 
@@ -17,8 +18,10 @@ defaultGuiSettings = {  alarm={active=false,noPath=true,timeAtSignal=true,timeTo
   displayCount=9,
   fatControllerButtons = {},
   fatControllerGui = {},
-  page = 2,
+  page = 1,
   pageCount = 5,
+  filter_page = 1,
+  filter_pageCount = 1,
   stationFilterList = {}
 }
 
@@ -93,11 +96,18 @@ local function on_configuration_changed(data)
         end
         global = nil
       end
+      if oldVersion < "0.3.19" then
+        global.PAGE_SIZE = 60
+        for i,g in pairs(global.guiSettings) do
+          g.filter_page = 1
+          g.filter_pageCount = 5
+        end
+      end
     end
     init_global()
     init_forces()
     init_players()
-    if not oldVersion or oldVersion < "0.3.14" then
+    if not oldVersion or oldVersion < "0.3.14" or newVersion == "0.3.19" then
       findTrains()
     end
     global.version = newVersion
@@ -677,6 +687,18 @@ function on_gui_click(event)
       rematchStationList = true
       newInfoWindow = true
       refreshGui = true
+    elseif event.element.name == "filter_page_back" then
+    if guiSettings.filter_page > 1 then
+      guiSettings.filter_page = guiSettings.filter_page - 1
+      toggleStationFilterWindow(player.gui.center, guiSettings)
+      toggleStationFilterWindow(player.gui.center, guiSettings)
+    end
+  elseif event.element.name == "filter_page_forward" then
+    if guiSettings.filter_page < get_filter_PageCount(guiSettings) then
+      guiSettings.filter_page = guiSettings.filter_page + 1
+      toggleStationFilterWindow(player.gui.center, guiSettings)
+      toggleStationFilterWindow(player.gui.center, guiSettings)
+    end
       --alarmOK alarmTimeToStation alarmTimeAtSignal alarmNoPath alarmButton
     elseif event.element.name == "alarmButton" or event.element.name == "alarmOK" then
       toggleAlarmWindow(player.gui.center, guiSettings)
@@ -738,17 +760,52 @@ function toggleStationFilterWindow(gui, guiSettings)
     if gui.stationFilterWindow == nil then
       --local sortedList = table.sort(a)
       local window = gui.add({type="frame", name="stationFilterWindow", caption={"msg-stationFilter"}, direction="vertical" }) --style="fatcontroller_thin_frame"})
-      window.add({type="table", name="checkboxGroup", colspan=3})
-      for name, value in pairsByKeys(guiSettings.stationFilterList) do
-        if guiSettings.activeFilterList ~= nil and guiSettings.activeFilterList[name] then
-          window.checkboxGroup.add({type="checkbox", name=name .. "_stationFilter", caption=name, state=true}) --style="filter_group_button_style"})
-        else
-          window.checkboxGroup.add({type="checkbox", name=name .. "_stationFilter", caption=name, state=false}) --style="filter_group_button_style"})
-        end
-      end
       window.add({type="flow", name="buttonFlow"})
+      
+      if window.buttonFlow.filter_page_back == nil then
+
+    if guiSettings.filter_page > 1 then
+      window.buttonFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_button_style"})
+    else
+      window.buttonFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_disabled_button"})
+    end
+  end
+  local pageCount = get_filter_PageCount(guiSettings)
+  if window.buttonFlow.filter_page_number == nil then
+    window.buttonFlow.add({type="button", name="filter_page_number", caption=guiSettings.filter_page .. "/" ..pageCount , style="fatcontroller_disabled_button"})
+  else
+    window.buttonFlow.filter_page_number.caption = guiSettings.filter_page .. "/" .. pageCount    
+  end
+
+  if window.buttonFlow.filter_page_forward == nil then
+    if guiSettings.filter_page < pageCount then
+      window.buttonFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_button_style"})
+    else
+      window.buttonFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_disabled_button"})
+    end
+
+  end
       window.buttonFlow.add({type="button", name="stationFilterClear", caption={"msg-Clear"}})
       window.buttonFlow.add({type="button", name="stationFilterOK", caption={"msg-OK"}})
+      
+      
+      window.add({type="table", name="checkboxGroup", colspan=6})
+      
+      local i=0
+      local upper = guiSettings.filter_page*global.PAGE_SIZE
+      local lower = guiSettings.filter_page*global.PAGE_SIZE-global.PAGE_SIZE
+      for name, value in pairsByKeys(guiSettings.stationFilterList) do
+        if i>=lower and i<upper then
+          window.checkboxGroup.add({type="label",caption=i})
+          if guiSettings.activeFilterList ~= nil and guiSettings.activeFilterList[name] then
+            window.checkboxGroup.add({type="checkbox", name=name .. "_stationFilter", caption=name, state=true}) --style="filter_group_button_style"})
+          else
+            window.checkboxGroup.add({type="checkbox", name=name .. "_stationFilter", caption=name, state=false}) --style="filter_group_button_style"})
+          end
+        end
+        i=i+1
+      end
+
     else
       gui.stationFilterWindow.destroy()
     end
@@ -802,6 +859,14 @@ function getPageCount(trains, guiSettings)
     end
   end
   return math.floor((trainCount - 1) / guiSettings.displayCount) + 1
+end
+
+function get_filter_PageCount(guiSettings)
+  local stationCount = 0
+  for _, s in pairs(guiSettings.stationFilterList) do
+    stationCount = stationCount + 1
+  end
+  return math.floor((stationCount - 1) / (global.PAGE_SIZE)) + 1
 end
 
 local onEntityDied = function (event)
@@ -1306,7 +1371,7 @@ function refreshTrainInfoGui(trains, guiSettings, player)
                 topString = "! " .. topString
               end
 
-              trainGui.info.topInfo.caption = topString
+              trainGui.info.topInfo.caption = i.." "..topString
               trainGui.info.bottomInfo.caption = bottomString
             end
 
@@ -1498,5 +1563,16 @@ remote.add_interface("fat",
       for j,c in pairs(delete) do
         global.guiSettings[j] = nil
       end
-    end
+    end,
+    init = function()
+        global.PAGE_SIZE = 60
+        for i,g in pairs(global.guiSettings) do
+          g.filter_page = 1
+          g.filter_pageCount = get_filter_PageCount(g)
+        end
+    end,
+    
+    page_size = function(size)
+      global.PAGE_SIZE = tonumber(size)
+    end,
   })
