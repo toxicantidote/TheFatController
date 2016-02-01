@@ -96,17 +96,17 @@ local function on_configuration_changed(data)
         end
         global = nil
       end
-      if oldVersion < "0.3.19" then
-        global.PAGE_SIZE = 60
-        for i,g in pairs(global.guiSettings) do
-          g.filter_page = 1
-          g.filter_pageCount = 5
-        end
-      end
     end
     init_global()
     init_forces()
     init_players()
+    if oldVersion and oldVersion < "0.3.19" then
+      global.PAGE_SIZE = 60
+      for i,g in pairs(global.guiSettings) do
+        g.filter_page = 1
+        g.filter_pageCount = 5
+      end
+    end
     if not oldVersion or oldVersion < "0.3.14" or newVersion == "0.3.19" then
       findTrains()
     end
@@ -688,17 +688,17 @@ function on_gui_click(event)
       newInfoWindow = true
       refreshGui = true
     elseif event.element.name == "filter_page_back" then
-    if guiSettings.filter_page > 1 then
-      guiSettings.filter_page = guiSettings.filter_page - 1
-      toggleStationFilterWindow(player.gui.center, guiSettings)
-      toggleStationFilterWindow(player.gui.center, guiSettings)
-    end
-  elseif event.element.name == "filter_page_forward" then
-    if guiSettings.filter_page < get_filter_PageCount(guiSettings) then
-      guiSettings.filter_page = guiSettings.filter_page + 1
-      toggleStationFilterWindow(player.gui.center, guiSettings)
-      toggleStationFilterWindow(player.gui.center, guiSettings)
-    end
+      if guiSettings.filter_page > 1 then
+        guiSettings.filter_page = guiSettings.filter_page - 1
+        toggleStationFilterWindow(player.gui.center, guiSettings)
+        toggleStationFilterWindow(player.gui.center, guiSettings)
+      end
+    elseif event.element.name == "filter_page_forward" then
+      if guiSettings.filter_page < get_filter_PageCount(guiSettings) then
+        guiSettings.filter_page = guiSettings.filter_page + 1
+        toggleStationFilterWindow(player.gui.center, guiSettings)
+        toggleStationFilterWindow(player.gui.center, guiSettings)
+      end
       --alarmOK alarmTimeToStation alarmTimeAtSignal alarmNoPath alarmButton
     elseif event.element.name == "alarmButton" or event.element.name == "alarmOK" then
       toggleAlarmWindow(player.gui.center, guiSettings)
@@ -761,36 +761,36 @@ function toggleStationFilterWindow(gui, guiSettings)
       --local sortedList = table.sort(a)
       local window = gui.add({type="frame", name="stationFilterWindow", caption={"msg-stationFilter"}, direction="vertical" }) --style="fatcontroller_thin_frame"})
       window.add({type="flow", name="buttonFlow"})
-      
+
       if window.buttonFlow.filter_page_back == nil then
 
-    if guiSettings.filter_page > 1 then
-      window.buttonFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_button_style"})
-    else
-      window.buttonFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_disabled_button"})
-    end
-  end
-  local pageCount = get_filter_PageCount(guiSettings)
-  if window.buttonFlow.filter_page_number == nil then
-    window.buttonFlow.add({type="button", name="filter_page_number", caption=guiSettings.filter_page .. "/" ..pageCount , style="fatcontroller_disabled_button"})
-  else
-    window.buttonFlow.filter_page_number.caption = guiSettings.filter_page .. "/" .. pageCount    
-  end
+        if guiSettings.filter_page > 1 then
+          window.buttonFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_button_style"})
+        else
+          window.buttonFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_disabled_button"})
+        end
+      end
+      local pageCount = get_filter_PageCount(guiSettings)
+      if window.buttonFlow.filter_page_number == nil then
+        window.buttonFlow.add({type="button", name="filter_page_number", caption=guiSettings.filter_page .. "/" ..pageCount , style="fatcontroller_disabled_button"})
+      else
+        window.buttonFlow.filter_page_number.caption = guiSettings.filter_page .. "/" .. pageCount
+      end
 
-  if window.buttonFlow.filter_page_forward == nil then
-    if guiSettings.filter_page < pageCount then
-      window.buttonFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_button_style"})
-    else
-      window.buttonFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_disabled_button"})
-    end
+      if window.buttonFlow.filter_page_forward == nil then
+        if guiSettings.filter_page < pageCount then
+          window.buttonFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_button_style"})
+        else
+          window.buttonFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_disabled_button"})
+        end
 
-  end
+      end
       window.buttonFlow.add({type="button", name="stationFilterClear", caption={"msg-Clear"}})
       window.buttonFlow.add({type="button", name="stationFilterOK", caption={"msg-OK"}})
-      
-      
+
+
       window.add({type="table", name="checkboxGroup", colspan=6})
-      
+
       local i=0
       local upper = guiSettings.filter_page*global.PAGE_SIZE
       local lower = guiSettings.filter_page*global.PAGE_SIZE-global.PAGE_SIZE
@@ -884,20 +884,20 @@ local onEntityDied = function (event)
       if guiSettings.followEntity ~= nil and guiSettings.followEntity == event.entity then --Go back to player
         if game.players[i].vehicle ~= nil then
           game.players[i].vehicle.passenger = nil
+      end
+      if player.connected then
+        swapPlayer(game.players[i], global.character[i])
+        global.character[i] = nil
+        if guiSettings.fatControllerButtons.returnToPlayer ~= nil then
+          guiSettings.fatControllerButtons.returnToPlayer.destroy()
         end
-        if player.connected then
-          swapPlayer(game.players[i], global.character[i])
-          global.character[i] = nil
-          if guiSettings.fatControllerButtons.returnToPlayer ~= nil then
-            guiSettings.fatControllerButtons.returnToPlayer.destroy()
-          end
-          guiSettings.followEntity = nil
-        else
-          if not global.to_swap then
-            global.to_swap = {}
-          end
-          table.insert(global.to_swap, {index=i, character=global.character[i]})
+        guiSettings.followEntity = nil
+      else
+        if not global.to_swap then
+          global.to_swap = {}
         end
+        table.insert(global.to_swap, {index=i, character=global.character[i]})
+      end
       end
     end
     refreshAllTrainInfoGuis(global.trainsByForce, global.guiSettings, game.players, true)
@@ -1552,7 +1552,7 @@ remote.add_interface("fat",
     saveVar = function(name)
       saveVar(global, name)
     end,
-    
+
     remove_invalid_players = function()
       local delete = {}
       for i,p in pairs(global.guiSettings) do
@@ -1565,13 +1565,13 @@ remote.add_interface("fat",
       end
     end,
     init = function()
-        global.PAGE_SIZE = 60
-        for i,g in pairs(global.guiSettings) do
-          g.filter_page = 1
-          g.filter_pageCount = get_filter_PageCount(g)
-        end
+      global.PAGE_SIZE = 60
+      for i,g in pairs(global.guiSettings) do
+        g.filter_page = 1
+        g.filter_pageCount = get_filter_PageCount(g)
+      end
     end,
-    
+
     page_size = function(size)
       global.PAGE_SIZE = tonumber(size)
     end,
