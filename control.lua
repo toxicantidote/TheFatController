@@ -762,41 +762,48 @@ function toggleStationFilterWindow(gui, guiSettings)
       local window = gui.add({type="frame", name="stationFilterWindow", caption={"msg-stationFilter"}, direction="vertical" }) --style="fatcontroller_thin_frame"})
       window.add({type="flow", name="buttonFlow"})
 
-      if window.buttonFlow.filter_page_back == nil then
+      local pageFlow
+      if window.buttonFlow.filter_pageButtons == nil then
+        pageFlow = window.buttonFlow.add({type = "flow", name="filter_pageButtons",  direction="horizontal", style="fatcontroller_button_flow"})
+      else
+        pageFlow = window.buttonFlow.filter_pageButtons
+      end
+
+
+      if pageFlow.filter_page_back == nil then
 
         if guiSettings.filter_page > 1 then
-          window.buttonFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_button_style"})
+          pageFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_button_style"})
         else
-          window.buttonFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_disabled_button"})
+          pageFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_disabled_button"})
         end
       end
       local pageCount = get_filter_PageCount(guiSettings)
-      if window.buttonFlow.filter_page_number == nil then
-        window.buttonFlow.add({type="button", name="filter_page_number", caption=guiSettings.filter_page .. "/" ..pageCount , style="fatcontroller_disabled_button"})
+      if pageFlow.filter_page_number == nil then
+        pageFlow.add({type="button", name="filter_page_number", caption=guiSettings.filter_page .. "/" ..pageCount , style="fatcontroller_disabled_button"})
       else
-        window.buttonFlow.filter_page_number.caption = guiSettings.filter_page .. "/" .. pageCount
+        pageFlow.filter_page_number.caption = guiSettings.filter_page .. "/" .. pageCount
       end
 
-      if window.buttonFlow.filter_page_forward == nil then
+      if pageFlow.filter_page_forward == nil then
         if guiSettings.filter_page < pageCount then
-          window.buttonFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_button_style"})
+          pageFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_button_style"})
         else
-          window.buttonFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_disabled_button"})
+          pageFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_disabled_button"})
         end
 
       end
-      window.buttonFlow.add({type="button", name="stationFilterClear", caption={"msg-Clear"}})
-      window.buttonFlow.add({type="button", name="stationFilterOK", caption={"msg-OK"}})
+      window.buttonFlow.add({type="button", name="stationFilterClear", caption={"msg-Clear"}, style="fatcontroller_button_style"})
+      window.buttonFlow.add({type="button", name="stationFilterOK", caption={"msg-OK"} , style="fatcontroller_button_style"})
 
 
-      window.add({type="table", name="checkboxGroup", colspan=6})
+      window.add({type="table", name="checkboxGroup", colspan=3})
 
       local i=0
       local upper = guiSettings.filter_page*global.PAGE_SIZE
       local lower = guiSettings.filter_page*global.PAGE_SIZE-global.PAGE_SIZE
       for name, value in pairsByKeys(guiSettings.stationFilterList) do
         if i>=lower and i<upper then
-          window.checkboxGroup.add({type="label",caption=i})
           if guiSettings.activeFilterList ~= nil and guiSettings.activeFilterList[name] then
             window.checkboxGroup.add({type="checkbox", name=name .. "_stationFilter", caption=name, state=true}) --style="filter_group_button_style"})
           else
