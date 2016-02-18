@@ -22,7 +22,8 @@ defaultGuiSettings = {  alarm={active=false,noPath=true,timeAtSignal=true,timeTo
   pageCount = 5,
   filter_page = 1,
   filter_pageCount = 1,
-  stationFilterList = {}
+  stationFilterList = {},
+  stopButton_state = false
 }
 
 local function init_player(player)
@@ -105,6 +106,11 @@ local function on_configuration_changed(data)
       for i,g in pairs(global.guiSettings) do
         g.filter_page = 1
         g.filter_pageCount = 5
+      end
+    end
+    if oldVersion and oldVersion < "0.3.20" then
+      for i,g in pairs(global.guiSettings) do
+        g.stopButton_state = false
       end
     end
     if not oldVersion or oldVersion < "0.3.14" or newVersion == "0.3.19" then
@@ -708,6 +714,32 @@ function on_gui_click(event)
       guiSettings.alarm.timeAtSignal = event.element.state
     elseif event.element.name == "alarmNoPath" then
       guiSettings.alarm.noPath = event.element.state
+    elseif event.element.name == "toggleButton" then
+        --run/stop the trains
+        local requested_state = not guiSettings.stopButton_state
+        --local smart_trains_installed = remote.interfaces.st and remote.interfaces.st.set_train_mode
+        if guiSettings.activeFilterList then
+          for i, trainInfo in pairs(global.trainsByForce[player.force.name]) do
+            if trainInfo.matchesStationFilter and trainInfo.train.valid and trainInfo.train.manual_mode == not requested_state then
+              trainInfo.train.manual_mode = requested_state
+              --if smart_trains_installed then
+                --remote.call("st", "set_train_mode", trainInfo.train, requested_state)
+              --end
+            end
+          end
+        else
+          for i, trainInfo in pairs(global.trainsByForce[player.force.name]) do
+            if trainInfo.train.valid and trainInfo.train.manual_mode == not requested_state then
+              trainInfo.train.manual_mode = requested_state
+              --if smart_trains_installed then
+              
+              --end
+            end
+          end
+        end
+      guiSettings.stopButton_state = requested_state
+      newInfoWindow = true
+      refreshGui = true
     end
 
     if rematchStationList then
@@ -1124,6 +1156,21 @@ function newTrainInfoWindow(guiSettings)
   if newGui.trainInfoControls.alarm.alarmButton == nil then
     newGui.trainInfoControls.alarm.add({type="button", name="alarmButton", caption="!", style="fatcontroller_button_style"})
   end
+
+  if newGui.trainInfoControls.control == nil then
+    newGui.trainInfoControls.add({type = "flow", name="control", direction="horizontal", style="fatcontroller_button_flow"})
+  end
+
+  if newGui.trainInfoControls.control.toggleButton == nil then
+    local caption = guiSettings.activeFilterList and "filtered" or "all"
+    if guiSettings.stopButton_state then
+      caption = "Resume "..caption
+    else
+      caption = "Stop "..caption
+    end
+    newGui.trainInfoControls.control.add({type = "button", name="toggleButton", caption=caption, style="fatcontroller_button_style"})
+  end
+
   -- if guiSettings.activeFilterList ~= nil then
   -- newGui.trainInfoControls.filterButtons.toggleStationFilter.style = "fatcontroller_selected_button"
   -- newGui.trainInfoControls.filterButtons.clearStationFilter.style = "fatcontroller_button_style"
@@ -1378,7 +1425,7 @@ function refreshTrainInfoGui(trains, guiSettings, player)
                 topString = "! " .. topString
               end
 
-              trainGui.info.topInfo.caption = i.." "..topString
+              trainGui.info.topInfo.caption = topString
               trainGui.info.bottomInfo.caption = bottomString
             end
 
@@ -1400,7 +1447,6 @@ function refreshTrainInfoGui(trains, guiSettings, player)
           end
         end
       end
-
       trainInfo.guiName = newGuiName
     end
   end
@@ -1576,6 +1622,7 @@ remote.add_interface("fat",
       for i,g in pairs(global.guiSettings) do
         g.filter_page = 1
         g.filter_pageCount = get_filter_PageCount(g)
+        g.stopButton_state = false
       end
     end,
 
