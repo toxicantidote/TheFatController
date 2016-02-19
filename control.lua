@@ -146,6 +146,16 @@ function register_events()
   script.on_event(defines.events.on_gui_click, on_gui_click)
 end
 
+function is_waiting_forever(train)
+  local smart_trains_installed = remote.interfaces.st and remote.interfaces.st.set_train_mode
+  --debugDump({st=smart_trains_installed, rc = remote.call("st", "is_waiting_forever", train)},true)
+  if smart_trains_installed then
+    return remote.call("st", "is_waiting_forever", train)
+  else
+    return false
+  end
+end
+
 --Called if tech is unlocked
 function init_gui(player)
   debugLog("Init: " .. player.name .. " - " .. player.force.name)
@@ -562,8 +572,16 @@ function on_gui_click(event)
     elseif endsWith(event.element.name,"_toggleManualMode") then
       local trainInfo = getTrainInfoFromElementName(trains, event.element.name)
       if trainInfo ~= nil and trainInfo.train ~= nil and trainInfo.train.valid then
-        trainInfo.train.manual_mode = not trainInfo.train.manual_mode
-        swapCaption(event.element, "ll", ">")
+        local smart_trains_installed = remote.interfaces.st and remote.interfaces.st.set_train_mode        
+          if not smart_trains_installed or (smart_trains_installed and not is_waiting_forever(trainInfo.train)) then
+            trainInfo.train.manual_mode = not trainInfo.train.manual_mode
+            swapCaption(event.element, "ll", ">")
+          else
+            if is_waiting_forever(trainInfo.train) then
+              --stop train (it's waiting forever -> considered running)
+              remote.call("st", "set_train_mode", trainInfo.train, true)
+            end
+          end
       end
     elseif endsWith(event.element.name,"_toggleFollowMode") then
       local trainInfo = getTrainInfoFromElementName(trains, event.element.name)
@@ -732,23 +750,23 @@ function on_gui_click(event)
     elseif event.element.name == "toggleButton" then
         --run/stop the trains
         local requested_state = not guiSettings.stopButton_state
-        --local smart_trains_installed = remote.interfaces.st and remote.interfaces.st.set_train_mode
+        local smart_trains_installed = remote.interfaces.st and remote.interfaces.st.set_train_mode
         if guiSettings.activeFilterList then
           for i, trainInfo in pairs(global.trainsByForce[player.force.name]) do
-            if trainInfo.matchesStationFilter and trainInfo.train.valid and trainInfo.train.manual_mode == not requested_state then
+            if trainInfo.matchesStationFilter and trainInfo.train.valid then
+              if smart_trains_installed and requested_state then
+                remote.call("st", "set_train_mode", trainInfo.train, requested_state)
+              end
               trainInfo.train.manual_mode = requested_state
-              --if smart_trains_installed then
-                --remote.call("st", "set_train_mode", trainInfo.train, requested_state)
-              --end
             end
           end
         else
           for i, trainInfo in pairs(global.trainsByForce[player.force.name]) do
-            if trainInfo.train.valid and trainInfo.train.manual_mode == not requested_state then
+            if trainInfo.train.valid then
+              if smart_trains_installed and requested_state then
+                remote.call("st", "set_train_mode", trainInfo.train, requested_state)
+              end
               trainInfo.train.manual_mode = requested_state
-              --if smart_trains_installed then
-              
-              --end
             end
           end
         end
@@ -1390,7 +1408,10 @@ function refreshTrainInfoGui(trains, guiSettings, player)
               end
 
               if trainGui.buttons[trainInfo.guiName .. "_toggleManualMode"] == nil then
-                trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleManualMode", caption="ll", style="fatcontroller_button_style"})
+                trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleManualMode", caption="", style="fatcontroller_button_style"})
+                local caption = trainInfo.train.manual_mode and ">" or "ll"
+                if is_waiting_forever(trainInfo.train) then caption = "ll" end
+                trainGui.buttons[trainInfo.guiName.."_toggleManualMode"].caption = caption 
               end
 
               if trainInfo.manualMode then
@@ -1421,6 +1442,7 @@ function refreshTrainInfoGui(trains, guiSettings, player)
 
               local topString = ""
               local station = trainInfo.currentStation
+              local waiting_forever = is_waiting_forever(trainInfo.train)
               if station == nil then station = "" end
               if trainInfo.lastState ~= nil then
                 if trainInfo.lastState == 1  or trainInfo.lastState == 3 then
@@ -1429,14 +1451,14 @@ function refreshTrainInfoGui(trains, guiSettings, player)
                   topString = "Stopped"
                 elseif trainInfo.lastState == 5 then
                   topString = "Signal || " .. station
-                elseif trainInfo.lastState == 8  or trainInfo.lastState == 9   or trainInfo.lastState == 10 then
+                elseif (trainInfo.lastState == 8  or trainInfo.lastState == 9   or trainInfo.lastState == 10) and not waiting_forever then
                   topString = "Manual"
                   if trainInfo.speed == 0 then
                     topString = topString .. ": " .. "Stopped" -- REPLACE WITH TRANSLAION
                   else
                     topString = topString .. ": " .. "Moving" -- REPLACE WITH TRANSLAION
                   end
-                elseif trainInfo.lastState == 7 then
+                elseif trainInfo.lastState == 7 or waiting_forever then
                   topString = "Station || " .. station
                 else
                   topString = "Moving -> " .. station
@@ -1457,6 +1479,9 @@ function refreshTrainInfoGui(trains, guiSettings, player)
 
               trainGui.info.topInfo.caption = topString
               trainGui.info.bottomInfo.caption = bottomString
+              if waiting_forever then 
+                trainGui.buttons[trainInfo.guiName.."_toggleManualMode"].caption = "ll"
+              end 
             end
 
             -- if character ~= nil and containsEntity(trainInfo.locomotives, character.opened) then --character.opened ~= nil and
