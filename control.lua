@@ -10,7 +10,7 @@ local function init_global()
   global.character = global.charactor or {}
   global.unlocked = global.unlocked or false
   global.unlockedByForce = global.unlockedByForce or {}
-  global.PAGE_SIZE = 60
+  global.PAGE_SIZE = global.PAGE_SIZE or 60
   global.version = "0.3.1"
 end
 
@@ -90,7 +90,7 @@ local function on_configuration_changed(data)
         end
         if type(global.character) == "table" then
           for i, c in pairs(global.character) do
-            if game.players[i].connected then
+            if game.players[i].connected and c.valid then
               swapPlayer(game.players[i], c)
             end
           end
@@ -108,7 +108,7 @@ local function on_configuration_changed(data)
         g.filter_pageCount = 5
       end
     end
-    if oldVersion and oldVersion < "0.3.20" then
+    if oldVersion and oldVersion < "0.3.21" then
       for i,g in pairs(global.guiSettings) do
         g.stopButton_state = false
       end
@@ -222,6 +222,21 @@ onTickAfterUnlocked = function(event)
       end
       global.to_swap = #tmp > 0 and tmp or false
     end
+    
+    if global.dead_players then
+      for i, character in pairs(global.dead_players) do
+        if not character.valid then
+          debugDump(game.players[i].name.." died while remote controlling",true)
+          debugDump("Killing "..game.players[i].name.." softly",true)
+          game.players[i].character.die()
+          global.guiSettings[i].followEntity = nil
+        else
+        
+        end
+      end
+      global.dead_players = nil
+    end
+    
     if event.tick%60==13 then
       local updateGui = false
       -- move to on_gui_click ???
@@ -914,8 +929,21 @@ local onEntityDied = function (event)
     if not entities[event.entity.type] then
       return
     end
-    for forceName,trains in pairs(global.trainsByForce) do
-      updateTrains(trains)
+    if event.entity.type == "locomotive" or event.entity.type == "cargo-wagon" then
+      for forceName,trains in pairs(global.trainsByForce) do
+        updateTrains(trains)
+      end
+    else
+      if event.entity.name ~= "fatcontroller" then
+        -- player died
+        for i,guiSettings in pairs(global.guiSettings) do
+          -- check if character is still valid next tick for players remote controlling a train
+          if guiSettings.followEntity then
+            global.dead_players = global.dead_players or {}
+            global.dead_players[i] = global.character[i]
+          end
+        end
+      end
     end
 
     for i, player in pairs(game.players) do
@@ -966,7 +994,9 @@ function swapPlayer(player, character)
   if player.character ~= nil and player.character.valid and player.character.name == "fatcontroller" then
     player.character.destroy()
   end
-  player.character = character
+  if character.valid then
+    player.character = character
+  end
 end
 
 function isTrainType(type)
