@@ -2,6 +2,8 @@ require "defines"
 require "util"
 
 MOD_NAME = "TheFatController"
+defaults = {stationDuration=10,signalDuration=2}
+
 
 local function init_global()
   global = global or {}
@@ -11,6 +13,7 @@ local function init_global()
   global.unlocked = global.unlocked or false
   global.unlockedByForce = global.unlockedByForce or {}
   global.PAGE_SIZE = global.PAGE_SIZE or 60
+  global.force_settings = global.force_settings or {}
   global.version = "0.3.1"
 end
 
@@ -42,6 +45,7 @@ end
 local function init_force(force)
   init_global()
   global.trainsByForce[force.name] = global.trainsByForce[force.name] or {}
+  global.force_settings[force.name] = global.force_settings[force.name] or {signalDuration=defaults.signalDuration*3600,stationDuration=defaults.stationDuration*3600}
   if force.technologies["rail-signals"].researched then
     global.unlockedByForce[force.name] = true
     global.unlocked = true
@@ -154,6 +158,10 @@ function is_waiting_forever(train)
   else
     return false
   end
+end
+
+function sanitizeNumber(number, default)
+  return tonumber(number) or default
 end
 
 --Called if tech is unlocked
@@ -319,8 +327,11 @@ onTickAfterUnlocked = function(event)
       alarmState.timeToStation = false
       alarmState.timeAtSignal = false
       alarmState.noPath = false
+      alarmState.noFuel = false
       local newAlarm = false
       for forceName,trains in pairs(global.trainsByForce) do
+        local stationDuration = global.force_settings[forceName].stationDuration
+        local signalDuration = global.force_settings[forceName].signalDuration
         for i,trainInfo in pairs(trains) do
           local alarmSet = false
           if trainInfo.lastState == 1 or trainInfo.lastState == 3 then
@@ -329,29 +340,61 @@ onTickAfterUnlocked = function(event)
               alarmState.noPath = true
               newAlarm = true
               trainInfo.updated = true
+              trainInfo.alarmType = "noPath"
             end
             alarmSet = true
             trainInfo.alarm = true
           end
           -- 36000, 10 minutes
-          if trainInfo.lastState ~= 7 and trainInfo.lastStateStation ~= nil and (trainInfo.lastStateStation + 36000 < game.tick and (trainInfo.lastState ~= 2 or trainInfo.lastState ~= 8 or trainInfo.lastState ~= 9)) then
+
+          if trainInfo.lastState ~= 7 and trainInfo.lastStateStation ~= nil and (trainInfo.lastStateStation + stationDuration < game.tick and (trainInfo.lastState ~= 2 or trainInfo.lastState ~= 8 or trainInfo.lastState ~= 9)) then
             if not trainInfo.alarm then
               alarmState.timeToStation = true
               newAlarm = true
               trainInfo.updated = true
+              trainInfo.alarmType = "timeToStation"
             end
             alarmSet = true
             trainInfo.alarm = true
           end
           -- 72002 minutes lol, wtf?
-          if trainInfo.lastState == 5 and (trainInfo.lastStateTick ~= nil and trainInfo.lastStateTick + 7200 < game.tick ) then
+          if trainInfo.lastState == 5 and (trainInfo.lastStateSignal ~= nil and trainInfo.lastStateSignal + signalDuration < game.tick ) then
             if not trainInfo.alarm then
               alarmState.timeAtSignal = true
               newAlarm = true
               trainInfo.updated = true
+              trainInfo.alarmType = "timeAtSignal"
             end
             alarmSet = true
             trainInfo.alarm = true
+          end
+          if trainInfo.train.valid then
+            local noFuel = false
+            local locos = trainInfo.train.locomotives
+            for i,carriage in pairs(locos.front_movers) do
+              if carriage.get_inventory(1).is_empty() then
+                noFuel = true
+                break
+              end
+            end
+            if not noFuel then
+              for i,carriage in pairs(locos.back_movers) do
+                if carriage.get_inventory(1).is_empty() then
+                  noFuel = true
+                  break
+                end
+              end
+            end
+            if noFuel then
+              if not trainInfo.alarm then
+                alarmState.noFuel = true
+                newAlarm = true
+                trainInfo.updated = true
+                trainInfo.alarmType = "noFuel"
+              end
+              alarmSet = true
+              trainInfo.alarm = true
+            end
           end
           if not alarmSet then
             if trainInfo.alarm then
@@ -363,25 +406,33 @@ onTickAfterUnlocked = function(event)
       end
 
       for i,guiSettings in pairs(global.guiSettings) do
-        if guiSettings.alarm == nil or guiSettings.alarm.noPath == nil then
+        if guiSettings.alarm == nil or guiSettings.alarm.noPath == nil or guiSettings.alarm.noFuel == nil then
           guiSettings.alarm = {}
           guiSettings.alarm.timeToStation = true
           guiSettings.alarm.timeAtSignal = true
           guiSettings.alarm.noPath = true
+          guiSettings.alarm.noFuel = true
         end
-        if (guiSettings.alarm.timeToStation or guiSettings.alarm.timeAtSignal or guiSettings.alarm.noPath) and newAlarm then
+        local stationDuration = global.force_settings[game.players[i].force.name].stationDuration/3600
+        local signalDuration = global.force_settings[game.players[i].force.name].signalDuration/3600
+        if (guiSettings.alarm.timeToStation or guiSettings.alarm.timeAtSignal or guiSettings.alarm.noPath or guiSettings.alarm.noFuel) and newAlarm then
           if guiSettings.alarm.timeToStation and alarmState.timeToStation then
             guiSettings.alarm.active = true
-            alertPlayer(game.players[i], guiSettings, game.tick, ({"msg-alarm-tolongtostation"}))
+            alertPlayer(game.players[i], guiSettings, game.tick, ({"msg-alarm-tolongtostation", stationDuration}))
           end
           if guiSettings.alarm.timeAtSignal and alarmState.timeAtSignal then
             guiSettings.alarm.active = true
-            alertPlayer(game.players[i], guiSettings, game.tick, ({"msg-alarm-tolongatsignal"}))
+            alertPlayer(game.players[i], guiSettings, game.tick, ({"msg-alarm-tolongatsignal", signalDuration}))
           end
           if guiSettings.alarm.noPath and alarmState.noPath then
             guiSettings.alarm.active = true
             alertPlayer(game.players[i], guiSettings, game.tick, ({"msg-alarm-nopath"}))
           end
+          if guiSettings.alarm.noFuel and alarmState.noFuel then
+            guiSettings.alarm.active = true
+            alertPlayer(game.players[i], guiSettings, game.tick, ({"msg-alarm-nofuel"}))
+          end
+          refreshTrainInfoGui(global.trainsByForce[game.players[i].force.name], guiSettings, game.players[i])
         else
           guiSettings.alarm.active = false
         end
@@ -489,14 +540,13 @@ function on_train_changed_state(event)
 
     local train = event.train
     local entity = train.carriages[1]
-
+    --debugDump(game.tick.." state:"..train.state,true)
     local trains = global.trainsByForce[entity.force.name]
     local trainInfo = getTrainInfoOrNewFromEntity(trains, entity)
     if trainInfo ~= nil then
       local newtrain = false
       if trainInfo.updated == nil then
         newtrain = true
-      else
       end
       updateTrainInfo(trainInfo,game.tick)
       if newtrain then
@@ -739,14 +789,25 @@ function on_gui_click(event)
         toggleStationFilterWindow(player.gui.center, guiSettings)
       end
       --alarmOK alarmTimeToStation alarmTimeAtSignal alarmNoPath alarmButton
-    elseif event.element.name == "alarmButton" or event.element.name == "alarmOK" then
-      toggleAlarmWindow(player.gui.center, guiSettings)
+    elseif event.element.name == "alarmButton" then
+      toggleAlarmWindow(player.gui.center, player.index)
+    elseif event.element.name == "alarmOK" then
+      --save
+      
+      local gui = player.gui.center
+      local station = sanitizeNumber(gui.alarmWindow.flowStation.alarmTimeToStationDuration.text,defaults.stationDuration)*3600
+      local signal = sanitizeNumber(gui.alarmWindow.flowSignal.alarmTimeAtSignalDuration.text,defaults.signalDuration)*3600
+      global.force_settings[player.force.name] = {signalDuration=signal,stationDuration=station}
+      debugDump(global.force_settings[player.force.name],true)
+      toggleAlarmWindow(player.gui.center, player.index)    
     elseif event.element.name == "alarmTimeToStation" then
       guiSettings.alarm.timeToStation = event.element.state
     elseif event.element.name == "alarmTimeAtSignal" then
       guiSettings.alarm.timeAtSignal = event.element.state
     elseif event.element.name == "alarmNoPath" then
       guiSettings.alarm.noPath = event.element.state
+    elseif event.element.name == "alarmNoFuel" then
+      guiSettings.alarm.noFuel = event.element.state
     elseif event.element.name == "toggleButton" then
         --run/stop the trains
         local requested_state = not guiSettings.stopButton_state
@@ -897,7 +958,8 @@ function togglePageSelectWindow(gui, guiSettings)
   end
 end
 
-function toggleAlarmWindow(gui, guiSettings)
+function toggleAlarmWindow(gui, player_index)
+  local guiSettings = global.guiSettings[player_index]
   if gui ~= nil then
     if gui.alarmWindow == nil then
       local window = gui.add({type="frame",name="alarmWindow", caption={"text-alarmwindow"}, direction="vertical" })
@@ -905,18 +967,32 @@ function toggleAlarmWindow(gui, guiSettings)
       if guiSettings.alarm ~= nil and not guiSettings.alarm.timeToStation then
         stateTimeToStation = false
       end
-      window.add({type="checkbox", name="alarmTimeToStation", caption={"text-alarmtimetostation"}, state=stateTimeToStation}) --style="filter_group_button_style"})
+      local flow1 = window.add({name="flowStation", type="flow", direction="horizontal"})
+      flow1.add({type="checkbox", name="alarmTimeToStation", caption={"text-alarmMoreThan"}, state=stateTimeToStation}) --style="filter_group_button_style"})
+      local stationDuration = flow1.add({type="textfield", name="alarmTimeToStationDuration", style="fatcontroller_textfield_small"})
+      flow1.add({type="label", caption={"text-alarmtimetostation"}})
       local stateTimeAtSignal = true
       if guiSettings.alarm ~= nil and not guiSettings.alarm.timeAtSignal then
         stateTimeAtSignal = false
       end
-      window.add({type="checkbox", name="alarmTimeAtSignal", caption={"text-alarmtimeatsignal"}, state=stateTimeAtSignal}) --style="filter_group_button_style"})
+      local flow2 = window.add({name="flowSignal",type="flow", direction="horizontal"})
+      flow2.add({type="checkbox", name="alarmTimeAtSignal", caption={"text-alarmMoreThan"}, state=stateTimeAtSignal}) --style="filter_group_button_style"})
+      local signalDuration = flow2.add({type="textfield", name="alarmTimeAtSignalDuration", style="fatcontroller_textfield_small"})
+      flow2.add({type="label", caption={"text-alarmtimeatsignal"}})
       local stateNoPath = true
       if guiSettings.alarm ~= nil and not guiSettings.alarm.noPath then
         stateNoPath = false
       end
       window.add({type="checkbox", name="alarmNoPath", caption={"text-alarmtimenopath"}, state=stateNoPath}) --style="filter_group_button_style"})
+      local stateNoFuel = true
+      if guiSettings.alarm ~= nil and not guiSettings.alarm.noFuel then
+        stateNoFuel = false
+      end
+      window.add({type="checkbox", name="alarmNoFuel", caption={"text-alarmtimenofuel"}, state=stateNoFuel})
       window.add({type="button", name="alarmOK", caption={"msg-OK"}})
+      
+      stationDuration.text = global.force_settings[game.players[player_index].force.name].stationDuration/3600
+      signalDuration.text = global.force_settings[game.players[player_index].force.name].signalDuration/3600
     else
       gui.alarmWindow.destroy()
     end
@@ -1290,7 +1366,6 @@ function updateTrains(trains)
     end
 
     if (trainInfo.train == nil or not trainInfo.train.valid) then
-
       table.remove(trains, i)
     else
       trainInfo.locomotives = getLocomotives(trainInfo.train)
@@ -1315,9 +1390,41 @@ function updateTrainInfo(trainInfo, tick)
     trainInfo.updated = false
 
     if trainInfo.lastState == nil or trainInfo.lastState ~= trainInfo.train.state then
+      --return if state changes from on the path to wait at signal in 2 ticks
+      if (trainInfo.train.state == 5 and trainInfo.lastState == 0 and tick-1 == trainInfo.lastStateTick) or
+         (trainInfo.train.state == 0 and trainInfo.lastState == 5 and tick-300 == trainInfo.lastStateTick) then
+        --debugDump("wrong update",true)
+        trainInfo.lastState = trainInfo.train.state
+          trainInfo.lastStateTick = tick
+          return
+      end
       trainInfo.updated = true
       if trainInfo.train.state == 7 then
         trainInfo.lastStateStation = tick
+      elseif trainInfo.train.state == 4 then
+        trainInfo.lastStateSignal = tick
+      elseif trainInfo.train.state == 0 then
+        if trainInfo.alarmType then
+          if trainInfo.alarmType == "timeToStation" then
+            trainInfo.alarm = false
+            trainInfo.alarmType = false
+            trainInfo.lastStateStation = nil
+          end
+        end
+      --was waiting at signal and last state change is more than 1 tick ago --> left signal
+      elseif trainInfo.lastState == 5 and trainInfo.train.state == 0 then
+        if tick-1 > trainInfo.lastStateTick then
+          --debugDump("left signal",true)
+          if trainInfo.alarmType == "tiemAtSignal" then
+            trainInfo.alarm  = false
+            trainInfo.alarmType = false
+            trainInfo.lastStateSignal = nil
+          end
+        else
+          --trainInfo.lastState = trainInfo.train.state
+          --trainInfo.lastStateTick = tick
+          --return
+        end
       end
       trainInfo.lastState = trainInfo.train.state
       trainInfo.lastStateTick = tick
@@ -1474,7 +1581,8 @@ function refreshTrainInfoGui(trains, guiSettings, player)
               end
 
               if guiSettings.alarm ~= nil and trainInfo.alarm then
-                topString = "! " .. topString
+                local alarmType = trainInfo.alarmType or ""
+                topString = "!"..alarmType .. topString
               end
 
               trainGui.info.topInfo.caption = topString
@@ -1679,6 +1787,7 @@ remote.add_interface("fat",
         g.filter_pageCount = get_filter_PageCount(g)
         g.stopButton_state = false
       end
+      init_forces()
     end,
 
     page_size = function(size)

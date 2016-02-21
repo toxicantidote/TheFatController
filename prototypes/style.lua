@@ -127,3 +127,11 @@ data.raw["gui-style"].default["fatcontroller_label_style"] =
 	  top_padding = 0,
       bottom_padding = 0,
     }
+    
+data.raw["gui-style"].default["fatcontroller_textfield_small"] =
+  {
+    type = "textfield_style",
+    left_padding = 3,
+    right_padding = 2,
+    minimal_width = 30,
+  }    
