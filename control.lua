@@ -798,7 +798,7 @@ function on_gui_click(event)
       local station = sanitizeNumber(gui.alarmWindow.flowStation.alarmTimeToStationDuration.text,defaults.stationDuration)*3600
       local signal = sanitizeNumber(gui.alarmWindow.flowSignal.alarmTimeAtSignalDuration.text,defaults.signalDuration)*3600
       global.force_settings[player.force.name] = {signalDuration=signal,stationDuration=station}
-      debugDump(global.force_settings[player.force.name],true)
+      --debugDump(global.force_settings[player.force.name],true)
       toggleAlarmWindow(player.gui.center, player.index)    
     elseif event.element.name == "alarmTimeToStation" then
       guiSettings.alarm.timeToStation = event.element.state
@@ -1582,6 +1582,7 @@ function refreshTrainInfoGui(trains, guiSettings, player)
 
               if guiSettings.alarm ~= nil and trainInfo.alarm then
                 local alarmType = trainInfo.alarmType or ""
+                --topString = "!"..alarmType .. topString
                 topString = "!"..alarmType .. topString
               end
 
