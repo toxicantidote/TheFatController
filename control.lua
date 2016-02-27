@@ -65,6 +65,7 @@ end
 local function on_init()
   init_global()
   init_forces()
+  init_players()
 end
 
 local function on_load()
@@ -102,19 +103,22 @@ local function on_configuration_changed(data)
         global = nil
       end
     end
-    init_global()
-    init_forces()
-    init_players()
-    if oldVersion and oldVersion < "0.3.19" then
-      global.PAGE_SIZE = 60
-      for i,g in pairs(global.guiSettings) do
-        g.filter_page = 1
-        g.filter_pageCount = 5
+    on_init()
+    if oldVersion then
+      if oldVersion < "0.3.19" then
+        global.PAGE_SIZE = 60
+        for i,g in pairs(global.guiSettings) do
+          g.filter_page = 1
+          g.filter_pageCount = 5
+        end
       end
-    end
-    if oldVersion and oldVersion < "0.3.21" then
-      for i,g in pairs(global.guiSettings) do
-        g.stopButton_state = false
+      if oldVersion < "0.3.21" then
+        for i,g in pairs(global.guiSettings) do
+          g.stopButton_state = false
+        end
+      end
+      if oldVersion < "0.3.23" then
+        init_forces()
       end
     end
     if not oldVersion or oldVersion < "0.3.14" or newVersion == "0.3.19" then
@@ -418,11 +422,12 @@ onTickAfterUnlocked = function(event)
         if (guiSettings.alarm.timeToStation or guiSettings.alarm.timeAtSignal or guiSettings.alarm.noPath or guiSettings.alarm.noFuel) and newAlarm then
           if guiSettings.alarm.timeToStation and alarmState.timeToStation then
             guiSettings.alarm.active = true
-            alertPlayer(game.players[i], guiSettings, game.tick, ({"msg-alarm-tolongtostation", stationDuration}))
+            log(stationDuration)            
+            alertPlayer(game.players[i], guiSettings, game.tick, ({"msg-alarm-toolongtostation", stationDuration}))
           end
           if guiSettings.alarm.timeAtSignal and alarmState.timeAtSignal then
             guiSettings.alarm.active = true
-            alertPlayer(game.players[i], guiSettings, game.tick, ({"msg-alarm-tolongatsignal", signalDuration}))
+            alertPlayer(game.players[i], guiSettings, game.tick, ({"msg-alarm-toolongatsignal", signalDuration}))
           end
           if guiSettings.alarm.noPath and alarmState.noPath then
             guiSettings.alarm.active = true
@@ -495,6 +500,11 @@ function getNewTrainInfo(train)
       local newTrainInfo = {}
       newTrainInfo.train = train
       --newTrainInfo.firstCarriage = getFirstCarriage(train)
+      local carriages = {}
+      for i,c in pairs(carriages) do
+        carriages[i] = c
+      end
+      newTrainInfo.carriages = carriages
       newTrainInfo.locomotives = getLocomotives(train)
 
       --newTrainInfo.display = true
@@ -1082,6 +1092,20 @@ script.on_event(defines.events.on_entity_died, onEntityDied)
 
 script.on_event(defines.events.on_preplayer_mined_item, onEntityDied)
 
+function on_player_mined(event)
+  local entities = {locomotive=true, ["cargo-wagon"]=true, player=true}
+  local ent_type = game.entity_prototypes[event.item_stack.name] and game.entity_prototypes[event.item_stack.name].type or "fo"
+  --debugDump(ent_type,true)
+  if entities[ent_type] then
+    for force_name, trains in pairs(global.trainsByForce) do
+      updateTrains(trains)
+    end
+    refreshAllTrainInfoGuis(global.trainsByForce, global.guiSettings, game.players, true)
+  end 
+end
+
+script.on_event(defines.events.on_player_mined_item, on_player_mined)
+
 function swapPlayer(player, character)
   --player.teleport(character.position)
   if not player.connected then return end
@@ -1354,11 +1378,18 @@ end
 
 function updateTrains(trains)
   --if trains ~= nil then
+  local to_remove = {}
   for i, trainInfo in pairs(trains) do
 
     --refresh invalid train objects
     if trainInfo.train == nil or not trainInfo.train.valid then
-      trainInfo.train = getTrainFromLocomotives(trainInfo.locomotives)
+      if not trainInfo.carriages then trainInfo.carriages = {} end
+      for i, carriage in pairs(trainInfo.carriages) do
+        if carriage and carriage.valid then
+          trainInfo.train = carriage.train
+        end
+      end
+      --trainInfo.train = getTrainFromLocomotives(trainInfo.locomotives)
       trainInfo.locomotives = getLocomotives(trainInfo.train)
       if isTrainInfoDuplicate(trains, trainInfo, i) then
         trainInfo.train = nil
@@ -1366,12 +1397,15 @@ function updateTrains(trains)
     end
 
     if (trainInfo.train == nil or not trainInfo.train.valid) then
-      table.remove(trains, i)
+      table.insert(to_remove, i)
     else
       trainInfo.locomotives = getLocomotives(trainInfo.train)
       updateTrainInfo(trainInfo, game.tick)
       --debugLog(trainInfo.train.state)
     end
+  end
+  for i=#to_remove,1,-1 do
+    table.remove(trains, to_remove[i])
   end
   --end
 end
@@ -1481,6 +1515,8 @@ function refreshTrainInfoGui(trains, guiSettings, player)
   if not player.connected then return end
   local character = player.character
   local gui = guiSettings.fatControllerGui.trainInfo
+  guiSettings.pageCount = getPageCount(trains, guiSettings)
+  if guiSettings.page > guiSettings.pageCount then guiSettings.page = guiSettings.pageCount end
   if gui ~= nil and trains ~= nil then
     local removeTrainInfo = {}
 
@@ -1492,6 +1528,7 @@ function refreshTrainInfoGui(trains, guiSettings, player)
 
     for i, trainInfo in pairs(trains) do
       local newGuiName = nil
+      if trainInfo.train and trainInfo.train.valid then
       if display < guiSettings.displayCount then
         if guiSettings.activeFilterList == nil or trainInfo.matchesStationFilter then
           filteredCount = filteredCount + 1
@@ -1612,6 +1649,7 @@ function refreshTrainInfoGui(trains, guiSettings, player)
         end
       end
       trainInfo.guiName = newGuiName
+      end
     end
   end
 end
@@ -1781,6 +1819,7 @@ remote.add_interface("fat",
         global.guiSettings[j] = nil
       end
     end,
+    
     init = function()
       global.PAGE_SIZE = 60
       for i,g in pairs(global.guiSettings) do
@@ -1789,6 +1828,29 @@ remote.add_interface("fat",
         g.stopButton_state = false
       end
       init_forces()
+    end,
+    
+    rescan_trains = function()
+      for i, guiSettings in pairs(global.guiSettings) do
+        if guiSettings.fatControllerGui.trainInfo ~= nil then
+          guiSettings.fatControllerGui.trainInfo.destroy()
+          if global.character[i] then
+            swapPlayer(game.players[i], global.character[i])
+          end
+          if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.toggleTrainInfo then
+            guiSettings.fatControllerButtons.toggleTrainInfo.caption = {"text-trains-collapsed"}
+          end
+        end
+      end
+      for force, trains in pairs(global.trainsByForce) do
+        local c = #trains
+        for i=c,1,-1 do
+          if not trains[i].train.valid then
+            trains[i] = nil
+          end
+        end
+      end
+      findTrains()
     end,
 
     page_size = function(size)
