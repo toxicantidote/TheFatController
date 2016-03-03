@@ -9,7 +9,7 @@ local function init_global()
   global = global or {}
   global.guiSettings = global.guiSettings or {}
   global.trainsByForce = global.trainsByForce or {}
-  global.character = global.charactor or {}
+  global.character = global.character or {}
   global.unlocked = global.unlocked or false
   global.unlockedByForce = global.unlockedByForce or {}
   global.PAGE_SIZE = global.PAGE_SIZE or 60
@@ -332,17 +332,18 @@ onTickAfterUnlocked = function(event)
       alarmState.timeAtSignal = false
       alarmState.noPath = false
       alarmState.noFuel = false
-      local newAlarm = false
+      local newAlarm = {}
       for forceName,trains in pairs(global.trainsByForce) do
         local stationDuration = global.force_settings[forceName].stationDuration
         local signalDuration = global.force_settings[forceName].signalDuration
+        newAlarm[forceName] = false
         for i,trainInfo in pairs(trains) do
           local alarmSet = false
           if trainInfo.lastState == 1 or trainInfo.lastState == 3 then
             --game.players[1].print("No Path " .. i .. " " .. game.tick)
             if not trainInfo.alarm then
               alarmState.noPath = true
-              newAlarm = true
+              newAlarm[forceName] = true
               trainInfo.updated = true
               trainInfo.alarmType = "noPath"
             end
@@ -354,7 +355,7 @@ onTickAfterUnlocked = function(event)
           if trainInfo.lastState ~= 7 and trainInfo.lastStateStation ~= nil and (trainInfo.lastStateStation + stationDuration < game.tick and (trainInfo.lastState ~= 2 or trainInfo.lastState ~= 8 or trainInfo.lastState ~= 9)) then
             if not trainInfo.alarm then
               alarmState.timeToStation = true
-              newAlarm = true
+              newAlarm[forceName] = true
               trainInfo.updated = true
               trainInfo.alarmType = "timeToStation"
             end
@@ -365,7 +366,7 @@ onTickAfterUnlocked = function(event)
           if trainInfo.lastState == 5 and (trainInfo.lastStateSignal ~= nil and trainInfo.lastStateSignal + signalDuration < game.tick ) then
             if not trainInfo.alarm then
               alarmState.timeAtSignal = true
-              newAlarm = true
+              newAlarm[forceName] = true
               trainInfo.updated = true
               trainInfo.alarmType = "timeAtSignal"
             end
@@ -392,7 +393,7 @@ onTickAfterUnlocked = function(event)
             if noFuel then
               if not trainInfo.alarm then
                 alarmState.noFuel = true
-                newAlarm = true
+                newAlarm[forceName] = true
                 trainInfo.updated = true
                 trainInfo.alarmType = "noFuel"
               end
@@ -417,12 +418,12 @@ onTickAfterUnlocked = function(event)
           guiSettings.alarm.noPath = true
           guiSettings.alarm.noFuel = true
         end
-        local stationDuration = global.force_settings[game.players[i].force.name].stationDuration/3600
-        local signalDuration = global.force_settings[game.players[i].force.name].signalDuration/3600
-        if (guiSettings.alarm.timeToStation or guiSettings.alarm.timeAtSignal or guiSettings.alarm.noPath or guiSettings.alarm.noFuel) and newAlarm then
+        local forceName = game.players[i].force.name
+        local stationDuration = global.force_settings[forceName].stationDuration/3600
+        local signalDuration = global.force_settings[forceName].signalDuration/3600
+        if newAlarm[forceName] and (guiSettings.alarm.timeToStation or guiSettings.alarm.timeAtSignal or guiSettings.alarm.noPath or guiSettings.alarm.noFuel) then
           if guiSettings.alarm.timeToStation and alarmState.timeToStation then
             guiSettings.alarm.active = true
-            log(stationDuration)            
             alertPlayer(game.players[i], guiSettings, game.tick, ({"msg-alarm-toolongtostation", stationDuration}))
           end
           if guiSettings.alarm.timeAtSignal and alarmState.timeAtSignal then
