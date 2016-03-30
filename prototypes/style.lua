@@ -1,12 +1,10 @@
-
 data.raw["gui-style"].default["fatcontroller_thin_flow"] =
     {
       type = "flow_style",
       horizontal_spacing = 0,
       vertical_spacing = 0,
       max_on_row = 0,
-      resize_row_to_width = true,
-	  
+      resize_row_to_width = true,	  
     }
 	
 	
