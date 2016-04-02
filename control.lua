@@ -4,6 +4,15 @@ require "TrainList"
 require "GUI"
 
 MOD_NAME = "TheFatController"
+
+-- myevent = game.generateeventname()
+-- the name and tick are filled for the event automatically
+-- this event is raised with extra parameter foo with value "bar"
+--game.raiseevent(myevent, {foo="bar"})
+events = {}
+events["on_player_opened"] = script.generate_event_name()
+events["on_player_closed"] = script.generate_event_name()
+
 defaults = {stationDuration=10,signalDuration=2}
 
 defaultGuiSettings = {
@@ -15,7 +24,6 @@ defaultGuiSettings = {
   pageCount = 5,
   filter_page = 1,
   filter_pageCount = 1,
-  stationFilterList = {},
   stopButton_state = false,
   displayed_trains = {}
 }
@@ -44,7 +52,7 @@ TrainInfo = {
   follower_index = 0, -- player_index of following player
   opened_guis = {}, -- contains references to opened player guis, indexed by player_index
   stations = {}, --boolean table, indexed by stations in the schedule, new global trains_by_station?? should speedup filtered display
-  matches_filter = false, --whether the stations match the filter
+  matches_filter = {}, --whether the stations match the filter
   alarm = {
     active = false,
     last_message = 0, --tick
@@ -83,12 +91,15 @@ local function init_global()
   global = global or {}
   global.gui = global.gui or {}
   global.trainsByForce = global.trainsByForce or {}
-  --global.character = global.character or {}
+  global.character = global.character or {}
   global.unlocked = global.unlocked or false
   global.unlockedByForce = global.unlockedByForce or {}
   global.updateEntities = global.updateEntities or false
   global.updateTrains = global.updateTrains or {}
-  --global.PAGE_SIZE = global.PAGE_SIZE or 60
+  global.PAGE_SIZE = global.PAGE_SIZE or 60
+  global.station_count = global.station_count or {}
+  global.player_opened = global.player_opened or {}
+  global.opened_name = global.opened_name or {}
   --global.force_settings = global.force_settings or {}
 end
 
@@ -108,6 +119,7 @@ end
 local function init_force(force)
   init_global()
   global.trainsByForce[force.name] = global.trainsByForce[force.name] or {}
+  global.station_count[force.name] = global.station_count[force.name] or {}
   --global.force_settings[force.name] = global.force_settings[force.name] or {signalDuration=defaults.signalDuration*3600,stationDuration=defaults.stationDuration*3600}
   if force.technologies["rail-signals"].researched then
     global.unlockedByForce[force.name] = true
@@ -135,14 +147,14 @@ local function on_load()
   if global.unlocked then
     register_events()
   end
---  global.TRAINS = {}
---  for force, trains in pairs(global.trainsByForce) do
---    for i, trainInfo in pairs(trains) do
---      if trainInfo.train and trainInfo.train.valid then
---        global.TRAINS[trainInfo.train] = trainInfo
---      end
---    end
---  end
+  --  global.TRAINS = {}
+  --  for force, trains in pairs(global.trainsByForce) do
+  --    for i, trainInfo in pairs(trains) do
+  --      if trainInfo.train and trainInfo.train.valid then
+  --        global.TRAINS[trainInfo.train] = trainInfo
+  --      end
+  --    end
+  --  end
 end
 
 function destroyGui(guiA)
@@ -184,8 +196,19 @@ local function on_configuration_changed(data)
     on_init()
     if oldVersion then
       if oldVersion < "0.4.0" then
+        local tmp = {}
+        for i, player in pairs(game.players) do
+          tmp[i] = {}
+          tmp[i].fatControllerGui = global.guiSettings[i].fatControllerGui
+          tmp[i].fatControllerButtons = global.guiSettings[i].fatControllerButtons
+        end
         global = nil
         on_init()
+        for i, player in pairs(game.players) do
+          global.gui[i].fatControllerGui = tmp[i].fatControllerGui
+          global.gui[i].fatControllerButtons = tmp[i].fatControllerButtons
+        end
+        findTrains()
       end
     end
     if not oldVersion or oldVersion < "0.3.14" or newVersion == "0.3.19" then
@@ -291,7 +314,7 @@ function on_tick(event)
       global.updateEntities = false
       --script.on_event(defines.events.on_tick, nil)
     end
-    
+
     if global.updateTrains[game.tick] then
       for _, ti in pairs(global.updateTrains[game.tick]) do
         ti.inventory = getHighestInventoryCount(ti)
@@ -306,6 +329,22 @@ function on_tick(event)
       end
       global.updateTrains[game.tick] = nil
     end
+
+    if event.tick%10==7  then
+      for pi, player in pairs(game.players) do
+        if player.connected then
+          if player.opened ~= nil and not global.player_opened[pi] then
+            game.raise_event(events["on_player_opened"], {entity=player.opened, player_index=pi})
+            global.player_opened[pi] = player.opened
+          end
+          if global.player_opened[pi] and player.opened == nil then
+            game.raise_event(events["on_player_closed"], {entity=global.player_opened[pi], player_index=pi})
+            global.player_opened[pi] = nil
+          end
+        end
+      end
+    end
+
   end)
   if err then debugDump(err,true) end
 end
@@ -382,26 +421,27 @@ function on_train_changed_state(event)
       --  going from wait_signal to on_the_path after 300 ticks
       --  going from on_the_path to wait_signal after 1 tick
       --  arrive_signal
-      local diff = game.tick - trainInfo.previous_state_tick 
-      if  train.state == defines.trainstate.arrive_signal or 
-          (trainInfo.previous_state == defines.trainstate.wait_signal and train.state == defines.trainstate.on_the_path
-            and diff == 300)
-          or (trainInfo.previous_state == defines.trainstate.on_the_path and train.state == defines.trainstate.wait_signal
-            and diff == 1) then
-         --debugDump(game.tick.." Skipped",true)
+      local diff = game.tick - trainInfo.previous_state_tick
+      if  train.state == defines.trainstate.arrive_signal or
+        (trainInfo.previous_state == defines.trainstate.wait_signal and train.state == defines.trainstate.on_the_path
+        and diff == 300)
+        or (trainInfo.previous_state == defines.trainstate.on_the_path and train.state == defines.trainstate.wait_signal
+        and diff == 1) then
+        --debugDump(game.tick.." Skipped",true)
         return
       end
-      
+
       if train.state == defines.trainstate.wait_station then
         trainInfo.depart_at = game.tick + train.schedule.records[train.schedule.current].time_to_wait
         trainInfo.inventory = getHighestInventoryCount(trainInfo)
         local nextUpdate = game.tick+60
         global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
-        table.insert(global.updateTrains[nextUpdate], trainInfo)   
+        table.insert(global.updateTrains[nextUpdate], trainInfo)
       else
         trainInfo.depart_at = false
-      end            
-      trainInfo.current_station = train.schedule.records[train.schedule.current].station
+      end
+      local station = (#train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
+      trainInfo.current_station = station
       GUI.update_single_traininfo(trainInfo)
     end
   end)
@@ -410,91 +450,148 @@ end
 
 script.on_event(defines.events.on_train_changed_state, on_train_changed_state)
 
-function getPageCount(trains, guiSettings)
+function decreaseStationCount(station, name)
+  local force = station.force.name
+  if not global.station_count[force][name] then
+    global.station_count[force][name] = 1
+  end
+  global.station_count[force][name] = global.station_count[force][name] - 1
+  return global.station_count[force][name]
+end
+
+function increaseStationCount(station)
+  local name = station.backer_name
+  local force = station.force.name
+  if not global.station_count[force][name] or global.station_count[force][name] < 0 then
+    global.station_count[force][name] = 0
+  end
+  global.station_count[force][name] = global.station_count[force][name] + 1
+  return global.station_count[force][name]
+end
+
+function on_station_rename(station, oldName)
+  local oldc = decreaseStationCount(station, oldName)
+  local newc = increaseStationCount(station)
+  if oldc == 0 then
+    global.station_count[station.force.name][oldName] = nil
+  end
+end
+
+function on_player_opened(event)
+  if event.entity.valid and game.players[event.player_index].valid then
+    if event.entity.type == "locomotive" and event.entity.train then
+    
+    elseif event.entity.type == "cargo-wagon" and event.entity.train then 
+    
+    elseif event.entity.type == "train-stop" then
+      global.opened_name[event.player_index] = event.entity.backer_name
+    end
+  end
+end
+
+function on_player_closed(event)
+  if event.entity.valid and game.players[event.player_index].valid then
+    if event.entity.type == "locomotive" and event.entity.train then
+
+    elseif event.entity.type == "cargo-wagon" and event.entity.train then
+
+    elseif event.entity.type == "train-stop" then
+      if event.entity.backer_name ~= global.opened_name[event.player_index] then
+        on_station_rename(event.entity, global.opened_name[event.player_index])
+        global.opened_name[event.player_index] = nil
+      end
+    end
+  end
+end
+
+script.on_event(events.on_player_opened, on_player_opened)
+script.on_event(events.on_player_closed, on_player_closed)
+
+function getPageCount(trains, guiSettings, player)
   local trainCount = 0
   if not trains then error("no trains", 2) end
   for i,trainInfo in pairs(trains) do
-    if guiSettings.activeFilterList == nil or trainInfo.matchesStationFilter then
+    if guiSettings.activeFilterList == nil or trainInfo.matches_filter[player.index] then
       trainCount = trainCount + 1
     end
   end
   return math.floor((trainCount - 1) / guiSettings.displayCount) + 1
 end
 
-function get_filter_PageCount(guiSettings)
+function get_filter_PageCount(force)
   local stationCount = 0
-  for _, s in pairs(guiSettings.stationFilterList) do
+  for _, s in pairs(global.station_count[force.name]) do
     stationCount = stationCount + 1
   end
   return math.floor((stationCount - 1) / (global.PAGE_SIZE)) + 1
 end
 
 local on_entity_died = function (event)
-    local entities = {locomotive=true, ["cargo-wagon"]=true, player=true}
-    if not entities[event.entity.type] then
+  local entities = {locomotive=true, ["cargo-wagon"]=true, player=true}
+  if not entities[event.entity.type] then
+    return
+  end
+  if event.entity.type == "locomotive" or event.entity.type == "cargo-wagon" then
+    local ent = event.entity
+    local oldTrain = ent.train
+    -- an existing train can be shortened or split in two trains or be removed completely
+    local length = #oldTrain.carriages
+    if length == 1 then
+      TrainList.remove_train(oldTrain)
       return
     end
-    if event.entity.type == "locomotive" or event.entity.type == "cargo-wagon" then
-      local ent = event.entity
-      local oldTrain = ent.train
-      -- an existing train can be shortened or split in two trains or be removed completely
-      local length = #oldTrain.carriages
-      if length == 1 then
-        TrainList.remove_train(oldTrain)
-        return
-      end
-      local ownPos
-      for i,carriage in pairs(ent.train.carriages) do
-        if ent == carriage then
-          ownPos = i
-          break
-        end
-      end
-      if ent.train.carriages[ownPos-1] ~= nil then
-        if not global.updateEntities then global.updateEntities = {} end
-        table.insert(global.updateEntities, ent.train.carriages[ownPos-1])
-        --script.on_event(defines.events.on_tick, on_tick)
-      end
-      if ent.train.carriages[ownPos+1] ~= nil then
-        if not global.updateEntities then global.updateEntities = {} end
-        table.insert(global.updateEntities, ent.train.carriages[ownPos+1])
-        --script.on_event(defines.events.on_tick, on_tick)
-      end
-      return
-    end
-    if event.entity.name ~= "fatcontroller" then
-      -- player died
-      for i,guiSettings in pairs(global.gui) do
-        -- check if character is still valid next tick for players remote controlling a train
-        if guiSettings.followEntity then
-          global.dead_players = global.dead_players or {}
-          global.dead_players[i] = global.character[i]
-        end
+    local ownPos
+    for i,carriage in pairs(ent.train.carriages) do
+      if ent == carriage then
+        ownPos = i
+        break
       end
     end
+    if ent.train.carriages[ownPos-1] ~= nil then
+      if not global.updateEntities then global.updateEntities = {} end
+      table.insert(global.updateEntities, ent.train.carriages[ownPos-1])
+      --script.on_event(defines.events.on_tick, on_tick)
+    end
+    if ent.train.carriages[ownPos+1] ~= nil then
+      if not global.updateEntities then global.updateEntities = {} end
+      table.insert(global.updateEntities, ent.train.carriages[ownPos+1])
+      --script.on_event(defines.events.on_tick, on_tick)
+    end
+    return
+  end
+  if event.entity.name ~= "fatcontroller" then
+    -- player died
+    for i,guiSettings in pairs(global.gui) do
+      -- check if character is still valid next tick for players remote controlling a train
+      if guiSettings.followEntity then
+        global.dead_players = global.dead_players or {}
+        global.dead_players[i] = global.character[i]
+      end
+    end
+  end
 
---    for i, player in pairs(game.players) do
---      local guiSettings = global.gui[i]
---      if guiSettings.followEntity ~= nil and guiSettings.followEntity == event.entity then --Go back to player
---        if game.players[i].vehicle ~= nil then
---          game.players[i].vehicle.passenger = nil
---      end
---      if player.connected then
---        swapPlayer(game.players[i], global.character[i])
---        global.character[i] = nil
---        if guiSettings.fatControllerButtons.returnToPlayer ~= nil then
---          guiSettings.fatControllerButtons.returnToPlayer.destroy()
---        end
---        guiSettings.followEntity = nil
---      else
---        if not global.to_swap then
---          global.to_swap = {}
---        end
---        table.insert(global.to_swap, {index=i, character=global.character[i]})
---      end
---      end
---    end
---    GUI.refreshAllTrainInfoGuis(global.trainsByForce, global.gui, game.players, true)
+  --    for i, player in pairs(game.players) do
+  --      local guiSettings = global.gui[i]
+  --      if guiSettings.followEntity ~= nil and guiSettings.followEntity == event.entity then --Go back to player
+  --        if game.players[i].vehicle ~= nil then
+  --          game.players[i].vehicle.passenger = nil
+  --      end
+  --      if player.connected then
+  --        swapPlayer(game.players[i], global.character[i])
+  --        global.character[i] = nil
+  --        if guiSettings.fatControllerButtons.returnToPlayer ~= nil then
+  --          guiSettings.fatControllerButtons.returnToPlayer.destroy()
+  --        end
+  --        guiSettings.followEntity = nil
+  --      else
+  --        if not global.to_swap then
+  --          global.to_swap = {}
+  --        end
+  --        table.insert(global.to_swap, {index=i, character=global.character[i]})
+  --      end
+  --      end
+  --    end
+  --    GUI.refreshAllTrainInfoGuis(global.trainsByForce, global.gui, game.players, true)
 end
 
 script.on_event(defines.events.on_entity_died, on_entity_died)
@@ -514,12 +611,33 @@ function newFatControllerEntity(player)
   return player.surface.create_entity({name="fatcontroller", position=player.position, force=player.force})
 end
 
-function filterTrainInfoList(trains, activeFilterList)
+function matchStationFilter(trainInfo, activeFilterList)
+  local fullMatch = false
+  local stations = {}
+  local records = (trainInfo.train.schedule and #trainInfo.train.schedule.records > 0) and trainInfo.train.schedule.records or false
+  if not records then return false end
+  for i, record in pairs(records) do
+    stations[record.station] = true
+  end
+  if trainInfo ~= nil then
+    for filter, value in pairs(activeFilterList) do
+      if stations[filter] then
+        fullMatch = true
+      else
+        return false
+      end
+    end
+  end
+
+  return fullMatch
+end
+
+function filterTrainInfoList(trains, activeFilterList, player)
   for i,trainInfo in pairs(trains) do
     if activeFilterList ~= nil then
-      trainInfo.matchesStationFilter = matchStationFilter(trainInfo, activeFilterList)
+      trainInfo.matches_filter[player.index] = matchStationFilter(trainInfo, activeFilterList)
     else
-      trainInfo.matchesStationFilter = true
+      trainInfo.matches_filter[player.index] = true
     end
   end
 end
@@ -537,6 +655,15 @@ function buildStationFilterList(trains)
     end
   end
   return newList
+end
+
+function tableIsEmpty(tableA)
+  if tableA ~= nil then
+    for i,v in pairs(tableA) do
+      return false
+    end
+  end
+  return true
 end
 
 function matchStringInTable(stringA, tableA)
@@ -610,7 +737,12 @@ function findTrains()
   -- create bounding box covering entire generated map
   local bounds = {{min_x*32,min_y*32},{max_x*32,max_y*32}}
   for _, loco in pairs(surface.find_entities_filtered{area=bounds, type="locomotive"}) do
-    getTrainInfoOrNewFromTrain(global.trainsByForce[loco.force.name], loco.train)
+    if not TrainList.get_traininfo(loco.force, loco.train) then
+      TrainList.add_train(loco.train)
+    end
+  end
+  for _, station in pairs(surface.find_entities_filtered{area=bounds, type="train-stop"}) do
+    increaseStationCount(station)
   end
 end
 
@@ -668,8 +800,14 @@ remote.add_interface("fat",
     page_size = function(size)
       global.PAGE_SIZE = tonumber(size)
     end,
-    
+
     test = function(selected)
       assert(global.TRAINS[selected.train])
+    end,
+
+    find_trains = function()
+      global.stations = nil
+      on_init()
+      findTrains()
     end,
   })

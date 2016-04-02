@@ -64,12 +64,12 @@ GUI = {
     get_topstring = function(trainInfo)
       local topString = ""
       local station = trainInfo.current_station
-      if station == nil then station = "" end
+      if not station then station = "" end
       if trainInfo.last_state then
         if trainInfo.last_state == 1  or trainInfo.last_state == 3 then
           topString = "No Path "-- .. trainInfo.last_state
         elseif trainInfo.last_state == 2 then
-          topString = "Stopped"
+          topString = "No schedule"
         elseif trainInfo.last_state == 5 then
           topString = "Signal || " .. station
         elseif (trainInfo.last_state == 8  or trainInfo.last_state == 9   or trainInfo.last_state == 10) then
@@ -131,7 +131,7 @@ GUI = {
       debugDump(game.tick.." refresh",true)
       for i,player in pairs(players) do
         local gui = guiSettings[player.index]
-        gui.pageCount = getPageCount(trainsByForce[player.force.name], gui)
+        gui.pageCount = getPageCount(trainsByForce[player.force.name], gui, player)
         if gui.page > gui.pageCount then gui.page = gui.pageCount end
         gui.page = gui.page > 0 and gui.page or 1
         debugDump(gui.page, true)
@@ -156,7 +156,6 @@ GUI = {
 
       local player_gui = global.gui[player.index]
       local forceName = player.force.name
-      --player_gui.stationFilterList = buildStationFilterList(global.trainsByForce[player.force.name])
 
       debugLog("create guis")
       if player.gui.left.fatController == nil then
@@ -178,7 +177,7 @@ GUI = {
         --updateTrains(global.trainsByForce[forceName])
       end
 
-      player_gui.pageCount = getPageCount(global.trainsByForce[forceName], player_gui)
+      player_gui.pageCount = getPageCount(global.trainsByForce[forceName], player_gui, player)
 
       --filterTrainInfoList(global.trainsByForce[forceName], player_gui.activeFilterList)
 
@@ -211,9 +210,9 @@ GUI = {
 
         if rematchStationList or refreshGui then
           local trains = global.trainsByForce[player.force.name]
-          guiSettings.pageCount = getPageCount(trains, guiSettings)
+          guiSettings.pageCount = getPageCount(trains, guiSettings, player)
           if rematchStationList then
-            filterTrainInfoList(trains, guiSettings.activeFilterList)
+            filterTrainInfoList(trains, guiSettings.activeFilterList, player)
           end
           if refreshGui then
             GUI.newTrainInfoWindow(guiSettings)
@@ -316,7 +315,7 @@ GUI = {
       if not player.connected then return end
       local character = player.character
       local gui = guiSettings.fatControllerGui.trainInfo
-      guiSettings.pageCount = getPageCount(trains, guiSettings)
+      guiSettings.pageCount = getPageCount(trains, guiSettings, player)
       if guiSettings.page > guiSettings.pageCount then guiSettings.page = guiSettings.pageCount end
       guiSettings.page = guiSettings.page > 0 and guiSettings.page or 1
       if gui ~= nil and trains ~= nil then
@@ -330,7 +329,7 @@ GUI = {
           if trainInfo.train and trainInfo.train.valid then
             local newGuiName = nil
             if display < guiSettings.displayCount then
-              if guiSettings.activeFilterList == nil or trainInfo.matchesStationFilter then
+              if guiSettings.activeFilterList == nil or trainInfo.matches_filter[player.index] then
                 filteredCount = filteredCount + 1
 
                 newGuiName = "Info" .. i
@@ -343,7 +342,7 @@ GUI = {
                     trainInfo.opened_guis[player.index] = trainGui
                   end
 
-                  if character ~= nil and character.name == "fatcontroller" and containsEntity(trainInfo.locomotives, character.vehicle) then
+                  if character ~= nil and character.name == "fatcontroller" and ((character.vehicle.type == "cargo-wagon" or character.vehicle.type == "locomotive") and trainInfo.train == character.vehicle.train) then
                     gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].style = "fatcontroller_selected_button"
                     gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].caption = "X"
                   else
@@ -360,7 +359,7 @@ GUI = {
       end
     end,
 
-    toggleStationFilterWindow = function(gui, guiSettings)
+    toggleStationFilterWindow = function(gui, guiSettings, player)
       if gui ~= nil then
         if gui.stationFilterWindow == nil then
           --local sortedList = table.sort(a)
@@ -383,7 +382,7 @@ GUI = {
               pageFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_disabled_button"})
             end
           end
-          local pageCount = get_filter_PageCount(guiSettings)
+          local pageCount = get_filter_PageCount(player.force)
           if pageFlow.filter_page_number == nil then
             pageFlow.add({type="button", name="filter_page_number", caption=guiSettings.filter_page .. "/" ..pageCount , style="fatcontroller_disabled_button"})
           else
@@ -407,7 +406,7 @@ GUI = {
           local i=0
           local upper = guiSettings.filter_page*global.PAGE_SIZE
           local lower = guiSettings.filter_page*global.PAGE_SIZE-global.PAGE_SIZE
-          for name, value in pairsByKeys(guiSettings.stationFilterList) do
+          for name, value in pairsByKeys(global.station_count[player.force.name]) do
             if i>=lower and i<upper then
               if guiSettings.activeFilterList ~= nil and guiSettings.activeFilterList[name] then
                 window.checkboxGroup.add({type="checkbox", name=name .. "_stationFilter", caption=name, state=true}) --style="filter_group_button_style"})
@@ -501,6 +500,7 @@ on_gui_click = {
       global.character[element.player_index] = nil
       element.destroy()
       guiSettings.followEntity = nil
+      GUI.refreshTrainInfoGui(global.trainsByForce[player.force.name], guiSettings, player)
     end
   end,
 
@@ -513,7 +513,7 @@ on_gui_click = {
 
   page_forward = function(guiSettings, element, player)
     local trains = global.trainsByForce[player.force.name]
-    if guiSettings.page < getPageCount(trains, guiSettings) then
+    if guiSettings.page < getPageCount(trains, guiSettings, player) then
       guiSettings.page = guiSettings.page + 1
       return true
     end
@@ -535,7 +535,7 @@ on_gui_click = {
           newInt = 50
         end
         guiSettings.displayCount = newInt
-        guiSettings.pageCount = getPageCount(trains, guiSettings)
+        guiSettings.pageCount = getPageCount(trains, guiSettings, player)
         guiSettings.page = 1
       else
         player.print({"msg-notanumber"})
@@ -547,8 +547,7 @@ on_gui_click = {
 
   toggleStationFilter = function(guiSettings, element, player)
     local trains = global.trainsByForce[player.force.name]
-    guiSettings.stationFilterList = buildStationFilterList(trains)
-    GUI.toggleStationFilterWindow(player.gui.center, guiSettings)
+    GUI.toggleStationFilterWindow(player.gui.center, guiSettings, player)
   end,
 
   stationFilterClear = function(guiSettings, element, player)
@@ -566,7 +565,7 @@ on_gui_click = {
   end,
 
   clearStationFilter = function(guiSettings, element, player)
-    return on_gui_click.stationFilterClear()
+    return on_gui_click.stationFilterClear(guiSettings, element, player)
   end,
 
   stationFilterOK = function(guiSettings, element, player)
@@ -574,7 +573,7 @@ on_gui_click = {
     if gui ~= nil and gui.checkboxGroup ~= nil then
       local newFilter = {}
       local listEmpty = true
-      for station,value in pairs(guiSettings.stationFilterList) do
+      for station,value in pairs(global.station_count[player.force.name]) do
         local checkboxA = gui.checkboxGroup[station .. "_stationFilter"]
         if checkboxA ~= nil and checkboxA.state then
           listEmpty = false
@@ -594,18 +593,18 @@ on_gui_click = {
   end,
 
   filter_page_forward = function(guiSettings, element, player)
-    if guiSettings.filter_page < get_filter_PageCount(guiSettings) then
+    if guiSettings.filter_page < get_filter_PageCount(player.force) then
       guiSettings.filter_page = guiSettings.filter_page + 1
-      GUI.toggleStationFilterWindow(player.gui.center, guiSettings)
-      GUI.toggleStationFilterWindow(player.gui.center, guiSettings)
+      GUI.toggleStationFilterWindow(player.gui.center, guiSettings, player)
+      GUI.toggleStationFilterWindow(player.gui.center, guiSettings, player)
     end
   end,
 
   filter_page_back = function(guiSettings, element, player)
     if guiSettings.filter_page > 1 then
       guiSettings.filter_page = guiSettings.filter_page - 1
-      GUI.toggleStationFilterWindow(player.gui.center, guiSettings)
-      GUI.toggleStationFilterWindow(player.gui.center, guiSettings)
+      GUI.toggleStationFilterWindow(player.gui.center, guiSettings, player)
+      GUI.toggleStationFilterWindow(player.gui.center, guiSettings, player)
     end
   end,
 
@@ -644,7 +643,7 @@ on_gui_click = {
     local requested_state = not guiSettings.stopButton_state
     if guiSettings.activeFilterList then
       for i, trainInfo in pairs(trains) do
-        if trainInfo.matchesStationFilter and trainInfo.train.valid then
+        if trainInfo.matches_filter[player.index] and trainInfo.train.valid then
           trainInfo.train.manual_mode = requested_state
         end
       end
@@ -673,29 +672,38 @@ on_gui_click = {
 
   toggleFollowMode = function(guiSettings, element, player)
     local trains = global.trainsByForce[player.force.name]
-    local trainInfo = getTrainInfoFromElementName(trains, element.name)
-    if trainInfo ~= nil and trainInfo.train ~= nil and trainInfo.train.valid then
+    local option1 = element.name:match("Info(%w+)_")
+    option1 = tonumber(option1)
+    local trainInfo = trains[option1]
+    --local trainInfo = getTrainInfoFromElementName(trains, element.name)
+    if trainInfo and trainInfo.train and trainInfo.train.valid then
       local carriage = trainInfo.train.speed >= 0 and trainInfo.train.locomotives.front_movers[1] or trainInfo.train.locomotives.back_movers[1]
+      if not carriage then
+        carriage = trainInfo.train.carriages[1]
+      end
       if global.character[element.player_index] == nil then --Move to train
         if carriage.passenger ~= nil then
           player.print({"msg-intrain"})
-      else
-        global.character[element.player_index] = player.character
-        guiSettings.followEntity = carriage -- HERE
+        else
+          global.character[element.player_index] = player.character
+          guiSettings.followEntity = carriage -- HERE
 
-        --fatControllerEntity =
-        swapPlayer(player,newFatControllerEntity(player))
-        --element.style = "fatcontroller_selected_button"
-        element.caption = "X"
-        carriage.passenger = player.character
-      end
+          --fatControllerEntity =
+          swapPlayer(player,newFatControllerEntity(player))
+          element.style = "fatcontroller_selected_button"
+          element.caption = "X"
+          carriage.passenger = player.character
+          if not guiSettings.fatControllerButtons.returnToPlayer then
+            guiSettings.fatControllerButtons.add({ type="button", name="returnToPlayer", caption={"text-player"}, style = "fatcontroller_selected_button"})
+          end
+        end
       elseif guiSettings.followEntity ~= nil and trainInfo.train ~= nil and trainInfo.train.valid then
         if player.vehicle ~= nil then
           player.vehicle.passenger = nil
         end
         if guiSettings.followEntity.train == trainInfo.train then --Go back to player
           swapPlayer(player, global.character[element.player_index])
-          --element.style = "fatcontroller_button_style"
+          element.style = "fatcontroller_button_style"
           element.caption = "c"
           if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.returnToPlayer ~= nil then
             guiSettings.fatControllerButtons.returnToPlayer.destroy()
@@ -703,12 +711,15 @@ on_gui_click = {
           global.character[element.player_index] = nil
           guiSettings.followEntity = nil
         else -- Go to different train
-
           guiSettings.followEntity = carriage -- AND HERE
-          --element.style = "fatcontroller_selected_button"
+          element.style = "fatcontroller_selected_button"
           element.caption = "X"
 
           carriage.passenger = player.character
+          if not guiSettings.fatControllerButtons.returnToPlayer then
+            guiSettings.fatControllerButtons.add({ type="button", name="returnToPlayer", caption={"text-player"}, style = "fatcontroller_selected_button"})
+          end
+          GUI.refreshTrainInfoGui(trains, guiSettings, player)
         end
       end
 
