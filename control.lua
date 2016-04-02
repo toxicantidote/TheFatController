@@ -27,21 +27,16 @@ character_blacklist = {
 
 TRAINS = {}
 
-global2 = {
-  trainsByForce = {player={}}, --seperated by force, indexed by table.insert ?
-  trainsByStation = {}
-}
-
 TrainInfo = {
   dirty = false, -- flag to indicate the guis need updating
   current_station = false, --name of current station
+  depart_at = 0, --tick when train will depart the station
   --main_index = 0, -- always equal to global.trainsByForce[force.name] index
   train = false, -- ref to lua_train
   previous_state = 0,
   previous_state_tick = 0,
   last_state = 0, -- last trainstate
   last_state_tick = 0,
-  last_update = 0, -- tick when inventory, infotext was last updated
   locomotives = {}, -- locomotives of train (to revalidate a train?)
   first_carriage = false,
   last_carriage = false,
@@ -92,6 +87,7 @@ local function init_global()
   global.unlocked = global.unlocked or false
   global.unlockedByForce = global.unlockedByForce or {}
   global.updateEntities = global.updateEntities or false
+  global.updateTrains = global.updateTrains or {}
   --global.PAGE_SIZE = global.PAGE_SIZE or 60
   --global.force_settings = global.force_settings or {}
 end
@@ -238,6 +234,51 @@ function register_events()
   script.on_event(defines.events.on_gui_click, GUI.onguiclick)
 end
 
+function getHighestInventoryCount(trainInfo)
+  local inventory = nil
+
+  if trainInfo and trainInfo.train and trainInfo.train.valid and trainInfo.train.cargo_wagons then
+    local itemsCount = 0
+    local largestItem = {}
+    local items = trainInfo.train.get_contents() or {}
+
+    for i, carriage in pairs(trainInfo.train.cargo_wagons) do
+      if carriage and carriage.valid and carriage.name == "rail-tanker" then
+        debugLog("Looking for Oil!")
+        local liquid = remote.call("railtanker","getLiquidByWagon",carriage)
+        if liquid then
+          debugLog("Liquid!")
+          local name = liquid.type
+          local count = math.floor(liquid.amount)
+          if name then
+            if not items[name] then
+              items[name] = 0
+            end
+            items[name] = items[name] + count
+          end
+        end
+      end
+    end
+    for name, count in pairs(items) do
+      if largestItem.count == nil or largestItem.count < items[name] then
+        largestItem.name = name
+        largestItem.count = items[name]
+      end
+      itemsCount = itemsCount + 1
+    end
+
+    if largestItem.name ~= nil then
+      local isItem = game.item_prototypes[largestItem.name] or game.fluid_prototypes[largestItem.name]
+      local displayName = isItem and isItem.localised_name or largestItem.name
+      local suffix = itemsCount > 1 and "..." or ""
+      inventory = {"", displayName,": ",largestItem.count, suffix}
+    else
+      inventory = ""
+    end
+  end
+  return inventory
+end
+
 function on_tick(event)
   local status, err = pcall(function()
     if global.updateEntities then
@@ -248,13 +289,28 @@ function on_tick(event)
         end
       end
       global.updateEntities = false
-      script.on_event(defines.events.on_tick, nil)
+      --script.on_event(defines.events.on_tick, nil)
+    end
+    
+    if global.updateTrains[game.tick] then
+      for _, ti in pairs(global.updateTrains[game.tick]) do
+        ti.inventory = getHighestInventoryCount(ti)
+        GUI.update_single_traininfo(ti)
+        if ti.last_state == defines.trainstate.wait_station then
+          local nextUpdate = game.tick+60
+          global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
+          table.insert(global.updateTrains[nextUpdate], ti)
+        else
+          ti.depart_at = false
+        end
+      end
+      global.updateTrains[game.tick] = nil
     end
   end)
   if err then debugDump(err,true) end
 end
 
---script.on_event(defines.events.on_tick, on_tick)
+script.on_event(defines.events.on_tick, on_tick)
 
 function on_built_entity(event)
   local status, err = pcall(function()
@@ -293,13 +349,13 @@ function on_preplayer_mined_item(event)
         if not global.updateEntities then global.updateEntities = {} end
         debugDump(game.tick.."Add 1 front",true)
         table.insert(global.updateEntities, ent.train.carriages[ownPos-1])
-        script.on_event(defines.events.on_tick, on_tick)
+        --script.on_event(defines.events.on_tick, on_tick)
       end
       if ent.train.carriages[ownPos+1] ~= nil then
         if not global.updateEntities then global.updateEntities = {} end
         debugDump(game.tick.."Add 1 behind",true)
         table.insert(global.updateEntities, ent.train.carriages[ownPos+1])
-        script.on_event(defines.events.on_tick, on_tick)
+        --script.on_event(defines.events.on_tick, on_tick)
       end
     end
   end)
@@ -334,7 +390,17 @@ function on_train_changed_state(event)
             and diff == 1) then
          --debugDump(game.tick.." Skipped",true)
         return
-      end      
+      end
+      
+      if train.state == defines.trainstate.wait_station then
+        trainInfo.depart_at = game.tick + train.schedule.records[train.schedule.current].time_to_wait
+        trainInfo.inventory = getHighestInventoryCount(trainInfo)
+        local nextUpdate = game.tick+60
+        global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
+        table.insert(global.updateTrains[nextUpdate], trainInfo)   
+      else
+        trainInfo.depart_at = false
+      end            
       trainInfo.current_station = train.schedule.records[train.schedule.current].station
       GUI.update_single_traininfo(trainInfo)
     end
@@ -387,12 +453,12 @@ local on_entity_died = function (event)
       if ent.train.carriages[ownPos-1] ~= nil then
         if not global.updateEntities then global.updateEntities = {} end
         table.insert(global.updateEntities, ent.train.carriages[ownPos-1])
-        script.on_event(defines.events.on_tick, on_tick)
+        --script.on_event(defines.events.on_tick, on_tick)
       end
       if ent.train.carriages[ownPos+1] ~= nil then
         if not global.updateEntities then global.updateEntities = {} end
         table.insert(global.updateEntities, ent.train.carriages[ownPos+1])
-        script.on_event(defines.events.on_tick, on_tick)
+        --script.on_event(defines.events.on_tick, on_tick)
       end
       return
     end
@@ -442,51 +508,6 @@ function swapPlayer(player, character)
   if character.valid then
     player.character = character
   end
-end
-
-function getHighestInventoryCount(trainInfo)
-  local inventory = nil
-
-  if trainInfo ~= nil and trainInfo.train ~= nil and trainInfo.train.valid and trainInfo.train.carriages ~= nil then
-    local itemsCount = 0
-    local largestItem = {}
-    local items = trainInfo.train.get_contents() or {}
-
-    for i, carriage in pairs(trainInfo.train.cargo_wagons) do
-      if carriage and carriage.valid and carriage.name == "rail-tanker" then
-        debugLog("Looking for Oil!")
-        local liquid = remote.call("railtanker","getLiquidByWagon",carriage)
-        if liquid then
-          debugLog("Liquid!")
-          local name = liquid.type
-          local count = math.floor(liquid.amount)
-          if name then
-            if not items[name] then
-              items[name] = 0
-            end
-            items[name] = items[name] + count
-          end
-        end
-      end
-    end
-    for name, count in pairs(items) do
-      if largestItem.count == nil or largestItem.count < items[name] then
-        largestItem.name = name
-        largestItem.count = items[name]
-      end
-      itemsCount = itemsCount + 1
-    end
-
-    if largestItem.name ~= nil then
-      local isItem = game.item_prototypes[largestItem.name] or game.fluid_prototypes[largestItem.name]
-      local displayName = isItem and isItem.localised_name or largestItem.name
-      local suffix = itemsCount > 1 and "..." or ""
-      inventory = {"", displayName,": ",largestItem.count, suffix}
-    else
-      inventory = ""
-    end
-  end
-  return inventory
 end
 
 function newFatControllerEntity(player)

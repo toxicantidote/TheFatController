@@ -83,6 +83,9 @@ GUI = {
           topString = "Stopping -> " .. station
         elseif trainInfo.last_state == 7 then
           topString = "Station || " .. station
+          if trainInfo.depart_at then
+            topString = topString .. " (" .. util.formattime(trainInfo.depart_at-game.tick) ..")"
+          end
         else
           topString = "Moving -> " .. station
         end
