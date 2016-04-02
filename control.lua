@@ -5,6 +5,8 @@ require "GUI"
 
 MOD_NAME = "TheFatController"
 
+update_rate = 90
+
 -- myevent = game.generateeventname()
 -- the name and tick are filled for the event automatically
 -- this event is raised with extra parameter foo with value "bar"
@@ -17,7 +19,7 @@ defaults = {stationDuration=10,signalDuration=2}
 
 defaultGuiSettings = {
   alarm={active=false,noPath=true,timeAtSignal=true,timeToStation=true},
-  displayCount=9,
+  displayCount=10,
   fatControllerButtons = {},
   fatControllerGui = {},
   page = 1,
@@ -36,11 +38,11 @@ character_blacklist = {
 TRAINS = {}
 
 TrainInfo = {
-  dirty = false, -- flag to indicate the guis need updating
   current_station = false, --name of current station
   depart_at = 0, --tick when train will depart the station
   --main_index = 0, -- always equal to global.trainsByForce[force.name] index
   train = false, -- ref to lua_train
+  last_update = 0, --tick of last inventory update
   previous_state = 0,
   previous_state_tick = 0,
   last_state = 0, -- last trainstate
@@ -100,6 +102,7 @@ local function init_global()
   global.station_count = global.station_count or {}
   global.player_opened = global.player_opened or {}
   global.opened_name = global.opened_name or {}
+  global.items = global.items or {}
   --global.force_settings = global.force_settings or {}
 end
 
@@ -168,33 +171,13 @@ local function on_configuration_changed(data)
   if not data or not data.mod_changes then
     return
   end
+  local newVersion = false
+  local oldVersion = false
   if data.mod_changes[MOD_NAME] then
-    local newVersion = data.mod_changes[MOD_NAME].new_version
-    local oldVersion = data.mod_changes[MOD_NAME].old_version
+    newVersion = data.mod_changes[MOD_NAME].new_version
+    oldVersion = data.mod_changes[MOD_NAME].old_version
     if oldVersion then
       debugDump("Updating TheFatController from "..oldVersion.." to "..newVersion,true)
-      if oldVersion <= "0.3.14" then
-        -- Kill all old versions of TFC
-        if global.fatControllerGui ~= nil or global.fatControllerButtons ~= nil then
-          destroyGui(global.fatControllerGui)
-          destroyGui(global.fatControllerButtons)
-        end
-        for i,p in pairs(game.players) do
-          destroyGui(p.gui.top.fatControllerButtons)
-          destroyGui(p.gui.left.fatController)
-        end
-        if type(global.character) == "table" then
-          for i, c in pairs(global.character) do
-            if game.players[i].connected and c.valid then
-              swapPlayer(game.players[i], c)
-            end
-          end
-        end
-        global = nil
-      end
-    end
-    on_init()
-    if oldVersion then
       if oldVersion < "0.4.0" then
         local tmp = {}
         for i, player in pairs(game.players) do
@@ -208,12 +191,13 @@ local function on_configuration_changed(data)
           global.gui[i].fatControllerGui = tmp[i].fatControllerGui
           global.gui[i].fatControllerButtons = tmp[i].fatControllerButtons
         end
-        findTrains()
       end
     end
-    if not oldVersion or oldVersion < "0.3.14" or newVersion == "0.3.19" then
-      findTrains()
-    end
+  end
+  --reset item cache if a mod has changed
+  global.items = {}
+  if not oldVersion or oldVersion < "0.4.0" then
+    findTrains()
   end
   --check for other mods
 end
@@ -258,8 +242,7 @@ function register_events()
 end
 
 function getHighestInventoryCount(trainInfo)
-  local inventory = nil
-
+  local inventory = ""
   if trainInfo and trainInfo.train and trainInfo.train.valid and trainInfo.train.cargo_wagons then
     local itemsCount = 0
     local largestItem = {}
@@ -291,12 +274,13 @@ function getHighestInventoryCount(trainInfo)
     end
 
     if largestItem.name ~= nil then
-      local isItem = game.item_prototypes[largestItem.name] or game.fluid_prototypes[largestItem.name]
-      local displayName = isItem and isItem.localised_name or largestItem.name
+      if not global.items[largestItem.name] then
+        local isItem = game.item_prototypes[largestItem.name] or game.fluid_prototypes[largestItem.name]
+        global.items[largestItem.name] = isItem and isItem.localised_name or largestItem.name
+      end
+      local displayName = global.items[largestItem.name] 
       local suffix = itemsCount > 1 and "..." or ""
       inventory = {"", displayName,": ",largestItem.count, suffix}
-    else
-      inventory = ""
     end
   end
   return inventory
@@ -318,9 +302,9 @@ function on_tick(event)
     if global.updateTrains[game.tick] then
       for _, ti in pairs(global.updateTrains[game.tick]) do
         ti.inventory = getHighestInventoryCount(ti)
-        GUI.update_single_traininfo(ti)
+        GUI.update_single_traininfo(ti, true, true)
         if ti.last_state == defines.trainstate.wait_station then
-          local nextUpdate = game.tick+60
+          local nextUpdate = game.tick+ update_rate
           global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
           table.insert(global.updateTrains[nextUpdate], ti)
         else
@@ -433,8 +417,11 @@ function on_train_changed_state(event)
 
       if train.state == defines.trainstate.wait_station then
         trainInfo.depart_at = game.tick + train.schedule.records[train.schedule.current].time_to_wait
+        if train.schedule and #train.schedule.records < 2 then
+          trainInfo.depart_at = false
+        end
         trainInfo.inventory = getHighestInventoryCount(trainInfo)
-        local nextUpdate = game.tick+60
+        local nextUpdate = game.tick+update_rate
         global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
         table.insert(global.updateTrains[nextUpdate], trainInfo)
       else
@@ -442,7 +429,7 @@ function on_train_changed_state(event)
       end
       local station = (#train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
       trainInfo.current_station = station
-      GUI.update_single_traininfo(trainInfo)
+      GUI.update_single_traininfo(trainInfo, true, true)
     end
   end)
   if err then debugDump(err,true) end
@@ -738,7 +725,12 @@ function findTrains()
   local bounds = {{min_x*32,min_y*32},{max_x*32,max_y*32}}
   for _, loco in pairs(surface.find_entities_filtered{area=bounds, type="locomotive"}) do
     if not TrainList.get_traininfo(loco.force, loco.train) then
-      TrainList.add_train(loco.train)
+      local trainInfo = TrainList.add_train(loco.train)
+      if loco.train.state == defines.trainstate.wait_station then
+        local nextUpdate = game.tick+update_rate
+        global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
+        table.insert(global.updateTrains[nextUpdate], trainInfo)
+      end
     end
   end
   for _, station in pairs(surface.find_entities_filtered{area=bounds, type="train-stop"}) do

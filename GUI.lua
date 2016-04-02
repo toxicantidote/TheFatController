@@ -83,7 +83,7 @@ GUI = {
           topString = "Stopping -> " .. station
         elseif trainInfo.last_state == 7 then
           topString = "Station || " .. station
-          if trainInfo.depart_at then
+          if trainInfo.depart_at and trainInfo.depart_at > 0 then
             topString = topString .. " (" .. util.formattime(trainInfo.depart_at-game.tick) ..")"
           end
         else
@@ -106,12 +106,12 @@ GUI = {
       return bottomString    
     end,
     
-    update_single_traininfo = function(trainInfo)
+    update_single_traininfo = function(trainInfo, top, bottom)
       if trainInfo then
         for player_index, gui in pairs(trainInfo.opened_guis) do
           if gui and gui.valid then
-            gui.info.topInfo.caption = GUI.get_topstring(trainInfo)
-            gui.info.bottomInfo.caption = GUI.get_bottomstring(trainInfo)
+            if top then gui.info.topInfo.caption = GUI.get_topstring(trainInfo) end
+            if bottom then gui.info.bottomInfo.caption = GUI.get_bottomstring(trainInfo) end
           end
         end
       end
@@ -196,7 +196,7 @@ GUI = {
         local guiSettings = global.gui[player_index]
         local player = game.players[player_index]
         if not player.connected then return end
-        debugDump("CLICK! " .. event.element.name .. game.tick,true)
+        --debugDump("CLICK! " .. event.element.name .. game.tick,true)
 
         if on_gui_click[event.element.name] then
           refreshGui, rematchStationList = on_gui_click[event.element.name](guiSettings, event.element, player)
@@ -321,10 +321,10 @@ GUI = {
       if gui ~= nil and trains ~= nil then
         local pageStart = ((guiSettings.page - 1) * guiSettings.displayCount) + 1
         debugLog("Page:" .. pageStart)
-
+        
         local display = 0
         local filteredCount = 0
-        guiSettings.displayed_trains = {}
+        GUI.reset_displayed_trains(guiSettings,player)
         for i, trainInfo in pairs(trains) do
           if trainInfo.train and trainInfo.train.valid then
             local newGuiName = nil
@@ -476,6 +476,14 @@ GUI = {
         end
       end
     end,
+    
+    reset_displayed_trains = function(guiSettings, player)
+      local trains = global.trainsByForce[player.force.name]
+      for i, ti in pairs(guiSettings.displayed_trains) do
+        trains[i].opened_guis[player.index] = nil
+      end
+      guiSettings.displayed_trains = {}
+    end,
 }
 
 on_gui_click = {
@@ -486,6 +494,7 @@ on_gui_click = {
       return true
     else
       guiSettings.fatControllerGui.trainInfo.destroy()
+      GUI.reset_displayed_trains(guiSettings,player)
       element.caption = {"text-trains-collapsed"}
       return false
     end

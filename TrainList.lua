@@ -45,6 +45,13 @@ TrainList.createTrainInfo = function(train)
   ti.first_carriage = train.carriages[1]
   ti.last_carriage = train.carriages[#train.carriages]
   ti.last_state = ti.train.state
+  ti.last_update = 0
+  ti.inventory = getHighestInventoryCount(ti)
+  local station = (#train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
+  ti.current_station = station
+  if ti.train.state == defines.trainstate.wait_station and train.schedule and #train.schedule.records > 1 then
+    ti.depart_at = game.tick
+  end
   return ti
 end
 
