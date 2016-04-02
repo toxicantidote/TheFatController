@@ -76,3 +76,16 @@ TrainList.remove_train = function(train)
     end
   end
 end
+
+TrainList.get_traininfo = function(force, train)
+  local trains = global.trainsByForce[force.name]
+  if trains then
+    for i, ti in pairs(trains) do
+      if ti.train and ti.train.valid and ti.train == train then
+        return ti
+      end
+    end
+  else
+    return false
+  end
+end

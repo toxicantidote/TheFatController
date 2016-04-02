@@ -34,10 +34,13 @@ global2 = {
 
 TrainInfo = {
   dirty = false, -- flag to indicate the guis need updating
-  current_station = "Station", --name of current station
+  current_station = false, --name of current station
   --main_index = 0, -- always equal to global.trainsByForce[force.name] index
   train = false, -- ref to lua_train
+  previous_state = 0,
+  previous_state_tick = 0,
   last_state = 0, -- last trainstate
+  last_state_tick = 0,
   last_update = 0, -- tick when inventory, infotext was last updated
   locomotives = {}, -- locomotives of train (to revalidate a train?)
   first_carriage = false,
@@ -48,6 +51,7 @@ TrainInfo = {
   stations = {}, --boolean table, indexed by stations in the schedule, new global trains_by_station?? should speedup filtered display
   matches_filter = false, --whether the stations match the filter
   alarm = {
+    active = false,
     last_message = 0, --tick
     arrived_at_signal = 0, -- tick
     arrived_at_station = 0, --tick
@@ -309,8 +313,32 @@ script.on_event(defines.events.on_built_entity, on_built_entity)
 
 function on_train_changed_state(event)
   local status, err = pcall(function()
-
-    end)
+    local train = event.train
+    local entity = train.carriages[1]
+    --debugDump(game.tick.." state:"..train.state,true)
+    local trainInfo = TrainList.get_traininfo(entity.force, train)
+    if trainInfo then
+      trainInfo.previous_state = trainInfo.last_state
+      trainInfo.previous_state_tick = trainInfo.last_state_tick
+      trainInfo.last_state = train.state
+      trainInfo.last_state_tick = game.tick
+      -- skip update if:
+      --  going from wait_signal to on_the_path after 300 ticks
+      --  going from on_the_path to wait_signal after 1 tick
+      --  arrive_signal
+      local diff = game.tick - trainInfo.previous_state_tick 
+      if  train.state == defines.trainstate.arrive_signal or 
+          (trainInfo.previous_state == defines.trainstate.wait_signal and train.state == defines.trainstate.on_the_path
+            and diff == 300)
+          or (trainInfo.previous_state == defines.trainstate.on_the_path and train.state == defines.trainstate.wait_signal
+            and diff == 1) then
+         --debugDump(game.tick.." Skipped",true)
+        return
+      end      
+      trainInfo.current_station = train.schedule.records[train.schedule.current].station
+      GUI.update_single_traininfo(trainInfo)
+    end
+  end)
   if err then debugDump(err,true) end
 end
 

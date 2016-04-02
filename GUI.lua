@@ -51,10 +51,21 @@ GUI = {
         trainGui.info.add({type="label", name="bottomInfo", style="fatcontroller_label_style"})
       end
 
+      local topString = GUI.get_topstring(trainInfo)
+      local bottomString = GUI.get_bottomstring(trainInfo)
+      
+      trainGui.info.topInfo.caption = topString
+      trainGui.info.bottomInfo.caption = bottomString
+      
+      trainInfo.last_update = game.tick
+      return trainGui
+    end,
+    
+    get_topstring = function(trainInfo)
       local topString = ""
-      local station = trainInfo.currentStation
+      local station = trainInfo.current_station
       if station == nil then station = "" end
-      if trainInfo.last_state ~= nil then
+      if trainInfo.last_state then
         if trainInfo.last_state == 1  or trainInfo.last_state == 3 then
           topString = "No Path "-- .. trainInfo.last_state
         elseif trainInfo.last_state == 2 then
@@ -68,32 +79,39 @@ GUI = {
           else
             topString = topString .. ": " .. "Moving" -- REPLACE WITH TRANSLAION
           end
+        elseif trainInfo.last_state == 6 then
+          topString = "Stopping -> " .. station
         elseif trainInfo.last_state == 7 then
           topString = "Station || " .. station
         else
           topString = "Moving -> " .. station
         end
       end
-
-      local bottomString = ""
-
-      if trainInfo.inventory ~= nil then
-        bottomString = trainInfo.inventory
-      else
-        bottomString = ""
-      end
-
-      if guiSettings.alarm ~= nil and trainInfo.alarm then
+      if trainInfo.alarm.active then
         local alarmType = trainInfo.alarmType or ""
-        --topString = "!"..alarmType .. topString
         topString = "!"..alarmType .. topString
       end
-
-      trainGui.info.topInfo.caption = topString
-      trainGui.info.bottomInfo.caption = bottomString
       
-      trainInfo.last_update = game.tick
-      return trainGui
+      return topString
+    end,
+    
+    get_bottomstring = function(trainInfo)
+      local bottomString = ""
+      if trainInfo.inventory ~= nil then
+        bottomString = trainInfo.inventory
+      end
+      return bottomString    
+    end,
+    
+    update_single_traininfo = function(trainInfo)
+      if trainInfo then
+        for player_index, gui in pairs(trainInfo.opened_guis) do
+          if gui and gui.valid then
+            gui.info.topInfo.caption = GUI.get_topstring(trainInfo)
+            gui.info.bottomInfo.caption = GUI.get_bottomstring(trainInfo)
+          end
+        end
+      end
     end,
 
     swapCaption = function(guiElement, captionA, captionB)
