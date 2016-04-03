@@ -110,8 +110,13 @@ GUI = {
       if trainInfo then
         for player_index, gui in pairs(trainInfo.opened_guis) do
           if gui and gui.valid then
-            if top then gui.info.topInfo.caption = GUI.get_topstring(trainInfo) end
-            if bottom then gui.info.bottomInfo.caption = GUI.get_bottomstring(trainInfo) end
+            gui.info.topInfo.caption = GUI.get_topstring(trainInfo)
+            gui.info.bottomInfo.caption = GUI.get_bottomstring(trainInfo)
+            if trainInfo.train.manual_mode then
+              gui.buttons[trainInfo.guiName .. "_toggleManualMode"].caption = ">"
+            else
+              gui.buttons[trainInfo.guiName .. "_toggleManualMode"].caption = "ll"
+            end
           end
         end
       end
@@ -312,7 +317,8 @@ GUI = {
         for index, trainInfo in pairs(trains) do
           if trainInfo.train and trainInfo.train.valid then
             if trainInfo.train ~= global.trainsByForce[player.force.name][trainInfo.mainIndex].train then
-              debugDump("Invalid main index: "..trainInfo.mainIndex,true)
+              player.print("Invalid main index: "..trainInfo.mainIndex)
+              player.print("Opening and closing the gui should fix it")
               remove_invalid = true
             end
             local i = trainInfo.mainIndex
@@ -324,7 +330,7 @@ GUI = {
                 display = display + 1
                 if gui[newGuiName] == nil then --trainInfo.guiName ~= newGuiName or
                   trainInfo.guiName = newGuiName
-                  guiSettings.displayed_trains[i] = true
+                  guiSettings.displayed_trains[i] = trainInfo
                   local trainGui = GUI.new_train_window(gui,trainInfo, guiSettings)
                   trainInfo.opened_guis[player.index] = trainGui
                 end
@@ -467,7 +473,9 @@ GUI = {
     reset_displayed_trains = function(guiSettings, player)
       local trains = global.trainsByForce[player.force.name]
       for i, ti in pairs(guiSettings.displayed_trains) do
-        trains[i].opened_guis[player.index] = nil
+        if ti then
+          ti.opened_guis[player.index] = nil
+        end
       end
       guiSettings.displayed_trains = {}
     end,
@@ -652,7 +660,7 @@ on_gui_click = {
     local trainInfo = trains[option1]
     if trainInfo ~= nil and trainInfo.train ~= nil and trainInfo.train.valid then
       trainInfo.train.manual_mode = not trainInfo.train.manual_mode
-      GUI.swapCaption(element, "ll", ">")
+      GUI.update_single_traininfo(trainInfo)
     end
   end,
 

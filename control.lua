@@ -49,6 +49,12 @@ TrainInfo = {
   previous_state_tick = 0,
   last_state = 0, -- last trainstate
   last_state_tick = 0,
+  unfiltered_state = {
+    previous_state = 0,
+    previous_tick = 0,
+    last_state = 0,
+    last_tick = 0
+  },
   locomotives = {}, -- locomotives of train (to revalidate a train?)
   first_carriage = false,
   last_carriage = false,
@@ -59,8 +65,9 @@ TrainInfo = {
   alarm = {
     active = false,
     last_message = 0, --tick
-    arrived_at_signal = 0, -- tick
+    arrived_at_signal = false, -- tick
     arrived_at_station = 0, --tick
+    left_station = false, --tick
   }
 }
 
@@ -99,12 +106,13 @@ local function init_global()
   global.unlockedByForce = global.unlockedByForce or {}
   global.updateEntities = global.updateEntities or false
   global.updateTrains = global.updateTrains or {}
+  global.updateAlarms = global.updateAlarms or {}
   global.PAGE_SIZE = global.PAGE_SIZE or 60
   global.station_count = global.station_count or {}
   global.player_opened = global.player_opened or {}
   global.opened_name = global.opened_name or {}
   global.items = global.items or {}
-  --global.force_settings = global.force_settings or {}
+  global.force_settings = global.force_settings or {}
 end
 
 local function init_player(player)
@@ -124,7 +132,7 @@ local function init_force(force)
   init_global()
   global.trainsByForce[force.name] = global.trainsByForce[force.name] or {}
   global.station_count[force.name] = global.station_count[force.name] or {}
-  --global.force_settings[force.name] = global.force_settings[force.name] or {signalDuration=defaults.signalDuration*3600,stationDuration=defaults.stationDuration*3600}
+  global.force_settings[force.name] = global.force_settings[force.name] or {signalDuration=defaults.signalDuration*3600,stationDuration=defaults.stationDuration*3600}
   if force.technologies["rail-signals"].researched then
     global.unlockedByForce[force.name] = true
     global.unlocked = true
@@ -294,7 +302,9 @@ function on_tick(event)
     if global.updateEntities then
       for i, ent in pairs(global.updateEntities) do
         --debugDump("updateEnt"..i,true)
-        if ent.valid then
+        if ent == true then
+          TrainList.removeAlarms()        
+        elseif ent.valid then
           TrainList.add_train(ent.train)
         end
       end
@@ -304,17 +314,32 @@ function on_tick(event)
 
     if global.updateTrains[game.tick] then
       for _, ti in pairs(global.updateTrains[game.tick]) do
-        ti.inventory = getHighestInventoryCount(ti)
-        GUI.update_single_traininfo(ti, true, true)
-        if ti.last_state == defines.trainstate.wait_station then
-          local nextUpdate = game.tick+ update_rate
-          global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
-          table.insert(global.updateTrains[nextUpdate], ti)
-        else
-          ti.depart_at = false
+        if ti.train and ti.train.valid then
+          ti.inventory = getHighestInventoryCount(ti)
+          GUI.update_single_traininfo(ti, true, true)
+          if ti.last_state == defines.trainstate.wait_station then
+            local nextUpdate = game.tick+ update_rate
+            global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
+            table.insert(global.updateTrains[nextUpdate], ti)
+          else
+            ti.depart_at = false
+          end
         end
       end
       global.updateTrains[game.tick] = nil
+    end
+    
+    if global.updateAlarms[game.tick] then
+      for _, ti in pairs(global.updateAlarms[game.tick]) do
+        if ti.train and ti.train.valid then
+          if ti.alarm.arrived_at_signal then
+            if ti.last_state == defines.trainstate.wait_signal and ti.alarm.arrived_at_signal == ti.last_state_tick then
+              debugDump("Signal alarm",true)
+            end
+          end
+        end
+      end
+      global.updateAlarms[game.tick] = nil
     end
 
     if event.tick%10==7  then
@@ -331,7 +356,91 @@ function on_tick(event)
         end
       end
     end
-
+    
+--    if event.tick%120 == 37 then
+--      local alarmState = {}
+--      alarmState.timeToStation = false
+--      alarmState.timeAtSignal = false
+--      alarmState.noPath = false
+--      alarmState.noFuel = false
+--      local newAlarm = {}
+--      for forceName,trains in pairs(global.trainsByForce) do
+--        local stationDuration = global.force_settings[forceName].stationDuration
+--        local signalDuration = global.force_settings[forceName].signalDuration
+--        newAlarm[forceName] = false
+--        for i,trainInfo in pairs(trains) do
+--          local alarmSet = false
+--          if trainInfo.lastState == 1 or trainInfo.lastState == 3 then
+--            --game.players[1].print("No Path " .. i .. " " .. game.tick)
+--            if not trainInfo.alarm then
+--              alarmState.noPath = true
+--              newAlarm[forceName] = true
+--              trainInfo.updated = true
+--              trainInfo.alarmType = "noPath"
+--            end
+--            alarmSet = true
+--            trainInfo.alarm = true
+--          end
+--          -- 36000, 10 minutes
+--
+--          if trainInfo.lastState ~= 7 and trainInfo.lastStateStation ~= nil and (trainInfo.lastStateStation + stationDuration < game.tick and (trainInfo.lastState ~= 2 or trainInfo.lastState ~= 8 or trainInfo.lastState ~= 9)) then
+--            if not trainInfo.alarm then
+--              alarmState.timeToStation = true
+--              newAlarm[forceName] = true
+--              trainInfo.updated = true
+--              trainInfo.alarmType = "timeToStation"
+--            end
+--            alarmSet = true
+--            trainInfo.alarm = true
+--          end
+--          -- 72002 minutes lol, wtf?
+--          if trainInfo.lastState == 5 and (trainInfo.lastStateSignal ~= nil and trainInfo.lastStateSignal + signalDuration < game.tick ) then
+--            if not trainInfo.alarm then
+--              alarmState.timeAtSignal = true
+--              newAlarm[forceName] = true
+--              trainInfo.updated = true
+--              trainInfo.alarmType = "timeAtSignal"
+--            end
+--            alarmSet = true
+--            trainInfo.alarm = true
+--          end
+--          if trainInfo.train.valid then
+--            local noFuel = false
+--            local locos = trainInfo.train.locomotives
+--            for i,carriage in pairs(locos.front_movers) do
+--              if carriage.get_inventory(1).is_empty() then
+--                noFuel = true
+--                break
+--              end
+--            end
+--            if not noFuel then
+--              for i,carriage in pairs(locos.back_movers) do
+--                if carriage.get_inventory(1).is_empty() then
+--                  noFuel = true
+--                  break
+--                end
+--              end
+--            end
+--            if noFuel then
+--              if not trainInfo.alarm then
+--                alarmState.noFuel = true
+--                newAlarm[forceName] = true
+--                trainInfo.updated = true
+--                trainInfo.alarmType = "noFuel"
+--              end
+--              alarmSet = true
+--              trainInfo.alarm = true
+--            end
+--          end
+--          if not alarmSet then
+--            if trainInfo.alarm then
+--              trainInfo.updated = true
+--            end
+--            trainInfo.alarm = false
+--          end
+--        end
+--      end
+--    end
   end)
   if err then debugDump(err,true) end
 end
@@ -360,8 +469,10 @@ function on_preplayer_mined_item(event)
       local oldTrain = ent.train
       -- an existing train can be shortened or split in two trains or be removed completely
       local length = #oldTrain.carriages
+      if not global.updateEntities then global.updateEntities = {} end
       if length == 1 then
         TrainList.remove_train(ent.train)
+        table.insert(global.updateEntities, true)
         return
       end
       local ownPos
@@ -372,13 +483,11 @@ function on_preplayer_mined_item(event)
         end
       end
       if ent.train.carriages[ownPos-1] ~= nil then
-        if not global.updateEntities then global.updateEntities = {} end
         --debugDump(game.tick.."Add 1 front",true)
         table.insert(global.updateEntities, ent.train.carriages[ownPos-1])
         --script.on_event(defines.events.on_tick, on_tick)
       end
       if ent.train.carriages[ownPos+1] ~= nil then
-        if not global.updateEntities then global.updateEntities = {} end
         --debugDump(game.tick.."Add 1 behind",true)
         table.insert(global.updateEntities, ent.train.carriages[ownPos+1])
         --script.on_event(defines.events.on_tick, on_tick)
@@ -394,31 +503,53 @@ script.on_event(defines.events.on_preplayer_mined_item, on_preplayer_mined_item)
 script.on_event(defines.events.on_built_entity, on_built_entity)
 
 function on_train_changed_state(event)
+  --debugDump("state:"..event.train.state,true)
   local status, err = pcall(function()
     local train = event.train
     local entity = train.carriages[1]
     --debugDump(game.tick.." state:"..train.state,true)
     local trainInfo = TrainList.get_traininfo(entity.force, train)
     if trainInfo then
-      trainInfo.previous_state = trainInfo.last_state
-      trainInfo.previous_state_tick = trainInfo.last_state_tick
-      trainInfo.last_state = train.state
-      trainInfo.last_state_tick = game.tick
+      local unf = {}
+      unf.previous_state = trainInfo.unfiltered_state.last_state
+      unf.previous_tick = trainInfo.unfiltered_state.last_tick
+      unf.last_state = train.state
+      unf.last_tick = game.tick
+      trainInfo.unfiltered_state = unf
       -- skip update if:
       --  going from wait_signal to on_the_path after 300 ticks
       --  going from on_the_path to wait_signal after 1 tick
       --  arrive_signal
-      local diff = game.tick - trainInfo.previous_state_tick
+      local diff = game.tick - unf.previous_tick
       if  train.state == defines.trainstate.arrive_signal or
-        (trainInfo.previous_state == defines.trainstate.wait_signal and train.state == defines.trainstate.on_the_path
+        (unf.previous_state == defines.trainstate.wait_signal and train.state == defines.trainstate.on_the_path
         and diff == 300)
-        or (trainInfo.previous_state == defines.trainstate.on_the_path and train.state == defines.trainstate.wait_signal
+        or (unf.previous_state == defines.trainstate.on_the_path and train.state == defines.trainstate.wait_signal
         and diff == 1) then
         --debugDump(game.tick.." Skipped",true)
         return
       end
-
-      if train.state == defines.trainstate.wait_station then
+      trainInfo.previous_state = trainInfo.last_state
+      trainInfo.previous_state_tick = trainInfo.last_state_tick
+      trainInfo.last_state = train.state
+      trainInfo.last_state_tick = game.tick
+      if train.state == defines.trainstate.wait_signal then
+        trainInfo.alarm.arrived_at_signal = game.tick
+        trainInfo.alarm.left_station = false
+        local nextUpdate = game.tick + global.force_settings[entity.force.name].signalDuration
+        global.updateAlarms[nextUpdate] = global.updateAlarms[nextUpdate] or {}
+        table.insert(global.updateAlarms[nextUpdate], trainInfo)
+      elseif train.state == defines.trainstate.on_the_path then
+        if trainInfo.previous_state == defines.trainstate.wait_station then
+          trainInfo.alarm.left_station = game.tick
+          trainInfo.alarm.arrived_at_signal = false
+          local nextUpdate = game.tick + global.force_settings[entity.force.name].stationDuration
+          global.updateAlarms[nextUpdate] = global.updateAlarms[nextUpdate] or {}
+          --table.insert(global.updateAlarms[nextUpdate], trainInfo)
+        elseif trainInfo.previous_state == defines.trainstate.wait_signal then
+          trainInfo.alarm.arrived_at_signal = false
+        end
+      elseif train.state == defines.trainstate.wait_station then
         trainInfo.depart_at = game.tick + train.schedule.records[train.schedule.current].time_to_wait
         if train.schedule and #train.schedule.records < 2 then
           trainInfo.depart_at = false
@@ -433,6 +564,9 @@ function on_train_changed_state(event)
       local station = (#train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
       trainInfo.current_station = station
       GUI.update_single_traininfo(trainInfo, true, true)
+    else
+      debugDump("no traininfo",true)
+      TrainList.remove_invalid(entity.force)
     end
   end)
   if err then debugDump(err,true) end
@@ -482,13 +616,13 @@ end
 function on_player_closed(event)
   if event.entity.valid and game.players[event.player_index].valid then
     if event.entity.type == "locomotive" and event.entity.train then
-      local ti = TrainList.get_traininfo(event.entity.force.name, event.entity.train)
+      local ti = TrainList.get_traininfo(event.entity.force, event.entity.train)
       if not ti then
         ti = TrainList.add_train(event.entity.train)
       end
       TrainList.update_stations(ti)
     elseif event.entity.type == "cargo-wagon" and event.entity.train then
-      local ti = TrainList.get_traininfo(event.entity.force.name, event.entity.train)
+      local ti = TrainList.get_traininfo(event.entity.force, event.entity.train)
       if not ti then
         ti = TrainList.add_train(event.entity.train)
       else

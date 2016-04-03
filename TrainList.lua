@@ -12,21 +12,28 @@ TrainList.remove_invalid = function(force, show)
   local show = show or debug
   for i=#global.trainsByForce[force.name],1,-1 do
     local ti = global.trainsByForce[force.name][i]
-    if not ti.train or not ti.train.valid then
-      table.remove(global.trainsByForce[force.name], i)
-      removed = removed + 1
-      -- try to detect change through pressing G/V
-    else
-      local test = ti.type
-      if test ~= ti.type then
-        debugDump("De-/coupled train?", true)
+    if ti then
+      if not ti.train or not ti.train.valid then
         table.remove(global.trainsByForce[force.name], i)
         removed = removed + 1
+        -- try to detect change through pressing G/V
+      else
+        local test = ti.type
+        if test ~= ti.type then
+          debugDump("De-/coupled train?", true)
+          table.remove(global.trainsByForce[force.name], i)
+          removed = removed + 1
+        end
       end
+    else
+      debugDump("oops",true)
+      table.remove(global.trainsByForce[force.name], i)
     end
   end
+  TrainList.removeAlarms()
   for i,ti in pairs(global.trainsByForce[force.name]) do
     ti.mainIndex = i
+    ti.opened_guis = {}
   end
   if removed > 0 then
     if show then --removed > 0 and show then
@@ -81,8 +88,13 @@ TrainList.remove_train = function(train)
   for i=#trains, 1,-1 do
     if trains[i].train == train then
       trains[i] = nil
-      removed = true
+      break
     end
+  end
+  TrainList.removeAlarms()
+  for i,ti in pairs(global.trainsByForce[force.name]) do
+    ti.mainIndex = i
+    ti.opened_guis = {}
   end
   GUI.refreshAllTrainInfoGuis(force)
 end
@@ -123,3 +135,25 @@ TrainList.get_filtered_trains = function(force, filterList)
   end
   return filtered
 end
+
+TrainList.removeAlarms = function()
+    local remove = {}
+    for tick, trains in pairs(global.updateAlarms) do
+      for i=#trains,1,-1 do
+         local ti = trains[i]
+         if ti then
+          if not ti.train or not ti.train.valid then
+            trains[i] = nil  
+          end
+         else
+          trains[i] = nil
+         end
+      end
+      if #trains == 0 then
+        table.insert(remove, tick)
+      end
+    end
+    for _,tick in pairs(remove) do
+      global.updateAlarms[tick] = nil
+    end
+  end
