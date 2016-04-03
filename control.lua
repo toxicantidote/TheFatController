@@ -26,6 +26,7 @@ defaultGuiSettings = {
   pageCount = 5,
   filter_page = 1,
   filter_pageCount = 1,
+  filtered_trains = false,
   stopButton_state = false,
   displayed_trains = {}
 }
@@ -42,6 +43,7 @@ TrainInfo = {
   depart_at = 0, --tick when train will depart the station
   --main_index = 0, -- always equal to global.trainsByForce[force.name] index
   train = false, -- ref to lua_train
+  mainIndex = false, --
   last_update = 0, --tick of last inventory update
   previous_state = 0,
   previous_state_tick = 0,
@@ -54,7 +56,6 @@ TrainInfo = {
   follower_index = 0, -- player_index of following player
   opened_guis = {}, -- contains references to opened player guis, indexed by player_index
   stations = {}, --boolean table, indexed by stations in the schedule, new global trains_by_station?? should speedup filtered display
-  matches_filter = {}, --whether the stations match the filter
   alarm = {
     active = false,
     last_message = 0, --tick
@@ -185,7 +186,9 @@ local function on_configuration_changed(data)
           tmp[i].fatControllerGui = global.guiSettings[i].fatControllerGui
           tmp[i].fatControllerButtons = global.guiSettings[i].fatControllerButtons
         end
-        global = nil
+        local tmpCharacter = global.character or {}
+        global = {}
+        global.character = tmpCharacter
         on_init()
         for i, player in pairs(game.players) do
           global.gui[i].fatControllerGui = tmp[i].fatControllerGui
@@ -290,7 +293,7 @@ function on_tick(event)
   local status, err = pcall(function()
     if global.updateEntities then
       for i, ent in pairs(global.updateEntities) do
-        debugDump("updateEnt"..i,true)
+        --debugDump("updateEnt"..i,true)
         if ent.valid then
           TrainList.add_train(ent.train)
         end
@@ -370,13 +373,13 @@ function on_preplayer_mined_item(event)
       end
       if ent.train.carriages[ownPos-1] ~= nil then
         if not global.updateEntities then global.updateEntities = {} end
-        debugDump(game.tick.."Add 1 front",true)
+        --debugDump(game.tick.."Add 1 front",true)
         table.insert(global.updateEntities, ent.train.carriages[ownPos-1])
         --script.on_event(defines.events.on_tick, on_tick)
       end
       if ent.train.carriages[ownPos+1] ~= nil then
         if not global.updateEntities then global.updateEntities = {} end
-        debugDump(game.tick.."Add 1 behind",true)
+        --debugDump(game.tick.."Add 1 behind",true)
         table.insert(global.updateEntities, ent.train.carriages[ownPos+1])
         --script.on_event(defines.events.on_tick, on_tick)
       end
@@ -479,9 +482,20 @@ end
 function on_player_closed(event)
   if event.entity.valid and game.players[event.player_index].valid then
     if event.entity.type == "locomotive" and event.entity.train then
-
+      local ti = TrainList.get_traininfo(event.entity.force.name, event.entity.train)
+      if not ti then
+        ti = TrainList.add_train(event.entity.train)
+      end
+      TrainList.update_stations(ti)
     elseif event.entity.type == "cargo-wagon" and event.entity.train then
-
+      local ti = TrainList.get_traininfo(event.entity.force.name, event.entity.train)
+      if not ti then
+        ti = TrainList.add_train(event.entity.train)
+      else
+        getHighestInventoryCount(ti)
+        GUI.update_single_traininfo(ti, true, true)
+      end
+      
     elseif event.entity.type == "train-stop" then
       if event.entity.backer_name ~= global.opened_name[event.player_index] then
         on_station_rename(event.entity, global.opened_name[event.player_index])
@@ -494,15 +508,21 @@ end
 script.on_event(events.on_player_opened, on_player_opened)
 script.on_event(events.on_player_closed, on_player_closed)
 
-function getPageCount(trains, guiSettings, player)
-  local trainCount = 0
+function getPageCount(guiSettings, player)
+  local trains = guiSettings.activeFilterList and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
   if not trains then error("no trains", 2) end
-  for i,trainInfo in pairs(trains) do
-    if guiSettings.activeFilterList == nil or trainInfo.matches_filter[player.index] then
-      trainCount = trainCount + 1
-    end
+  local trainCount = 0
+  trainCount = #trains  
+  local p = math.floor((trainCount - 1) / guiSettings.displayCount) + 1
+  p = p > 0 and p or 1
+  return p 
+end
+
+function update_pageCount(force)
+  for i, p in pairs(force.players) do
+    local guiSettings = global.gui[p.index]
+    guiSettings.pageCount = getPageCount(guiSettings,p) 
   end
-  return math.floor((trainCount - 1) / guiSettings.displayCount) + 1
 end
 
 function get_filter_PageCount(force)
@@ -510,7 +530,9 @@ function get_filter_PageCount(force)
   for _, s in pairs(global.station_count[force.name]) do
     stationCount = stationCount + 1
   end
-  return math.floor((stationCount - 1) / (global.PAGE_SIZE)) + 1
+  local p = math.floor((stationCount - 1) / (global.PAGE_SIZE)) + 1
+  p = p > 0 and p or 1
+  return p
 end
 
 local on_entity_died = function (event)
@@ -599,49 +621,15 @@ function newFatControllerEntity(player)
 end
 
 function matchStationFilter(trainInfo, activeFilterList)
-  local fullMatch = false
-  local stations = {}
-  local records = (trainInfo.train.schedule and #trainInfo.train.schedule.records > 0) and trainInfo.train.schedule.records or false
-  if not records then return false end
-  for i, record in pairs(records) do
-    stations[record.station] = true
-  end
   if trainInfo ~= nil then
     for filter, value in pairs(activeFilterList) do
-      if stations[filter] then
-        fullMatch = true
-      else
+      if not trainInfo.stations[filter] then
         return false
       end
     end
+    return true
   end
-
-  return fullMatch
-end
-
-function filterTrainInfoList(trains, activeFilterList, player)
-  for i,trainInfo in pairs(trains) do
-    if activeFilterList ~= nil then
-      trainInfo.matches_filter[player.index] = matchStationFilter(trainInfo, activeFilterList)
-    else
-      trainInfo.matches_filter[player.index] = true
-    end
-  end
-end
-
-function buildStationFilterList(trains)
-  local newList = {}
-  if trains ~= nil then
-    for i, trainInfo in pairs(trains) do
-      if trainInfo.stations ~= nil then
-        for station, value in pairs(trainInfo.stations) do
-          --debugLog(station)
-          newList[station] = true
-        end
-      end
-    end
-  end
-  return newList
+  return false
 end
 
 function tableIsEmpty(tableA)
