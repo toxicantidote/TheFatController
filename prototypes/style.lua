@@ -132,4 +132,78 @@ data.raw["gui-style"].default["fatcontroller_textfield_small"] =
     left_padding = 3,
     right_padding = 2,
     minimal_width = 30,
-  }    
+  }
+
+data.raw["gui-style"].default["fatcontroller_icon_style"] =
+  {
+    type = "checkbox_style",
+    parent = "checkbox_style",
+    width = 32,
+    height = 32,
+    bottom_padding = 10,
+    default_background =
+    {
+      filename = "__core__/graphics/gui.png",
+      priority = "extra-high-no-scale",
+      width = 32,
+      height = 32,
+      x = 111
+    },
+    hovered_background =
+    {
+      filename = "__core__/graphics/gui.png",
+      priority = "extra-high-no-scale",
+      width = 32,
+      height = 32,
+      x = 111
+    },
+    clicked_background =
+    {
+      filename = "__core__/graphics/gui.png",
+      priority = "extra-high-no-scale",
+      width = 32,
+      height = 32,
+      x = 111
+    },
+    checked =
+    {
+      filename = "__core__/graphics/gui.png",
+      priority = "extra-high-no-scale",
+      width = 32,
+      height = 32,
+      x = 111
+    }
+  }
+local alarms = {"noFuel", "noPath", "timeAtSignal", "timeToStation"}
+for _, icon in pairs(alarms) do
+  local style =
+    {
+      type = "checkbox_style",
+      parent = "fatcontroller_icon_style",
+      default_background =
+      {
+        filename = "__TheFatController__/graphics/icons/"..icon..".png",
+        width = 32,
+        height = 32
+      },
+      hovered_background =
+      {
+        filename = "__TheFatController__/graphics/icons/"..icon..".png",
+        width = 32,
+        height = 32
+      },
+      checked_background =
+      {
+        filename = "__TheFatController__/graphics/icons/"..icon..".png",
+        width = 32,
+        height = 32
+      },
+      clicked_background =
+      {
+        filename = "__TheFatController__/graphics/icons/"..icon..".png",
+        width = 32,
+        height = 32
+      }
+    }
+  data.raw["gui-style"].default["fatcontroller_icon_"..icon] = style
+end

@@ -37,6 +37,16 @@ GUI = {
       if trainGui.buttons[trainInfo.guiName .. "_toggleFollowMode"] == nil then
         trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleFollowMode", caption={"text-controlbutton"}, style="fatcontroller_button_style"})
       end
+      
+      if trainInfo.alarm.active then
+        local style = "fatcontroller_icon_" .. trainInfo.alarm.type
+        --local style = "fatcontroller_icon_timeToStation"
+        if trainGui.buttons[trainInfo.guiName .. "_alarm"] == nil then
+          trainGui.buttons.add({type="checkbox", name=trainInfo.guiName .. "_alarm", state=false, style=style})
+        else
+          trainGui.buttons[trainInfo.guiName .. "_alarm"].style = style
+        end
+      end
 
 
       --Add info
@@ -90,10 +100,6 @@ GUI = {
           topString = "Moving -> " .. station
         end
       end
-      if trainInfo.alarm.active then
-        local alarmType = trainInfo.alarmType or ""
-        topString = "!"..alarmType .. topString
-      end
       
       return topString
     end,
@@ -106,10 +112,29 @@ GUI = {
       return bottomString    
     end,
     
-    update_single_traininfo = function(trainInfo, top, bottom)
+    update_single_traininfo = function(trainInfo, update_cargo)
       if trainInfo then
+        local cargo_updated = false
+        local alarm = trainInfo.alarm.active and trainInfo.alarm.type or false
         for player_index, gui in pairs(trainInfo.opened_guis) do
           if gui and gui.valid then
+            if alarm then
+              local style = "fatcontroller_icon_" .. trainInfo.alarm.type
+              --local style = "fatcontroller_icon_timeToStation"
+              if gui.buttons[trainInfo.guiName .. "_alarm"] then
+                gui.buttons[trainInfo.guiName .. "_alarm"].style = style
+              else
+                gui.buttons.add({type="checkbox", name=trainInfo.guiName .. "_alarm", state=false, style=style})
+              end
+            else
+              if gui.buttons[trainInfo.guiName .. "_alarm"] then
+                gui.buttons[trainInfo.guiName .. "_alarm"].destroy()
+              end
+            end
+            if update_cargo and not cargo_updated then
+              trainInfo.inventory = getHighestInventoryCount(trainInfo)
+              cargo_updated = true
+            end            
             gui.info.topInfo.caption = GUI.get_topstring(trainInfo)
             gui.info.bottomInfo.caption = GUI.get_bottomstring(trainInfo)
             if trainInfo.train.manual_mode then
@@ -205,6 +230,8 @@ GUI = {
           refreshGui = on_gui_click.toggleFollowMode(guiSettings, event.element, player)
         elseif endsWith(event.element.name,"_stationFilter") then
           refreshGui = on_gui_click.stationFilter(guiSettings, event.element, player)
+        elseif endsWith(event.element.name,"_alarm") then
+          refreshGui = on_gui_click.unsetAlarm(guiSettings, event.element, player)
         end
 
         if refreshGui then
@@ -717,6 +744,17 @@ on_gui_click = {
         end
       end
 
+    end
+  end,
+  
+  unsetAlarm = function(guiSettings, element, player)
+    local trains = global.trainsByForce[player.force.name]
+    local option1 = element.name:match("Info(%w+)_")
+    option1 = tonumber(option1)
+    local trainInfo = trains[option1]
+    if trainInfo and trainInfo.train and trainInfo.train.valid then
+      trainInfo.alarm.active = false
+      GUI.update_single_traininfo(trainInfo)    
     end
   end,
 

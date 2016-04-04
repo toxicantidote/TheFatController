@@ -5,7 +5,7 @@ require "GUI"
 
 MOD_NAME = "TheFatController"
 
-update_rate = 90
+update_rate = 60
 
 -- myevent = game.generateeventname()
 -- the name and tick are filled for the event automatically
@@ -18,7 +18,7 @@ events["on_player_closed"] = script.generate_event_name()
 defaults = {stationDuration=10,signalDuration=2}
 
 defaultGuiSettings = {
-  alarm={active=false,noPath=true,timeAtSignal=true,timeToStation=true},
+  alarm={noPath=true,noFuel=true,timeAtSignal=true,timeToStation=true},
   displayCount=10,
   fatControllerButtons = {},
   fatControllerGui = {},
@@ -55,18 +55,17 @@ TrainInfo = {
     last_state = 0,
     last_tick = 0
   },
-  locomotives = {}, -- locomotives of train (to revalidate a train?)
-  first_carriage = false,
-  last_carriage = false,
   type = "", -- L-CC-L etc
   follower_index = 0, -- player_index of following player
   opened_guis = {}, -- contains references to opened player guis, indexed by player_index
   stations = {}, --boolean table, indexed by stations in the schedule, new global trains_by_station?? should speedup filtered display
   alarm = {
     active = false,
+    type = false,
+    message = "",
     last_message = 0, --tick
+    last_type = false,
     arrived_at_signal = false, -- tick
-    arrived_at_station = 0, --tick
     left_station = false, --tick
   }
 }
@@ -297,6 +296,50 @@ function getHighestInventoryCount(trainInfo)
   return inventory
 end
 
+function alertForce(force, trainInfo)
+  local alarm_type = trainInfo.alarm.type
+  for _, player in pairs(force.players) do
+    local guiSettings = global.gui[player.index]
+    if guiSettings and guiSettings.alarm[alarm_type] then
+      player.print(trainInfo.alarm.message)
+    end
+  end
+  trainInfo.alarm.last_message = game.tick
+end
+
+function check_low_fuel(trainInfo)
+  local noFuel = false
+  local locos = trainInfo.train.locomotives
+  for i,carriage in pairs(locos.front_movers) do
+    if carriage.get_inventory(1).is_empty() then
+      noFuel = true
+      break
+    end
+  end
+  if not noFuel then
+    for i,carriage in pairs(locos.back_movers) do
+      if carriage.get_inventory(1).is_empty() then
+        noFuel = true
+        break
+      end
+    end
+  end
+  if noFuel then
+    local alarm_type = "noFuel"
+    trainInfo.alarm.active = true
+    trainInfo.alarm.type = alarm_type
+    trainInfo.alarm.message = {"msg-alarm-"..alarm_type}
+    if trainInfo.alarm.last_message+300 < game.tick then
+      alertForce(trainInfo.train.carriages[1].force, trainInfo)
+    end
+  else
+    if trainInfo.alarm.active and trainInfo.alarm.type == "noFuel" then
+      trainInfo.alarm.active = false
+      trainInfo.alarm.type = false
+    end
+  end
+end
+
 function on_tick(event)
   local status, err = pcall(function()
     if global.updateEntities then
@@ -315,8 +358,8 @@ function on_tick(event)
     if global.updateTrains[game.tick] then
       for _, ti in pairs(global.updateTrains[game.tick]) do
         if ti.train and ti.train.valid then
-          ti.inventory = getHighestInventoryCount(ti)
-          GUI.update_single_traininfo(ti, true, true)
+          check_low_fuel(ti)
+          GUI.update_single_traininfo(ti, true)
           if ti.last_state == defines.trainstate.wait_station then
             local nextUpdate = game.tick+ update_rate
             global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
@@ -332,11 +375,34 @@ function on_tick(event)
     if global.updateAlarms[game.tick] then
       for _, ti in pairs(global.updateAlarms[game.tick]) do
         if ti.train and ti.train.valid then
+          local force = ti.train.carriages[1].force
+          local stationDuration = global.force_settings[force.name].stationDuration
+          local signalDuration = global.force_settings[force.name].signalDuration/3600
+          local update = false
           if ti.alarm.arrived_at_signal then
             if ti.last_state == defines.trainstate.wait_signal and ti.alarm.arrived_at_signal == ti.last_state_tick then
-              debugDump("Signal alarm",true)
+              local alarm_type = "timeAtSignal"
+              ti.alarm.active = true
+              ti.alarm.type = alarm_type
+              ti.alarm.message = ({"msg-alarm-"..alarm_type, signalDuration})
+              alertForce(force, ti)
+              update = true
             end
           end
+          if ti.alarm.left_station then
+            local stationDuration = global.force_settings[force.name].stationDuration
+            if ti.alarm.left_station+stationDuration <= game.tick then
+              local alarm_type = "timeToStation"
+              ti.alarm.active = true
+              ti.alarm.type = alarm_type
+              ti.alarm.message = ({"msg-alarm-"..alarm_type, stationDuration/3600})
+              alertForce(force, ti)
+              update = true
+            end
+          end
+          if update then
+            GUI.update_single_traininfo(ti)
+          end      
         end
       end
       global.updateAlarms[game.tick] = nil
@@ -356,91 +422,6 @@ function on_tick(event)
         end
       end
     end
-    
---    if event.tick%120 == 37 then
---      local alarmState = {}
---      alarmState.timeToStation = false
---      alarmState.timeAtSignal = false
---      alarmState.noPath = false
---      alarmState.noFuel = false
---      local newAlarm = {}
---      for forceName,trains in pairs(global.trainsByForce) do
---        local stationDuration = global.force_settings[forceName].stationDuration
---        local signalDuration = global.force_settings[forceName].signalDuration
---        newAlarm[forceName] = false
---        for i,trainInfo in pairs(trains) do
---          local alarmSet = false
---          if trainInfo.lastState == 1 or trainInfo.lastState == 3 then
---            --game.players[1].print("No Path " .. i .. " " .. game.tick)
---            if not trainInfo.alarm then
---              alarmState.noPath = true
---              newAlarm[forceName] = true
---              trainInfo.updated = true
---              trainInfo.alarmType = "noPath"
---            end
---            alarmSet = true
---            trainInfo.alarm = true
---          end
---          -- 36000, 10 minutes
---
---          if trainInfo.lastState ~= 7 and trainInfo.lastStateStation ~= nil and (trainInfo.lastStateStation + stationDuration < game.tick and (trainInfo.lastState ~= 2 or trainInfo.lastState ~= 8 or trainInfo.lastState ~= 9)) then
---            if not trainInfo.alarm then
---              alarmState.timeToStation = true
---              newAlarm[forceName] = true
---              trainInfo.updated = true
---              trainInfo.alarmType = "timeToStation"
---            end
---            alarmSet = true
---            trainInfo.alarm = true
---          end
---          -- 72002 minutes lol, wtf?
---          if trainInfo.lastState == 5 and (trainInfo.lastStateSignal ~= nil and trainInfo.lastStateSignal + signalDuration < game.tick ) then
---            if not trainInfo.alarm then
---              alarmState.timeAtSignal = true
---              newAlarm[forceName] = true
---              trainInfo.updated = true
---              trainInfo.alarmType = "timeAtSignal"
---            end
---            alarmSet = true
---            trainInfo.alarm = true
---          end
---          if trainInfo.train.valid then
---            local noFuel = false
---            local locos = trainInfo.train.locomotives
---            for i,carriage in pairs(locos.front_movers) do
---              if carriage.get_inventory(1).is_empty() then
---                noFuel = true
---                break
---              end
---            end
---            if not noFuel then
---              for i,carriage in pairs(locos.back_movers) do
---                if carriage.get_inventory(1).is_empty() then
---                  noFuel = true
---                  break
---                end
---              end
---            end
---            if noFuel then
---              if not trainInfo.alarm then
---                alarmState.noFuel = true
---                newAlarm[forceName] = true
---                trainInfo.updated = true
---                trainInfo.alarmType = "noFuel"
---              end
---              alarmSet = true
---              trainInfo.alarm = true
---            end
---          end
---          if not alarmSet then
---            if trainInfo.alarm then
---              trainInfo.updated = true
---            end
---            trainInfo.alarm = false
---          end
---        end
---      end
---    end
   end)
   if err then debugDump(err,true) end
 end
@@ -506,9 +487,9 @@ function on_train_changed_state(event)
   --debugDump("state:"..event.train.state,true)
   local status, err = pcall(function()
     local train = event.train
-    local entity = train.carriages[1]
+    local force = train.carriages[1].force
     --debugDump(game.tick.." state:"..train.state,true)
-    local trainInfo = TrainList.get_traininfo(entity.force, train)
+    local trainInfo = TrainList.get_traininfo(force, train)
     if trainInfo then
       local unf = {}
       unf.previous_state = trainInfo.unfiltered_state.last_state
@@ -533,20 +514,28 @@ function on_train_changed_state(event)
       trainInfo.previous_state_tick = trainInfo.last_state_tick
       trainInfo.last_state = train.state
       trainInfo.last_state_tick = game.tick
+      
+      if trainInfo.alarm.active and trainInfo.alarm.type == "noPath" then
+        trainInfo.alarm.active = false
+        trainInfo.alarm.type = ""
+        trainInfo.alarm.left_station = false
+        trainInfo.alarm.arrived_at_signal = false
+      end 
+      local update_cargo = false     
       if train.state == defines.trainstate.wait_signal then
         trainInfo.alarm.arrived_at_signal = game.tick
-        trainInfo.alarm.left_station = false
-        local nextUpdate = game.tick + global.force_settings[entity.force.name].signalDuration
+        local nextUpdate = game.tick + global.force_settings[force.name].signalDuration
         global.updateAlarms[nextUpdate] = global.updateAlarms[nextUpdate] or {}
         table.insert(global.updateAlarms[nextUpdate], trainInfo)
       elseif train.state == defines.trainstate.on_the_path then
         if trainInfo.previous_state == defines.trainstate.wait_station then
           trainInfo.alarm.left_station = game.tick
           trainInfo.alarm.arrived_at_signal = false
-          local nextUpdate = game.tick + global.force_settings[entity.force.name].stationDuration
+          local nextUpdate = game.tick + global.force_settings[force.name].stationDuration
           global.updateAlarms[nextUpdate] = global.updateAlarms[nextUpdate] or {}
-          --table.insert(global.updateAlarms[nextUpdate], trainInfo)
+          table.insert(global.updateAlarms[nextUpdate], trainInfo)
         elseif trainInfo.previous_state == defines.trainstate.wait_signal then
+          trainInfo.alarm.active = false
           trainInfo.alarm.arrived_at_signal = false
         end
       elseif train.state == defines.trainstate.wait_station then
@@ -554,19 +543,42 @@ function on_train_changed_state(event)
         if train.schedule and #train.schedule.records < 2 then
           trainInfo.depart_at = false
         end
-        trainInfo.inventory = getHighestInventoryCount(trainInfo)
+        update_cargo = true
         local nextUpdate = game.tick+update_rate
         global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
         table.insert(global.updateTrains[nextUpdate], trainInfo)
+      elseif train.state == defines.trainstate.arrive_station then
+        if trainInfo.alarm.left_station then
+          local stationDuration = global.force_settings[force.name].stationDuration
+          if trainInfo.alarm.left_station+stationDuration < game.tick then
+            local alarm_type = "timeToStation"
+            trainInfo.alarm.active = true
+            trainInfo.alarm.type = alarm_type
+            trainInfo.alarm.message = ({"msg-alarm-"..alarm_type, stationDuration/3600})
+            alertForce(force, trainInfo)
+          end
+        end
+      elseif train.state == defines.trainstate.path_lost or train.state == defines.trainstate.no_path then
+        local alarm_type = "noPath"
+        trainInfo.alarm.active = true
+        trainInfo.alarm.type = alarm_type
+        trainInfo.alarm.message = {"msg-alarm-"..alarm_type}
+        alertForce(force, trainInfo)
+      elseif train.state == defines.trainstate.manual_control or train.state == defines.trainstate.manual_control_stop then
+        trainInfo.alarm.last_message = 0
+        trainInfo.alarm.last_type = false
+        trainInfo.alarm.arrived_at_signal = false
+        trainInfo.alarm.left_station = false            
       else
         trainInfo.depart_at = false
       end
+      check_low_fuel(trainInfo)
       local station = (#train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
       trainInfo.current_station = station
-      GUI.update_single_traininfo(trainInfo, true, true)
+      GUI.update_single_traininfo(trainInfo, update_cargo)
     else
       debugDump("no traininfo",true)
-      TrainList.remove_invalid(entity.force)
+      TrainList.remove_invalid(force)
     end
   end)
   if err then debugDump(err,true) end
@@ -621,13 +633,14 @@ function on_player_closed(event)
         ti = TrainList.add_train(event.entity.train)
       end
       TrainList.update_stations(ti)
+      check_low_fuel(ti)
+      GUI.update_single_traininfo(ti)
     elseif event.entity.type == "cargo-wagon" and event.entity.train then
       local ti = TrainList.get_traininfo(event.entity.force, event.entity.train)
       if not ti then
         ti = TrainList.add_train(event.entity.train)
       else
-        getHighestInventoryCount(ti)
-        GUI.update_single_traininfo(ti, true, true)
+        GUI.update_single_traininfo(ti, true)
       end
       
     elseif event.entity.type == "train-stop" then
