@@ -754,6 +754,7 @@ on_gui_click = {
     local trainInfo = trains[option1]
     if trainInfo and trainInfo.train and trainInfo.train.valid then
       trainInfo.alarm.active = false
+      trainInfo.alarm.type = false
       GUI.update_single_traininfo(trainInfo)    
     end
   end,
