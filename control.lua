@@ -55,7 +55,6 @@ TrainInfo = {
     last_state = 0,
     last_tick = 0
   },
-  type = "", -- L-CC-L etc
   follower_index = 0, -- player_index of following player
   opened_guis = {}, -- contains references to opened player guis, indexed by player_index
   stations = {}, --boolean table, indexed by stations in the schedule, new global trains_by_station?? should speedup filtered display
@@ -313,7 +312,7 @@ Alerts.reset_alarm = function(trainInfo)
   trainInfo.alarm.type = false
   trainInfo.alarm.left_station = false
   trainInfo.alarm.arrived_at_signal = false
-  
+
   trainInfo.alarm.last_message = 0
 end
 
@@ -328,6 +327,11 @@ Alerts.alert_force = function(force, trainInfo)
   trainInfo.alarm.last_message = game.tick
 end
 
+function insert_in_tick_table(key, tick, value)
+  global[key][tick] = global[key][tick] or {}
+  table.insert(global[key][tick], value)
+end
+
 function getHighestInventoryCount(trainInfo)
   local inventory = ""
   if trainInfo and trainInfo.train and trainInfo.train.valid and trainInfo.train.cargo_wagons then
@@ -337,10 +341,8 @@ function getHighestInventoryCount(trainInfo)
 
     for i, carriage in pairs(trainInfo.train.cargo_wagons) do
       if carriage and carriage.valid and carriage.name == "rail-tanker" then
-        debugLog("Looking for Oil!")
         local liquid = remote.call("railtanker","getLiquidByWagon",carriage)
         if liquid then
-          debugLog("Liquid!")
           local name = liquid.type
           local count = math.floor(liquid.amount)
           if name then
@@ -365,7 +367,7 @@ function getHighestInventoryCount(trainInfo)
         local isItem = game.item_prototypes[largestItem.name] or game.fluid_prototypes[largestItem.name]
         global.items[largestItem.name] = isItem and isItem.localised_name or largestItem.name
       end
-      local displayName = global.items[largestItem.name] 
+      local displayName = global.items[largestItem.name]
       local suffix = itemsCount > 1 and "..." or ""
       inventory = {"", displayName,": ",largestItem.count, suffix}
     end
@@ -373,19 +375,54 @@ function getHighestInventoryCount(trainInfo)
   return inventory
 end
 
+function on_player_driving_changed_state(event)
+  local player = game.players[event.player_index]
+  if player.vehicle == nil and global.gui[player.index].followEntity then
+    local guiSettings = global.gui[player.index]
+    swapPlayer(game.players[player.index], global.character[player.index])
+    global.character[player.index] = nil
+    if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.returnToPlayer ~= nil then
+      guiSettings.fatControllerButtons.returnToPlayer.destroy()
+    end
+    guiSettings.followEntity = nil
+    if guiSettings.followGui and guiSettings.followGui.valid then
+      guiSettings.followGui.caption = "c"
+      guiSettings.followGui.style = "fatcontroller_button_style"
+      guiSettings.followGui = nil
+    end
+    TrainList.remove_invalid(player.force, true)
+  end
+end
+script.on_event(defines.events.on_player_driving_changed_state, on_player_driving_changed_state)
+
 function on_tick(event)
   local status, err = pcall(function()
     if global.updateEntities then
       for i, ent in pairs(global.updateEntities) do
         --debugDump("updateEnt"..i,true)
         if ent == true then
-          TrainList.removeAlarms()        
+          TrainList.removeAlarms()
         elseif ent.valid then
           TrainList.add_train(ent.train)
         end
       end
       global.updateEntities = false
       --script.on_event(defines.events.on_tick, nil)
+    end
+
+    if global.dead_players then
+      for i, character in pairs(global.dead_players) do
+        if not character.valid then
+          debugDump(game.players[i].name.." died while remote controlling",true)
+          debugDump("Killing "..game.players[i].name.." softly",true)
+          game.players[i].character.die()
+          global.gui[i].followEntity = nil
+        else
+          debugDump("How did i get here?",true)
+          debugDump("Something that resembled a player died",true)
+        end
+      end
+      global.dead_players = nil
     end
 
     if global.updateTrains[game.tick] then
@@ -395,8 +432,7 @@ function on_tick(event)
           GUI.update_single_traininfo(ti, true)
           if ti.last_state == defines.trainstate.wait_station then
             local nextUpdate = game.tick+ update_rate
-            global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
-            table.insert(global.updateTrains[nextUpdate], ti)
+            insert_in_tick_table("updateTrains",nextUpdate,ti)
           else
             ti.depart_at = false
           end
@@ -404,13 +440,13 @@ function on_tick(event)
       end
       global.updateTrains[game.tick] = nil
     end
-    
+
     if global.updateAlarms[game.tick] then
       for _, ti in pairs(global.updateAlarms[game.tick]) do
         if ti.train and ti.train.valid then
           if Alerts.check_alerts(ti) then
             GUI.update_single_traininfo(ti)
-          end      
+          end
         end
       end
       global.updateAlarms[game.tick] = nil
@@ -443,6 +479,8 @@ function on_built_entity(event)
     if ctype == "locomotive" or ctype == "cargo-wagon" then
       -- can be a new train or added to an existing one
       TrainList.add_train(ent.train)
+    elseif ctype == "train-stop" then
+      increaseStationCount(ent)
     end
   end)
   if not status then
@@ -472,15 +510,13 @@ function on_preplayer_mined_item(event)
         end
       end
       if ent.train.carriages[ownPos-1] ~= nil then
-        --debugDump(game.tick.."Add 1 front",true)
         table.insert(global.updateEntities, ent.train.carriages[ownPos-1])
-        --script.on_event(defines.events.on_tick, on_tick)
       end
       if ent.train.carriages[ownPos+1] ~= nil then
-        --debugDump(game.tick.."Add 1 behind",true)
         table.insert(global.updateEntities, ent.train.carriages[ownPos+1])
-        --script.on_event(defines.events.on_tick, on_tick)
       end
+    elseif ctype == "train-stop" then
+      decreaseStationCount(ent,ent.backer_name)
     end
   end)
   if not status then
@@ -488,6 +524,20 @@ function on_preplayer_mined_item(event)
   end
 end
 
+function on_robot_built_entity(event)
+  if event.created_entity.type == "train-stop" then
+    increaseStationCount(event.created_entity)
+  end
+end
+
+function on_robot_pre_mined(event)
+  if event.entity.type == "train-stop" then
+    decreaseStationCount(event.entity, event.entity.backer_name)
+  end
+end
+
+script.on_event(defines.events.on_robot_pre_mined, on_robot_pre_mined)
+script.on_event(defines.events.on_robot_built_entity, on_robot_built_entity)
 script.on_event(defines.events.on_preplayer_mined_item, on_preplayer_mined_item)
 script.on_event(defines.events.on_built_entity, on_built_entity)
 
@@ -522,23 +572,21 @@ function on_train_changed_state(event)
       trainInfo.previous_state_tick = trainInfo.last_state_tick
       trainInfo.last_state = train.state
       trainInfo.last_state_tick = game.tick
-      
+
       if trainInfo.alarm.active and trainInfo.alarm.type == "noPath" then
         Alerts.reset_alarm(trainInfo)
-      end 
-      local update_cargo = false     
+      end
+      local update_cargo = false
       if train.state == defines.trainstate.wait_signal then
         trainInfo.alarm.arrived_at_signal = game.tick
         local nextUpdate = game.tick + global.force_settings[force.name].signalDuration
-        global.updateAlarms[nextUpdate] = global.updateAlarms[nextUpdate] or {}
-        table.insert(global.updateAlarms[nextUpdate], trainInfo)
+        insert_in_tick_table("updateAlarms",nextUpdate,trainInfo)
       elseif train.state == defines.trainstate.on_the_path then
         if trainInfo.previous_state == defines.trainstate.wait_station then
           trainInfo.alarm.left_station = game.tick
           trainInfo.alarm.arrived_at_signal = false
           local nextUpdate = game.tick + global.force_settings[force.name].stationDuration
-          global.updateAlarms[nextUpdate] = global.updateAlarms[nextUpdate] or {}
-          table.insert(global.updateAlarms[nextUpdate], trainInfo)
+          insert_in_tick_table("updateAlarms",nextUpdate,trainInfo)
         elseif trainInfo.previous_state == defines.trainstate.wait_signal then
           if trainInfo.alarm.type and trainInfo.alarm.type == "timeAtSignal" then
             trainInfo.alarm.active = false
@@ -552,9 +600,7 @@ function on_train_changed_state(event)
           trainInfo.depart_at = false
         end
         update_cargo = true
-        local nextUpdate = game.tick+update_rate
-        global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
-        table.insert(global.updateTrains[nextUpdate], trainInfo)
+        insert_in_tick_table("updateTrains",game.tick+update_rate,trainInfo)
       elseif train.state == defines.trainstate.arrive_station then
         if trainInfo.alarm.left_station then
           local stationDuration = global.force_settings[force.name].stationDuration
@@ -565,6 +611,7 @@ function on_train_changed_state(event)
       elseif train.state == defines.trainstate.path_lost or train.state == defines.trainstate.no_path then
         Alerts.set_alert(trainInfo,"noPath")
       elseif train.state == defines.trainstate.manual_control or train.state == defines.trainstate.manual_control_stop then
+        TrainList.remove_invalid(force,true)
         Alerts.reset_alarm(trainInfo)
       else
         trainInfo.depart_at = false
@@ -613,9 +660,9 @@ end
 function on_player_opened(event)
   if event.entity.valid and game.players[event.player_index].valid then
     if event.entity.type == "locomotive" and event.entity.train then
-    
-    elseif event.entity.type == "cargo-wagon" and event.entity.train then 
-    
+
+    elseif event.entity.type == "cargo-wagon" and event.entity.train then
+
     elseif event.entity.type == "train-stop" then
       global.opened_name[event.player_index] = event.entity.backer_name
     end
@@ -639,7 +686,7 @@ function on_player_closed(event)
       else
         GUI.update_single_traininfo(ti, true)
       end
-      
+
     elseif event.entity.type == "train-stop" then
       if event.entity.backer_name ~= global.opened_name[event.player_index] then
         on_station_rename(event.entity, global.opened_name[event.player_index])
@@ -656,16 +703,16 @@ function getPageCount(guiSettings, player)
   local trains = guiSettings.activeFilterList and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
   if not trains then error("no trains", 2) end
   local trainCount = 0
-  trainCount = #trains  
+  trainCount = #trains
   local p = math.floor((trainCount - 1) / guiSettings.displayCount) + 1
   p = p > 0 and p or 1
-  return p 
+  return p
 end
 
 function update_pageCount(force)
   for i, p in pairs(force.players) do
     local guiSettings = global.gui[p.index]
-    guiSettings.pageCount = getPageCount(guiSettings,p) 
+    guiSettings.pageCount = getPageCount(guiSettings,p)
   end
 end
 
@@ -785,31 +832,12 @@ function tableIsEmpty(tableA)
   return true
 end
 
-function matchStringInTable(stringA, tableA)
-  for i, stringB in pairs(tableA) do
-    if stringA == stringB then
-      return true
-    end
-  end
-  return false
-end
-
 function round(num, idp)
   local mult = 10^(idp or 0)
   return math.floor(num * mult + 0.5) / mult
 end
 
-function debugLog(message)
-  if false then -- set for debug
-    for i,player in pairs(game.players) do
-      player.print(message)
-  end
-  end
-end
-
 function startsWith(String,Start)
-  debugLog(String)
-  debugLog(Start)
   return string.sub(String,1,string.len(Start))==Start
 end
 
@@ -859,9 +887,8 @@ function findTrains()
     if not TrainList.get_traininfo(loco.force, loco.train) then
       local trainInfo = TrainList.add_train(loco.train)
       if loco.train.state == defines.trainstate.wait_station then
-        local nextUpdate = game.tick+update_rate
-        global.updateTrains[nextUpdate] = global.updateTrains[nextUpdate] or {}
-        table.insert(global.updateTrains[nextUpdate], trainInfo)
+        local nextUpdate =
+          insert_in_tick_table("updateTrains",game.tick+update_rate,trainInfo)
       end
     end
   end
