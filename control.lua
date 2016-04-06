@@ -6,6 +6,7 @@ require "GUI"
 MOD_NAME = "TheFatController"
 
 update_rate = 60
+update_rate_manual = 90
 
 -- myevent = game.generateeventname()
 -- the name and tick are filled for the event automatically
@@ -55,6 +56,9 @@ TrainInfo = {
     last_state = 0,
     last_tick = 0
   },
+  first_carriage = false,
+  last_carriage = false,
+  force = false,
   follower_index = 0, -- player_index of following player
   opened_guis = {}, -- contains references to opened player guis, indexed by player_index
   stations = {}, --boolean table, indexed by stations in the schedule, new global trains_by_station?? should speedup filtered display
@@ -103,6 +107,7 @@ local function init_global()
   global.unlockedByForce = global.unlockedByForce or {}
   global.updateEntities = global.updateEntities or false
   global.updateTrains = global.updateTrains or {}
+  global.updateManual = global.updateManual or {}
   global.updateAlarms = global.updateAlarms or {}
   global.PAGE_SIZE = global.PAGE_SIZE or 60
   global.station_count = global.station_count or {}
@@ -156,14 +161,6 @@ local function on_load()
   if global.unlocked then
     register_events()
   end
-  --  global.TRAINS = {}
-  --  for force, trains in pairs(global.trainsByForce) do
-  --    for i, trainInfo in pairs(trains) do
-  --      if trainInfo.train and trainInfo.train.valid then
-  --        global.TRAINS[trainInfo.train] = trainInfo
-  --      end
-  --    end
-  --  end
 end
 
 function destroyGui(guiA)
@@ -377,26 +374,44 @@ end
 
 function on_player_driving_changed_state(event)
   local player = game.players[event.player_index]
-  if player.vehicle == nil and global.gui[player.index].followEntity then
-    local guiSettings = global.gui[player.index]
-    swapPlayer(game.players[player.index], global.character[player.index])
-    global.character[player.index] = nil
-    if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.returnToPlayer ~= nil then
-      guiSettings.fatControllerButtons.returnToPlayer.destroy()
+  if player.vehicle and (player.vehicle.type == "locomotive" or player.vehicle.type == "cargo-wagon") then
+    debugDump("entered",true)
+    local ti = TrainList.get_traininfo(player.force, player.vehicle.train)
+    if ti and ti.train and ti.train.valid then
+      local state = ti.train.state
+      if state == defines.trainstate.manual_control 
+      or state == defines.trainstate.manual_control_stop
+      or state == defines.trainstate.no_path then
+        insert_in_tick_table("updateManual",game.tick+update_rate_manual,ti)
+      end
+      global.gui[player.index].vehicle = ti.train
     end
-    guiSettings.followEntity = nil
-    if guiSettings.followGui and guiSettings.followGui.valid then
-      guiSettings.followGui.caption = "c"
-      guiSettings.followGui.style = "fatcontroller_button_style"
-      guiSettings.followGui = nil
+  end
+  if player.vehicle == nil then
+    if global.gui[player.index].followEntity then
+      local guiSettings = global.gui[player.index]
+      swapPlayer(game.players[player.index], global.character[player.index])
+      global.character[player.index] = nil
+      if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.returnToPlayer ~= nil then
+        guiSettings.fatControllerButtons.returnToPlayer.destroy()
+      end
+      guiSettings.followEntity = nil
+      if guiSettings.followGui and guiSettings.followGui.valid then
+        guiSettings.followGui.caption = "c"
+        guiSettings.followGui.style = "fatcontroller_button_style"
+        guiSettings.followGui = nil
+      end
     end
-    TrainList.remove_invalid(player.force, true)
+    TrainList.remove_invalid(player.force, true)    
+    TrainList.reset_manual(global.gui[player.index].vehicle)
+    global.gui[player.index].vehicle = false
   end
 end
 script.on_event(defines.events.on_player_driving_changed_state, on_player_driving_changed_state)
 
 function on_tick(event)
   local status, err = pcall(function()
+    local tick = event.tick
     if global.updateEntities then
       for i, ent in pairs(global.updateEntities) do
         --debugDump("updateEnt"..i,true)
@@ -424,35 +439,45 @@ function on_tick(event)
       end
       global.dead_players = nil
     end
+    
+    if global.updateManual[tick] then
+      for _, ti in pairs(global.updateManual[tick]) do
+        debugDump("manual",true)
+        Alerts.check_noFuel(ti)
+        GUI.update_single_traininfo(ti, true)
+        insert_in_tick_table("updateManual",tick+update_rate_manual,ti)
+      end
+      global.updateManual[tick] = nil
+    end
 
-    if global.updateTrains[game.tick] then
-      for _, ti in pairs(global.updateTrains[game.tick]) do
+    if global.updateTrains[tick] then
+      for _, ti in pairs(global.updateTrains[tick]) do
         if ti.train and ti.train.valid then
           Alerts.check_noFuel(ti)
           GUI.update_single_traininfo(ti, true)
           if ti.last_state == defines.trainstate.wait_station then
-            local nextUpdate = game.tick+ update_rate
+            local nextUpdate = tick+ update_rate
             insert_in_tick_table("updateTrains",nextUpdate,ti)
           else
             ti.depart_at = false
           end
         end
       end
-      global.updateTrains[game.tick] = nil
+      global.updateTrains[tick] = nil
     end
 
-    if global.updateAlarms[game.tick] then
-      for _, ti in pairs(global.updateAlarms[game.tick]) do
+    if global.updateAlarms[tick] then
+      for _, ti in pairs(global.updateAlarms[tick]) do
         if ti.train and ti.train.valid then
           if Alerts.check_alerts(ti) then
             GUI.update_single_traininfo(ti)
           end
         end
       end
-      global.updateAlarms[game.tick] = nil
+      global.updateAlarms[tick] = nil
     end
 
-    if event.tick%10==7  then
+    if tick%10==7  then
       for pi, player in pairs(game.players) do
         if player.connected then
           if player.opened ~= nil and not global.player_opened[pi] then
@@ -478,7 +503,16 @@ function on_built_entity(event)
     local ctype = ent.type
     if ctype == "locomotive" or ctype == "cargo-wagon" then
       -- can be a new train or added to an existing one
-      TrainList.add_train(ent.train)
+      if #ent.train.carriages == 1 then
+        local ti = TrainList.add_train(ent.train)
+        if ent.type == "locomotive" then
+          Alerts.check_noFuel(ti)
+        end
+      else
+        --added to existing one: revalidate
+        --debugDump("add to existing",true)
+        TrainList.remove_invalid(ent.force, true)
+      end
     elseif ctype == "train-stop" then
       increaseStationCount(ent)
     end
@@ -498,6 +532,7 @@ function on_preplayer_mined_item(event)
       local length = #oldTrain.carriages
       if not global.updateEntities then global.updateEntities = {} end
       if length == 1 then
+        --debugDump("removing train", true)
         TrainList.remove_train(ent.train)
         table.insert(global.updateEntities, true)
         return
@@ -509,11 +544,15 @@ function on_preplayer_mined_item(event)
           break
         end
       end
-      if ent.train.carriages[ownPos-1] ~= nil then
-        table.insert(global.updateEntities, ent.train.carriages[ownPos-1])
+      local before = ownPos > 1 and ent.train.carriages[ownPos-1] or false
+      local after = ownPos < length and ent.train.carriages[ownPos+1] or false
+      if before then
+        --debugDump("before",true)
+        table.insert(global.updateEntities, before)
       end
-      if ent.train.carriages[ownPos+1] ~= nil then
-        table.insert(global.updateEntities, ent.train.carriages[ownPos+1])
+      if after then
+        --debugDump("after",true)
+        table.insert(global.updateEntities, after)
       end
     elseif ctype == "train-stop" then
       decreaseStationCount(ent,ent.backer_name)
@@ -548,6 +587,13 @@ function on_train_changed_state(event)
     local force = train.carriages[1].force
     --debugDump(game.tick.." state:"..train.state,true)
     local trainInfo = TrainList.get_traininfo(force, train)
+    if not trainInfo then
+      debugDump("no traininfo",true)
+      TrainList.remove_invalid(force)
+      if not TrainList.get_traininfo(train) then
+        trainInfo = TrainList.add_train(train)
+      end
+    end
     if trainInfo then
       local unf = {}
       unf.previous_state = trainInfo.unfiltered_state.last_state
@@ -611,8 +657,9 @@ function on_train_changed_state(event)
       elseif train.state == defines.trainstate.path_lost or train.state == defines.trainstate.no_path then
         Alerts.set_alert(trainInfo,"noPath")
       elseif train.state == defines.trainstate.manual_control or train.state == defines.trainstate.manual_control_stop then
-        TrainList.remove_invalid(force,true)
         Alerts.reset_alarm(trainInfo)
+        TrainList.removeAlarms(train)
+        insert_in_tick_table("updateManual",game.tick+update_rate_manual,trainInfo)
       else
         trainInfo.depart_at = false
       end
@@ -621,8 +668,12 @@ function on_train_changed_state(event)
       trainInfo.current_station = station
       GUI.update_single_traininfo(trainInfo, update_cargo)
     else
+      debugDump("You should never ever see this! Look away!",true)
       debugDump("no traininfo",true)
       TrainList.remove_invalid(force)
+      if not TrainList.get_traininfo(train) then
+        trainInfo = TrainList.add_train(train)
+      end
     end
   end)
   if err then debugDump(err,true) end
@@ -892,6 +943,7 @@ function findTrains()
       end
     end
   end
+  TrainList.reset_manual()
   for _, station in pairs(surface.find_entities_filtered{area=bounds, type="train-stop"}) do
     increaseStationCount(station)
   end

@@ -111,6 +111,10 @@ GUI = {
 
     update_single_traininfo = function(trainInfo, update_cargo)
       if trainInfo then
+        if trainInfo.train and not trainInfo.train.valid then
+          TrainList.remove_invalid(trainInfo.force)
+          return
+        end
         local cargo_updated = false
         local alarm = trainInfo.alarm.active and trainInfo.alarm.type or false
         for player_index, gui in pairs(trainInfo.opened_guis) do

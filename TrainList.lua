@@ -1,28 +1,41 @@
 TrainList = {}
 TrainList.add_train = function(train)
-  local force = train.carriages[1].force
   local ti = TrainList.createTrainInfo(train)
-  table.insert(global.trainsByForce[force.name], ti)
-  local removed = TrainList.remove_invalid(force,true)
+  table.insert(global.trainsByForce[ti.force.name], ti)
+  local removed = TrainList.remove_invalid(ti.force,true)
   return ti
 end
 
 TrainList.remove_invalid = function(force, show)
   local removed = 0
   local show = show or debug
+  TrainList.removeAlarms()
+  local revalidated = false
+  local decoupled = false
   for i=#global.trainsByForce[force.name],1,-1 do
     local ti = global.trainsByForce[force.name][i]
     if ti then
       if not ti.train or not ti.train.valid then
-        table.remove(global.trainsByForce[force.name], i)
-        removed = removed + 1
-        -- try to detect change through pressing G/V
-      else
-        local test = ti.type
-        if test ~= ti.type then
-          debugDump("De-/coupled train?", true)
-          table.remove(global.trainsByForce[force.name], i)
-          removed = removed + 1
+        local first_train = (ti.first_carriage and ti.first_carriage.valid and ti.first_carriage.train.valid) and ti.first_carriage.train or false 
+        local last_train = (ti.last_carriage and ti.last_carriage.valid and ti.last_carriage.train.valid) and ti.last_carriage.train or false
+        if first_train then
+          local tmp = TrainList.createTrainInfo(first_train)
+          tmp.mainIndex = i
+          global.trainsByForce[force.name][i] = tmp
+          revalidated = true
+          debugDump("first"..i,true)
+        end
+        if last_train then
+          local tmp = TrainList.createTrainInfo(last_train)
+          if first_train then
+            debugDump("train split",true)
+            decoupled = tmp 
+          else
+            tmp.mainIndex = i
+            global.trainsByForce[force.name][i] = tmp
+            revalidated = true
+            debugDump("last"..i,true)
+          end
         end
       end
     else
@@ -30,7 +43,10 @@ TrainList.remove_invalid = function(force, show)
       table.remove(global.trainsByForce[force.name], i)
     end
   end
-  TrainList.removeAlarms()
+  if decoupled then
+    table.insert(global.trainsByForce[force.name], decoupled)
+  end
+  TrainList.remove_duplicates(force)
   for i,ti in pairs(global.trainsByForce[force.name]) do
     ti.mainIndex = i
     ti.opened_guis = {}
@@ -45,13 +61,27 @@ TrainList.remove_invalid = function(force, show)
   return removed
 end
 
+TrainList.remove_duplicates = function(force)
+  for i=#global.trainsByForce[force.name],1,-1 do
+    local trainA = global.trainsByForce[force.name][i].train
+    for j=i-1,1,-1 do
+      if trainA and trainA == global.trainsByForce[force.name][j].train then
+        --debugDump("Duplicate: "..i.."=="..j,true)
+        table.remove(global.trainsByForce[force.name], i)
+      end
+    end
+  end
+end
+
 TrainList.createTrainInfo = function(train)
   local ti = table.deepcopy(TrainInfo)
   ti.train = train
-  ti.locomotives = TrainList.getLocomotives(train)
-  ti.type = TrainList.getType(train)
   ti.first_carriage = train.carriages[1]
   ti.last_carriage = train.carriages[#train.carriages]
+  ti.force = ti.first_carriage.force
+  if ti.first_carriage == ti.last_carriage then
+    ti.last_carriage = false
+  end
   ti.last_state = ti.train.state
   ti.last_update = 0
   ti.inventory = getHighestInventoryCount(ti)
@@ -64,34 +94,17 @@ TrainList.createTrainInfo = function(train)
   return ti
 end
 
-TrainList.getLocomotives = function(train)
-  local locos = {}
-  for i, fm in pairs(train.locomotives.front_movers) do
-    table.insert(locos, fm)
-  end
-  for i, fm in pairs(train.locomotives.back_movers) do
-    table.insert(locos, fm)
-  end
-  return locos
-end
-
-TrainList.getType = function(train)
-  local type = string.rep("L",#train.locomotives.front_movers).."-"..string.rep("C", #train.cargo_wagons).."-"..string.rep("L",#train.locomotives.back_movers)
-  type = string.gsub(type, "L%-%-L", "LL")
-  return string.gsub(string.gsub(type, "^-", ""), "-$", "")
-end
-
 TrainList.remove_train = function(train)
   local force = train.carriages[1].force
   local trains = global.trainsByForce[force.name]
   local removed = false
   for i=#trains, 1,-1 do
     if trains[i].train == train then
-      trains[i] = nil
+      table.remove(trains, i)
       break
     end
   end
-  TrainList.removeAlarms()
+  TrainList.removeAlarms(train)
   for i,ti in pairs(global.trainsByForce[force.name]) do
     ti.mainIndex = i
     ti.opened_guis = {}
@@ -136,24 +149,58 @@ TrainList.get_filtered_trains = function(force, filterList)
   return filtered
 end
 
-TrainList.removeAlarms = function()
-    local remove = {}
-    for tick, trains in pairs(global.updateAlarms) do
-      for i=#trains,1,-1 do
-         local ti = trains[i]
-         if ti then
-          if not ti.train or not ti.train.valid then
-            trains[i] = nil  
-          end
-         else
+TrainList.removeAlarms = function(train)
+  local remove = {}
+  for tick, trains in pairs(global.updateAlarms) do
+    for i=#trains,1,-1 do
+      local ti = trains[i]
+      if ti then
+        if not ti.train or not ti.train.valid then
           trains[i] = nil
-         end
-      end
-      if #trains == 0 then
-        table.insert(remove, tick)
+        elseif ti.train == train then
+          trains[i] = nil
+        end
+      else
+        trains[i] = nil
       end
     end
-    for _,tick in pairs(remove) do
-      global.updateAlarms[tick] = nil
+    if #trains == 0 then
+      debugDump("no alarms"..tick,true)
+      table.insert(remove, tick)
     end
   end
+  for _,tick in pairs(remove) do
+    global.updateAlarms[tick] = nil
+  end
+end
+
+TrainList.reset_manual = function(train)
+  if not train then
+    global.updateManual = {}
+    for i, p in pairs(game.players) do
+      if p.vehicle and (p.vehicle.type == "locomotive" or p.vehicle.type == "cargo-wagon") then
+        local ti = TrainList.get_traininfo(p.force, p.vehicle.train)
+        if ti and ti.train and ti.train.valid then
+          local state = ti.train.state
+          if state == defines.trainstate.manual_control 
+            or state == defines.trainstate.manual_control_stop
+            or state == defines.trainstate.no_path then
+              insert_in_tick_table("updateManual",game.tick+update_rate_manual+p.index,ti)
+          end
+          global.gui[p.index].vehicle = ti.train
+        end
+      end
+    end
+  elseif train.valid then
+    for tick, trains in pairs(global.updateManual) do
+      for i=#trains,1,-1 do
+        local ti = trains[i]
+        if ti and ti.train.valid and ti.train == train then
+          trains[i] = nil
+        elseif not ti or not ti.train.valid then
+          trains[i] = nil
+        end
+      end
+    end
+  end
+end
