@@ -1,5 +1,7 @@
 require "defines"
 require "util"
+require "TickTable"
+require "Alerts"
 require "TrainList"
 require "GUI"
 
@@ -213,140 +215,6 @@ function register_events()
   script.on_event(defines.events.on_gui_click, GUI.onguiclick)
 end
 
-Alerts = {}
-Alerts.set_alert = function(trainInfo, type, time)
-  trainInfo.alarm.active = true
-  trainInfo.alarm.type = type
-  trainInfo.alarm.message = time and ({"msg-alarm-"..type, time}) or {"msg-alarm-"..type}
-  Alerts.update_filters()
-  if type ~= "noFuel" or trainInfo.alarm.last_message+600 < game.tick then
-    Alerts.alert_force(trainInfo.force, trainInfo)
-  end
-end
-
-Alerts.check_alerts = function(trainInfo)
-  local force = trainInfo.force
-  local stationDuration = global.force_settings[force.name].stationDuration
-  local signalDuration = global.force_settings[force.name].signalDuration/3600
-  local update = false
-  if trainInfo.alarm.arrived_at_signal then
-    if trainInfo.last_state == defines.trainstate.wait_signal and trainInfo.alarm.arrived_at_signal == trainInfo.last_state_tick then
-      Alerts.set_alert(trainInfo,"timeAtSignal",signalDuration)
-      update = true
-    end
-  end
-  if trainInfo.alarm.left_station then
-    local stationDuration = global.force_settings[force.name].stationDuration
-    if trainInfo.alarm.left_station+stationDuration <= game.tick then
-      Alerts.set_alert(trainInfo,"timeToStation",stationDuration/3600)
-      update = true
-    end
-  end
-  return update
-end
-
-Alerts.check_noFuel = function(trainInfo)
-  local noFuel = false
-  local locos = trainInfo.train.locomotives
-  for i,carriage in pairs(locos.front_movers) do
-    if carriage.get_inventory(1).is_empty() then
-      noFuel = true
-      break
-    end
-  end
-  if not noFuel then
-    for i,carriage in pairs(locos.back_movers) do
-      if carriage.get_inventory(1).is_empty() then
-        noFuel = true
-        break
-      end
-    end
-  end
-  if noFuel then
-    Alerts.set_alert(trainInfo,"noFuel")
-  else
-    if trainInfo.alarm.active and trainInfo.alarm.type == "noFuel" then
-      trainInfo.alarm.active = false
-      trainInfo.alarm.type = false
-      Alerts.update_filters()
-    end
-  end
-end
-
-Alerts.reset_alarm = function(trainInfo)
-  trainInfo.alarm.active = false
-  trainInfo.alarm.type = false
-  trainInfo.alarm.left_station = false
-  trainInfo.alarm.arrived_at_signal = false
-  trainInfo.alarm.last_message = 0
-  Alerts.update_filters()
-end
-
-Alerts.update_filters = function()
-  for i, player in pairs(game.players) do
-    local guiSettings = global.gui[player.index]
-    if guiSettings.filter_alarms then
-      guiSettings.filtered_trains = TrainList.get_filtered_trains(player.force, guiSettings)
-      guiSettings.pageCount = getPageCount(guiSettings, player)
-      guiSettings.page = 1
-      if guiSettings.fatControllerGui.trainInfo then
-        GUI.newTrainInfoWindow(guiSettings)
-        GUI.refreshTrainInfoGui(guiSettings, player)
-      end
-    end
-  end
-end
-
-Alerts.alert_force = function(force, trainInfo)
-  local alarm_type = trainInfo.alarm.type
-  for _, player in pairs(force.players) do
-    local guiSettings = global.gui[player.index]
-    if guiSettings and guiSettings.alarm[alarm_type] then
-      player.print(trainInfo.alarm.message)
-    end
-  end
-  trainInfo.alarm.last_message = game.tick
-end
-
-TickTable = {}
-
-function TickTable.insert(tick, key, value)
-  global[key][tick] = global[key][tick] or {}
-  table.insert(global[key][tick], value)
-end
-
-function TickTable.remove(key, value)
-  for t, values in pairs(global[key]) do
-    for i=#values,1,-1 do
-      if values[i] == value or (value.train and not value.train.valid) then
-        values[i] = nil
-      end
-    end
-  end
-end
-
-function TickTable.remove_by_train(key, train)
-  for t, values in pairs(global[key]) do
-    for i=#values,1,-1 do
-      if values[i].train and values[i].train == train then
-        values[i] = nil
-      end
-    end
-  end
-end
-
-function TickTable.insert_unique(tick, key, value)
-  for t, values in pairs(global[key]) do
-    for _, v in pairs(values) do
-      if v == value then
-        return false
-      end
-    end
-  end
-  TickTable.insert(tick,key,value)
-  return true
-end
-
 function getHighestInventoryCount(trainInfo)
   local inventory = ""
   if trainInfo and trainInfo.train and trainInfo.train.valid and trainInfo.train.cargo_wagons then
@@ -393,7 +261,6 @@ end
 function on_player_driving_changed_state(event)
   local player = game.players[event.player_index]
   if player.vehicle and (player.vehicle.type == "locomotive" or player.vehicle.type == "cargo-wagon") then
-    debugDump("entered",true)
     local ti = TrainList.get_traininfo(player.force, player.vehicle.train)
     if ti and ti.train.state == defines.trainstate.manual_control then
       TrainList.add_manual(ti, player)
@@ -401,7 +268,6 @@ function on_player_driving_changed_state(event)
     end
   end
   if player.vehicle == nil then
-    debugDump("left",true)
     if global.gui[player.index].followEntity then
       local guiSettings = global.gui[player.index]
       if player.connected then
@@ -854,7 +720,7 @@ function swapPlayer(player, character)
   if player.character ~= nil and player.character.valid and player.character.name == "fatcontroller" then
     player.character.destroy()
   end
-  if character.valid then
+  if character.valid and character ~= player.character then
     player.character = character
   end
 end
@@ -977,20 +843,6 @@ function findTrains(show)
   local surface = game.surfaces['nauvis']
   local min_x, min_y, max_x, max_y = map_size(surface) 
 
-  -- determine map size
-  local min_x, min_y, max_x, max_y = 0, 0, 0, 0
-  for c in surface.get_chunks() do
-    if c.x < min_x then
-      min_x = c.x
-    elseif c.x > max_x then
-      max_x = c.x
-    end
-    if c.y < min_y then
-      min_y = c.y
-    elseif c.y > max_y then
-      max_y = c.y
-    end
-  end
   if show then
     debugDump("Searching trains..",true)
   end
@@ -1072,13 +924,5 @@ remote.add_interface("fat",
       global.stations = nil
       on_init()
       findTrains()
-    end,
-    
-    create_char = function(player)
-      newFatControllerEntity(player)
-    end,
-    
-    sabotage = function()
-      global.character = {}
-    end,
+    end
   })

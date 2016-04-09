@@ -810,7 +810,7 @@ on_gui_click.findCharacter = function(guiSettings, element, player)
           TrainList.reset_manual(global.gui[player.index].vehicle)
           global.gui[player.index].vehicle = false
         else
-          
+
         end
       end
     end
