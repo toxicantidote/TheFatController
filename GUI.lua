@@ -7,12 +7,10 @@ function sanitizeNumber(number, default)
 end
 
 function start_following(carriage, guiSettings, element, player)
-  debugDump("start",true)
   if guiSettings.followGui and guiSettings.followGui.valid then
     guiSettings.followGui.caption = "c"
     guiSettings.followGui.style = "fatcontroller_button_style"
   end
-
   element.style = "fatcontroller_selected_button"
   element.caption = "X"
   guiSettings.followEntity = carriage
@@ -24,7 +22,6 @@ function start_following(carriage, guiSettings, element, player)
 end
 
 function stop_following(guiSettings, player)
-  debugDump("stop",true)
   guiSettings.followEntity = nil
   if guiSettings.followGui and guiSettings.followGui.valid then
     guiSettings.followGui.caption = "c"
@@ -742,7 +739,6 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
   end
   --return to player
   if guiSettings.followEntity and guiSettings.followEntity.train == trainInfo.train then
-    debugDump("unfollow",true)
     swapPlayer(player, global.character[element.player_index])
     global.character[element.player_index] = nil
     stop_following(guiSettings, player)
@@ -750,7 +746,6 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
   end
   -- switch to another train
   if guiSettings.followEntity then
-    debugDump("switch",true)
     if carriage.passenger ~= nil then
       player.print({"msg-intrain"})
       return
