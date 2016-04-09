@@ -5,6 +5,40 @@ end
 function sanitizeNumber(number, default)
   return tonumber(number) or default
 end
+
+function start_following(carriage, guiSettings, element, player)
+  debugDump("start",true)
+  if guiSettings.followGui and guiSettings.followGui.valid then
+    guiSettings.followGui.caption = "c"
+    guiSettings.followGui.style = "fatcontroller_button_style"
+  end
+
+  element.style = "fatcontroller_selected_button"
+  element.caption = "X"
+  guiSettings.followEntity = carriage
+  guiSettings.followGui = element
+  if not guiSettings.fatControllerButtons.returnToPlayer then
+    guiSettings.fatControllerButtons.add({ type="button", name="returnToPlayer", caption={"text-player"}, style = "fatcontroller_selected_button"})
+  end
+  carriage.passenger = player.character
+end
+
+function stop_following(guiSettings, player)
+  debugDump("stop",true)
+  guiSettings.followEntity = nil
+  if guiSettings.followGui and guiSettings.followGui.valid then
+    guiSettings.followGui.caption = "c"
+    guiSettings.followGui.style = "fatcontroller_button_style"
+    guiSettings.followGui = nil
+  end
+  if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.returnToPlayer ~= nil then
+    guiSettings.fatControllerButtons.returnToPlayer.destroy()
+  end
+  if player.vehicle then
+    player.vehicle.passenger = nil
+  end
+end
+
 on_gui_click = {}
 GUI = {
 
@@ -521,12 +555,7 @@ on_gui_click.returnToPlayer = function(guiSettings, element, player)
     swapPlayer(player, global.character[element.player_index])
     global.character[element.player_index] = nil
     element.destroy()
-    guiSettings.followEntity = nil
-    if guiSettings.followGui and guiSettings.followGui.valid then
-      guiSettings.followGui.caption = "c"
-      guiSettings.followGui.style = "fatcontroller_button_style"
-      guiSettings.followGui = nil
-    end
+    stop_following(guiSettings, player)
   end
 end
 
@@ -692,61 +721,42 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
   option1 = tonumber(option1)
   local trainInfo = trains[option1]
   --local trainInfo = getTrainInfoFromElementName(trains, element.name)
-  if trainInfo and trainInfo.train and trainInfo.train.valid then
-    local carriage = trainInfo.train.speed >= 0 and trainInfo.train.locomotives.front_movers[1] or trainInfo.train.locomotives.back_movers[1]
-    if not carriage then
-      carriage = trainInfo.train.carriages[1]
-    end
-    if global.character[element.player_index] == nil then --Move to train
-      if carriage.passenger ~= nil then
-        player.print({"msg-intrain"})
-    else
-      global.character[element.player_index] = player.character
-      guiSettings.followEntity = carriage -- HERE
-      guiSettings.followGui = element
-      --fatControllerEntity =
-      swapPlayer(player,newFatControllerEntity(player))
-      element.style = "fatcontroller_selected_button"
-      element.caption = "X"
-      carriage.passenger = player.character
-      if not guiSettings.fatControllerButtons.returnToPlayer then
-        guiSettings.fatControllerButtons.add({ type="button", name="returnToPlayer", caption={"text-player"}, style = "fatcontroller_selected_button"})
-      end
-    end
-    elseif guiSettings.followEntity ~= nil and trainInfo.train ~= nil and trainInfo.train.valid then
-      if player.vehicle ~= nil then
-        player.vehicle.passenger = nil
-      end
-      if guiSettings.followEntity.train == trainInfo.train then --Go back to player
-        swapPlayer(player, global.character[element.player_index])
-        element.style = "fatcontroller_button_style"
-        element.caption = "c"
-        if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.returnToPlayer ~= nil then
-          guiSettings.fatControllerButtons.returnToPlayer.destroy()
-        end
-        global.character[element.player_index] = nil
-        guiSettings.followEntity = nil
-        if guiSettings.followGui and guiSettings.followGui.valid then
-          guiSettings.followGui.caption = "c"
-          guiSettings.followGui.style = "fatcontroller_button_style"
-          guiSettings.followGui = nil
-        end
-      else -- Go to different train
-        if guiSettings.followGui and guiSettings.followGui.valid then
-          guiSettings.followGui.caption = "c"
-          guiSettings.followGui.style = "fatcontroller_button_style"
-      end
-      guiSettings.followEntity = carriage -- AND HERE
-      guiSettings.followGui = element
-      element.style = "fatcontroller_selected_button"
-      element.caption = "X"
+  if not trainInfo or not trainInfo.train or not trainInfo.train.valid then
+    return
+  end
+  local carriage = trainInfo.train.speed >= 0 and trainInfo.train.locomotives.front_movers[1] or trainInfo.train.locomotives.back_movers[1]
+  if not carriage then
+    carriage = trainInfo.train.carriages[1]
+  end
 
-      carriage.passenger = player.character
-      if not guiSettings.fatControllerButtons.returnToPlayer then
-        guiSettings.fatControllerButtons.add({ type="button", name="returnToPlayer", caption={"text-player"}, style = "fatcontroller_selected_button"})
-      end
-      end
+  -- Player is controlling his own character
+  if global.character[element.player_index] == nil then
+    if carriage.passenger ~= nil then
+      player.print({"msg-intrain"})
+      return
     end
+    global.character[element.player_index] = player.character
+    swapPlayer(player,newFatControllerEntity(player))
+    start_following(carriage, guiSettings,element,player)
+    return
+  end
+  --return to player
+  if guiSettings.followEntity and guiSettings.followEntity.train == trainInfo.train then
+    debugDump("unfollow",true)
+    swapPlayer(player, global.character[element.player_index])
+    global.character[element.player_index] = nil
+    stop_following(guiSettings, player)
+    return
+  end
+  -- switch to another train
+  if guiSettings.followEntity then
+    debugDump("switch",true)
+    if carriage.passenger ~= nil then
+      player.print({"msg-intrain"})
+      return
+    end
+    stop_following(guiSettings, player)
+    start_following(carriage,guiSettings,element,player)
   end
 end
 

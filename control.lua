@@ -273,18 +273,10 @@ function on_player_driving_changed_state(event)
       if player.connected then
         swapPlayer(game.players[player.index], global.character[player.index])
         global.character[player.index] = nil
+        stop_following(guiSettings, player)
       else
         if not global.to_swap then global.to_swap = {} end
         table.insert(global.to_swap, {index=player.index, character=global.character[player.index]})
-      end
-      if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.returnToPlayer ~= nil then
-        guiSettings.fatControllerButtons.returnToPlayer.destroy()
-      end
-      guiSettings.followEntity = nil
-      if guiSettings.followGui and guiSettings.followGui.valid then
-        guiSettings.followGui.caption = "c"
-        guiSettings.followGui.style = "fatcontroller_button_style"
-        guiSettings.followGui = nil
       end
     end
     TrainList.remove_invalid(player.force, true)
@@ -317,9 +309,6 @@ function on_tick(event)
           debugDump("Killing "..game.players[i].name.." softly",true)
           game.players[i].character.die()
           global.gui[i].followEntity = nil
-        else
-          debugDump("How did i get here?",true)
-          debugDump("Something that resembled a player died",true)
         end
       end
       global.dead_players = nil
