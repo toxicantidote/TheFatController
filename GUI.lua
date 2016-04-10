@@ -19,6 +19,9 @@ function start_following(carriage, guiSettings, element, player)
     guiSettings.fatControllerButtons.add({ type="button", name="returnToPlayer", caption={"text-player"}, style = "fatcontroller_selected_button"})
   end
   carriage.passenger = player.character
+  if player.gui.left.farl ~= nil then
+    player.gui.left.farl.destroy()
+  end
 end
 
 function stop_following(guiSettings, player)
@@ -30,9 +33,6 @@ function stop_following(guiSettings, player)
   end
   if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.returnToPlayer ~= nil then
     guiSettings.fatControllerButtons.returnToPlayer.destroy()
-  end
-  if player.vehicle then
-    player.vehicle.passenger = nil
   end
 end
 
@@ -732,6 +732,9 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
       player.print({"msg-intrain"})
       return
     end
+    if player.vehicle then
+      game.raise_event(getOrLoadSwitchedEvent(), {carriage=player.vehicle})
+    end
     global.character[element.player_index] = player.character
     swapPlayer(player,newFatControllerEntity(player))
     start_following(carriage, guiSettings,element,player)
@@ -742,6 +745,9 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
     swapPlayer(player, global.character[element.player_index])
     global.character[element.player_index] = nil
     stop_following(guiSettings, player)
+    if player.vehicle and player.vehicle.name == "farl" then
+      game.raise_event(defines.events.on_player_driving_changed_state, {tick=game.tick, player_index = player.index, name=defines.events.on_player_driving_changed_state})
+    end
     return
   end
   -- switch to another train
@@ -750,7 +756,16 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
       player.print({"msg-intrain"})
       return
     end
-    stop_following(guiSettings, player)
+    if guiSettings.followEntity.passenger and guiSettings.followEntity.passenger.name == "fatcontroller" then
+      guiSettings.followEntity.passenger.destroy()
+    end
+    swapPlayer(player, newFatControllerEntity(player))
+    guiSettings.followEntity = nil
+    if guiSettings.followGui and guiSettings.followGui.valid then
+      guiSettings.followGui.caption = "c"
+      guiSettings.followGui.style = "fatcontroller_button_style"
+      guiSettings.followGui = nil
+    end
     start_following(carriage,guiSettings,element,player)
   end
 end

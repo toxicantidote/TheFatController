@@ -18,6 +18,19 @@ events = {}
 events["on_player_opened"] = script.generate_event_name()
 events["on_player_closed"] = script.generate_event_name()
 
+local on_player_switched_from_train = nil
+
+function getOrLoadSwitchedEvent()
+  if on_player_switched_from_train == nil then
+    on_player_switched_from_train = script.generate_event_name()
+  end
+  return on_player_switched_from_train
+end
+
+function generateEvents()
+  getOrLoadSwitchedEvent()
+end
+
 defaults = {stationDuration=10,signalDuration=2}
 
 defaultGuiSettings = {
@@ -120,12 +133,14 @@ local function init_forces()
 end
 
 local function on_init()
+  generateEvents()
   init_global()
   init_forces()
   init_players()
 end
 
 local function on_load()
+  generateEvents()
   if global.unlocked then
     register_events()
   end
@@ -274,6 +289,9 @@ function on_player_driving_changed_state(event)
         swapPlayer(game.players[player.index], global.character[player.index])
         global.character[player.index] = nil
         stop_following(guiSettings, player)
+        if player.vehicle and player.vehicle.name == "farl" then
+          game.raise_event(defines.events.on_player_driving_changed_state, {tick=game.tick, player_index = player.index, name=defines.events.on_player_driving_changed_state})
+        end
       else
         if not global.to_swap then global.to_swap = {} end
         table.insert(global.to_swap, {index=player.index, character=global.character[player.index]})
@@ -856,6 +874,10 @@ end
 
 remote.add_interface("fat",
   {
+    get_player_switched_event = function()
+      return getOrLoadSwitchedEvent()
+    end,
+    
     saveVar = function(name)
       saveVar(global, name)
     end,
