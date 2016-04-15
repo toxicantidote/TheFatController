@@ -1,5 +1,8 @@
 --- TickTable
 -- @module TickTable
+
+--- TickTable
+-- @type TickTable
 TickTable = {}
 
 function TickTable.insert(tick, key, value)
@@ -25,6 +28,19 @@ function TickTable.remove_by_train(key, train)
       end
     end
   end
+end
+
+function TickTable.remove_from_tick(tick, key, train)
+  if global[key][tick] then
+    for i=#global[key][tick], 1, -1 do
+      local ti = global[key][tick][i]
+      if ti.train == train then
+        table.remove(global[key][tick], i)
+        return true
+      end
+    end
+  end
+  return false
 end
 
 function TickTable.insert_unique(tick, key, value)

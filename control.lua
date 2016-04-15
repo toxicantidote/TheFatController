@@ -528,7 +528,6 @@ function on_train_changed_state(event)
       elseif train.state == defines.trainstate.on_the_path then
         if trainInfo.previous_state == defines.trainstate.wait_station then
           trainInfo.alarm.left_station = game.tick
-          trainInfo.alarm.arrived_at_signal = false
           local nextUpdate = game.tick + global.force_settings[force.name].stationDuration
           TickTable.insert(nextUpdate,"updateAlarms",trainInfo)
         elseif trainInfo.previous_state == defines.trainstate.wait_signal then
@@ -536,6 +535,7 @@ function on_train_changed_state(event)
             trainInfo.alarm.active = false
             trainInfo.alarm.type = false
           end
+          TickTable.remove_from_tick(trainInfo.alarm.arrived_at_signal+global.force_settings[force.name].signalDuration, "updateAlarms", trainInfo.train)
           trainInfo.alarm.arrived_at_signal = false
         end
       elseif train.state == defines.trainstate.wait_station then
@@ -550,6 +550,8 @@ function on_train_changed_state(event)
           local stationDuration = global.force_settings[force.name].stationDuration
           if trainInfo.alarm.left_station+stationDuration < game.tick then
             Alerts.set_alert(trainInfo,"timeToStation",stationDuration/3600)
+          else
+            TrainList.removeAlarms(train)
           end
         end
       elseif train.state == defines.trainstate.path_lost or train.state == defines.trainstate.no_path then

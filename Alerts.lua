@@ -1,5 +1,8 @@
 --- Alerts
 -- @module Alerts
+
+--- Alerts
+-- @type Alerts
 Alerts = {}
 Alerts.set_alert = function(trainInfo, type, time)
   trainInfo.alarm.active = true
@@ -14,11 +17,11 @@ end
 Alerts.check_alerts = function(trainInfo)
   local force = trainInfo.force
   local stationDuration = global.force_settings[force.name].stationDuration
-  local signalDuration = global.force_settings[force.name].signalDuration/3600
+  local signalDuration = global.force_settings[force.name].signalDuration
   local update = false
   if trainInfo.alarm.arrived_at_signal then
-    if trainInfo.last_state == defines.trainstate.wait_signal and trainInfo.alarm.arrived_at_signal == trainInfo.last_state_tick then
-      Alerts.set_alert(trainInfo,"timeAtSignal",signalDuration)
+    if trainInfo.last_state == defines.trainstate.wait_signal and trainInfo.alarm.arrived_at_signal == game.tick - signalDuration then
+      Alerts.set_alert(trainInfo,"timeAtSignal",signalDuration/3600)
       update = true
     end
   end
@@ -66,6 +69,7 @@ Alerts.reset_alarm = function(trainInfo)
   trainInfo.alarm.left_station = false
   trainInfo.alarm.arrived_at_signal = false
   trainInfo.alarm.last_message = 0
+  TickTable.remove_by_train("updateAlarms", trainInfo.train)
   Alerts.update_filters()
 end
 
