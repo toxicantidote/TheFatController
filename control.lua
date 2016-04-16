@@ -182,12 +182,12 @@ local function on_configuration_changed(data)
         end
       end
     end
+    if not oldVersion or oldVersion < "0.4.0" then
+      findTrains(true)
+    end
   end
   --reset item cache if a mod has changed
   global.items = {}
-  if not oldVersion or oldVersion < "0.4.0" then
-    findTrains(true)
-  end
   --check for other mods
 end
 
@@ -239,11 +239,11 @@ function getHighestInventoryCount(trainInfo)
 
     for i, carriage in pairs(trainInfo.train.cargo_wagons) do
       if carriage and carriage.valid and carriage.name == "rail-tanker" then
-        local liquid = remote.call("railtanker","getLiquidByWagon",carriage)
-        if liquid then
+        local success, liquid = pcall(remote.call, "railtanker","getLiquidByWagon",carriage)
+        if liquid and liquid.amount then
           local name = liquid.type
-          local count = math.floor(liquid.amount)
           if name then
+            local count = math.floor(liquid.amount)
             if not items[name] then
               items[name] = 0
             end
@@ -820,7 +820,7 @@ end
 
 function findCharacters(show)
   local surface = game.surfaces['nauvis']
-  local min_x, min_y, max_x, max_y = map_size(surface)  
+  local min_x, min_y, max_x, max_y = map_size(surface)
   if show then
     debugDump("Searching characters..",true)
   end
@@ -850,7 +850,7 @@ end
 
 function findTrains(show)
   local surface = game.surfaces['nauvis']
-  local min_x, min_y, max_x, max_y = map_size(surface) 
+  local min_x, min_y, max_x, max_y = map_size(surface)
 
   if show then
     debugDump("Searching trains..",true)
@@ -879,7 +879,7 @@ remote.add_interface("fat",
     get_player_switched_event = function()
       return getOrLoadSwitchedEvent()
     end,
-    
+
     saveVar = function(name)
       saveVar(global, name)
     end,
