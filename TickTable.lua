@@ -23,7 +23,8 @@ end
 function TickTable.remove_by_train(key, train)
   for t, values in pairs(global[key]) do
     for i=#values,1,-1 do
-      if values[i].train and values[i].train == train then
+      if values[i] and values[i].train and values[i].train == train then
+      --if values[i].train and values[i].train == train then
         values[i] = nil
       end
     end
