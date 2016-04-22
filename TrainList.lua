@@ -200,6 +200,31 @@ TrainList.update_stations = function(ti)
   end
 end
 
+TrainList.matchStationFilter = function(trainInfo, activeFilterList, alarm, modeOR)
+  if trainInfo ~= nil then
+    if alarm then
+      return trainInfo.alarm.active
+    end
+    if not activeFilterList then
+      return true
+    end
+    for filter, value in pairs(activeFilterList) do
+      if modeOR and trainInfo.stations[filter] then
+        return true
+      end
+      if not modeOR and not trainInfo.stations[filter] then
+        return false
+      end
+    end
+    if not modeOR then
+      return true
+    else
+      return false
+    end
+  end
+  return false
+end
+
 TrainList.get_filtered_trains = function(force, guiSettings)
   local trains = global.trainsByForce[force.name]
   local alarm_only = guiSettings.filter_alarms
@@ -208,7 +233,7 @@ TrainList.get_filtered_trains = function(force, guiSettings)
   local filtered = {}
   if trains then
     for i, ti in pairs(trains) do
-      if matchStationFilter(ti, filterList, alarm_only, mode) then
+      if TrainList.matchStationFilter(ti, filterList, alarm_only, mode) then
         ti.mainIndex = i
         table.insert(filtered, ti)
       end
