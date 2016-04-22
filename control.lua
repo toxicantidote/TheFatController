@@ -44,6 +44,7 @@ defaultGuiSettings = {
   filter_pageCount = 1,
   filtered_trains = false,
   filter_alarms = false,
+  automatedCount = 0,
   stopButton_state = false,
   displayed_trains = {}
 }
@@ -90,6 +91,7 @@ local function init_global()
   global.updateTrains = global.updateTrains or {}
   global.updateManual = global.updateManual or {}
   global.updateAlarms = global.updateAlarms or {}
+  global.automatedCount = global.automatedCount or {}
   global.PAGE_SIZE = global.PAGE_SIZE or 60
   global.station_count = global.station_count or {}
   global.player_opened = global.player_opened or {}
@@ -115,6 +117,7 @@ local function init_force(force)
   init_global()
   global.trainsByForce[force.name] = global.trainsByForce[force.name] or {}
   global.station_count[force.name] = global.station_count[force.name] or {}
+  global.automatedCount[force.name] = global.automatedCount[force.name] or 0 
   global.force_settings[force.name] = global.force_settings[force.name] or {signalDuration=defaults.signalDuration*3600,stationDuration=defaults.stationDuration*3600}
   if force.technologies["rail-signals"].researched then
     global.unlockedByForce[force.name] = true
@@ -181,10 +184,18 @@ local function on_configuration_changed(data)
           global.gui[i].fatControllerButtons = tmp[i].fatControllerButtons
         end
       end
-      if oldVersion >= "0.4.11" then
+      on_init()
+      if oldVersion > "0.4.0" then
         if oldVersion < "0.4.12" then
+          init_forces()
           for i, force in pairs(game.forces) do
             TrainList.remove_invalid(force,true)
+            for j, ti in pairs(global.trainsByForce[force.name]) do
+              ti.automated = ti.train.state ~= defines.trainstate.manual_control and ti.train.state ~= defines.trainstate.stop_for_auto_control
+              if ti.automated then
+                global.automatedCount[force.name] = global.automatedCount[force.name] + 1
+              end
+            end
           end
           for i, player in pairs(game.players) do
             global.gui[i].filterModeOr = false
@@ -560,6 +571,20 @@ function on_train_changed_state(event)
       trainInfo.previous_state_tick = trainInfo.last_state_tick
       trainInfo.last_state = train.state
       trainInfo.last_state_tick = game.tick
+      
+      local old_auto = trainInfo.automated
+      trainInfo.automated = train.state ~= defines.trainstate.manual_control and train.state ~= defines.trainstate.stop_for_auto_control
+      if old_auto ~= trainInfo.automated then
+        if trainInfo.automated then
+          global.automatedCount[force.name] = global.automatedCount[force.name] + 1
+        else
+          global.automatedCount[force.name] = global.automatedCount[force.name] - 1
+        end
+        log("count:"..global.automatedCount[force.name])
+        if global.automatedCount[force.name] == 0 or global.automatedCount[force.name] == #global.trainsByForce[force.name] then
+          GUI.refreshAllTrainInfoGuis(force)
+        end
+      end
 
       if trainInfo.alarm.active and trainInfo.alarm.type == "noPath" then
         Alerts.reset_alarm(trainInfo)

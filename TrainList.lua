@@ -26,6 +26,7 @@ TrainInfo = {
   follower_index = 0, -- player_index of following player
   opened_guis = {}, -- contains references to opened player guis, indexed by player_index
   stations = {}, --boolean table, indexed by stations in the schedule, new global trains_by_station?? should speedup filtered display
+  automated = false,
   alarm = {
     active = false,
     type = false,
@@ -148,6 +149,7 @@ TrainList.createTrainInfo = function(train)
   ti.last_state = ti.train.state
   ti.last_update = 0
   ti.inventory = getHighestInventoryCount(ti)
+  ti.automated = train.state ~= defines.trainstate.manual_control and train.state ~= defines.trainstate.stop_for_auto_control
   TrainList.update_stations(ti)
   local station = (#train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
   ti.current_station = station
@@ -232,10 +234,14 @@ TrainList.get_filtered_trains = function(force, guiSettings)
   local mode = guiSettings.filterModeOr
   local filtered = {}
   if trains then
+    guiSettings.automatedCount = 0
     for i, ti in pairs(trains) do
       if TrainList.matchStationFilter(ti, filterList, alarm_only, mode) then
         ti.mainIndex = i
         table.insert(filtered, ti)
+        if ti.automated then
+          guiSettings.automatedCount = guiSettings.automatedCount + 1 
+        end
       end
     end
   end

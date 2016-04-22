@@ -140,6 +140,18 @@ GUI = {
       return bottomString
     end,
 
+    get_toggleButtonCaption = function(guiSettings, player)
+      local caption = guiSettings.activeFilterList and "filtered" or "all"
+      local count = guiSettings.activeFilterList and guiSettings.automatedCount or global.automatedCount[player.force.name]
+      guiSettings.stopButton_state = count == 0
+      if guiSettings.stopButton_state then
+        caption = "Resume "..caption
+      else
+        caption = "Stop "..caption
+      end
+      return caption
+    end,
+
     update_single_traininfo = function(trainInfo, update_cargo)
       if trainInfo then
         if trainInfo.train and not trainInfo.train.valid then
@@ -201,7 +213,7 @@ GUI = {
         if gui ~= nil and gui.fatControllerGui.trainInfo ~= nil then
           gui.fatControllerGui.trainInfo.destroy()
           if player.connected then
-            GUI.newTrainInfoWindow(gui)
+            GUI.newTrainInfoWindow(gui, player)
             GUI.refreshTrainInfoGui(gui, player)
           else
             gui.fatControllerButtons.toggleTrainInfo.caption = {"text-trains-collapsed"}
@@ -234,7 +246,7 @@ GUI = {
       end
 
       if player_gui.fatControllerGui.trainInfo ~= nil then
-        GUI.newTrainInfoWindow(player_gui)
+        GUI.newTrainInfoWindow(player_gui, player)
       end
 
       player_gui.pageCount = getPageCount(player_gui, player)
@@ -265,7 +277,7 @@ GUI = {
         end
 
         if refreshGui then
-          GUI.newTrainInfoWindow(guiSettings)
+          GUI.newTrainInfoWindow(guiSettings, player)
           GUI.refreshTrainInfoGui(guiSettings, player)
         end
       end)
@@ -273,7 +285,7 @@ GUI = {
     end,
 
     -- control buttons only
-    newTrainInfoWindow = function(guiSettings)
+    newTrainInfoWindow = function(guiSettings, player)
       local gui = guiSettings.fatControllerGui
       local newGui
       if gui ~= nil and gui.trainInfo ~= nil then
@@ -344,12 +356,7 @@ GUI = {
       end
 
       if newGui.trainInfoControls.control.toggleButton == nil then
-        local caption = guiSettings.activeFilterList and "filtered" or "all"
-        if guiSettings.stopButton_state then
-          caption = "Resume "..caption
-        else
-          caption = "Stop "..caption
-        end
+        local caption = GUI.get_toggleButtonCaption(guiSettings,player)
         newGui.trainInfoControls.control.add({type = "button", name="toggleButton", caption=caption, style="fatcontroller_button_style"})
       end
 
