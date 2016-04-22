@@ -445,6 +445,10 @@ GUI = {
           local style = guiSettings.filter_alarms and "fatcontroller_selected_button" or "fatcontroller_button_style"
           pageFlow.add({type="button", name="filterAlarms", caption="Alarms", style=style})
 
+          local buttonflow2 = window.add({type = "flow", name="buttonflow2"})
+          local caption = guiSettings.filterModeOr and "Combine with OR" or "Combine with AND"
+          buttonflow2.add({type = "button", name="toggleFilterMode", caption=caption, style="fatcontroller_button_style"})
+
           window.add({type="table", name="checkboxGroup", colspan=3})
           local i=0
           local upper = guiSettings.filter_page*global.PAGE_SIZE
@@ -782,6 +786,12 @@ on_gui_click.unsetAlarm = function(guiSettings, element, player)
   end
 end
 
+on_gui_click.updateFilter = function(guiSettings, player)
+  guiSettings.filtered_trains = TrainList.get_filtered_trains(player.force, guiSettings)
+  guiSettings.pageCount = getPageCount(guiSettings, player)
+  guiSettings.page = 1
+end
+
 on_gui_click.stationFilter = function(guiSettings, element, player)
   local stationName = string.gsub(element.name, "_stationFilter", "")
   if element.state then
@@ -796,18 +806,21 @@ on_gui_click.stationFilter = function(guiSettings, element, player)
       guiSettings.activeFilterList = nil
     end
   end
-  guiSettings.filtered_trains = TrainList.get_filtered_trains(player.force, guiSettings)
-  guiSettings.pageCount = getPageCount(guiSettings, player)
-  guiSettings.page = 1
+  on_gui_click.updateFilter(guiSettings,player)
+  return true
+end
+
+on_gui_click.toggleFilterMode = function(guiSettings, element, player)
+  guiSettings.filterModeOr = not guiSettings.filterModeOr
+  element.caption = guiSettings.filterModeOr and "Combine with OR" or "Combine with AND"
+  on_gui_click.updateFilter(guiSettings,player)
   return true
 end
 
 on_gui_click.filterAlarms = function(guiSettings, element, player)
   guiSettings.filter_alarms = not guiSettings.filter_alarms
   element.style = guiSettings.filter_alarms and "fatcontroller_selected_button" or "fatcontroller_button_style"
-  guiSettings.filtered_trains = TrainList.get_filtered_trains(player.force, guiSettings)
-  guiSettings.pageCount = getPageCount(guiSettings, player)
-  guiSettings.page = 1
+  on_gui_click.updateFilter(guiSettings,player)
   return true
 end
 

@@ -204,10 +204,11 @@ TrainList.get_filtered_trains = function(force, guiSettings)
   local trains = global.trainsByForce[force.name]
   local alarm_only = guiSettings.filter_alarms
   local filterList = guiSettings.activeFilterList
+  local mode = guiSettings.filterModeOr
   local filtered = {}
   if trains then
     for i, ti in pairs(trains) do
-      if matchStationFilter(ti, filterList, alarm_only) then
+      if matchStationFilter(ti, filterList, alarm_only, mode) then
         ti.mainIndex = i
         table.insert(filtered, ti)
       end

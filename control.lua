@@ -186,6 +186,9 @@ local function on_configuration_changed(data)
           for i, force in pairs(game.forces) do
             TrainList.remove_invalid(force,true)
           end
+          for i, player in pairs(game.players) do
+            global.gui[i].filterModeOr = false
+          end
         end
       end
     end
@@ -828,24 +831,26 @@ function newFatControllerEntity(player)
   return player.surface.create_entity({name="fatcontroller", position=player.position, force=player.force})
 end
 
-function matchStationFilter(trainInfo, activeFilterList, alarm)
+function matchStationFilter(trainInfo, activeFilterList, alarm, modeOR)
   if trainInfo ~= nil then
-    if activeFilterList then
-      for filter, value in pairs(activeFilterList) do
-        if alarm and not trainInfo.alarm.active then
-          return false
-        end
-        if not trainInfo.stations[filter] then
-          return false
-        end
-      end
+    if alarm then
+      return trainInfo.alarm.active
+    end
+    if not activeFilterList then
       return true
-    else
-      if alarm and not trainInfo.alarm.active then
-        return false
-      else
+    end
+    for filter, value in pairs(activeFilterList) do
+      if modeOR and trainInfo.stations[filter] then
         return true
       end
+      if not modeOR and not trainInfo.stations[filter] then
+        return false
+      end
+    end
+    if not modeOR then
+      return true
+    else
+      return false
     end
   end
   return false
