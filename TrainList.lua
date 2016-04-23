@@ -133,8 +133,6 @@ end
 --- empty traininfo
 -- @return #TrainInfo description
 TrainList.createTrainInfo = function(train)
-  log(#train.locomotives.front_movers)
-  log(#train.locomotives.back_movers)
   if #train.locomotives.front_movers == 0 and #train.locomotives.back_movers == 0 then
     return false
   end

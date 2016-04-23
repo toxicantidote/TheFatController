@@ -117,7 +117,7 @@ local function init_force(force)
   init_global()
   global.trainsByForce[force.name] = global.trainsByForce[force.name] or {}
   global.station_count[force.name] = global.station_count[force.name] or {}
-  global.automatedCount[force.name] = global.automatedCount[force.name] or 0 
+  global.automatedCount[force.name] = global.automatedCount[force.name] or 0
   global.force_settings[force.name] = global.force_settings[force.name] or {signalDuration=defaults.signalDuration*3600,stationDuration=defaults.stationDuration*3600}
   if force.technologies["rail-signals"].researched then
     global.unlockedByForce[force.name] = true
@@ -581,7 +581,7 @@ function on_train_changed_state(event)
       trainInfo.previous_state_tick = trainInfo.last_state_tick
       trainInfo.last_state = train.state
       trainInfo.last_state_tick = game.tick
-      
+
       local old_auto = trainInfo.automated
       trainInfo.automated = train.state ~= defines.trainstate.manual_control and train.state ~= defines.trainstate.stop_for_auto_control
       if old_auto ~= trainInfo.automated then
@@ -593,7 +593,7 @@ function on_train_changed_state(event)
             guiSettings.automatedCount = guiSettings.automatedCount + change
             if guiSettings.automatedCount == 0 or guiSettings.automatedCount == #guiSettings.filtered_trains then
               GUI.set_toggleButtonCaption(guiSettings,player)
-            end 
+            end
           end
         end
         --log("count:"..global.automatedCount[force.name])
@@ -911,7 +911,7 @@ function saveVar(var, name, varname)
   game.write_file("FAT"..n..".lua", serpent.block(var, {name=varname}))
 end
 
-function map_size(surface)
+function map_bounds(surface)
   -- determine map size
   local min_x, min_y, max_x, max_y = 0, 0, 0, 0
   for c in surface.get_chunks() do
@@ -926,17 +926,17 @@ function map_size(surface)
       max_y = c.y
     end
   end
-  return min_x, min_y, max_x, max_y
+  -- create bounding box covering entire generated map
+  return {{min_x*32,min_y*32},{max_x*32,max_y*32}}
 end
 
 function findCharacters(show)
   local surface = game.surfaces['nauvis']
-  local min_x, min_y, max_x, max_y = map_size(surface)
+  local bounds = map_bounds(surface)
   if show then
     debugDump("Searching characters..",true)
   end
-  -- create bounding box covering entire generated map
-  local bounds = {{min_x*32,min_y*32},{max_x*32,max_y*32}}
+
   local characters = {}
   for _, character in pairs(surface.find_entities_filtered{area=bounds, type="player"}) do
     table.insert(characters,character)
@@ -959,15 +959,33 @@ function findCharacters(show)
   return characters
 end
 
+function findStations(show)
+  local surface = game.surfaces['nauvis']
+  local bounds = map_bounds(surface)
+
+  if show then
+    debugDump("Searching stations..",true)
+  end
+
+  local count = 0
+  for _, station in pairs(surface.find_entities_filtered{area=bounds, type="train-stop"}) do
+    count = count + 1
+    increaseStationCount(station)
+  end
+  
+  if show then
+    debugDump("Found "..count.." stations", true)
+  end
+end
+
 function findTrains(show)
   local surface = game.surfaces['nauvis']
-  local min_x, min_y, max_x, max_y = map_size(surface)
+  local bounds = map_bounds(surface)
 
   if show then
     debugDump("Searching trains..",true)
   end
-  -- create bounding box covering entire generated map
-  local bounds = {{min_x*32,min_y*32},{max_x*32,max_y*32}}
+
   for _, loco in pairs(surface.find_entities_filtered{area=bounds, type="locomotive"}) do
     if not TrainList.get_traininfo(loco.force, loco.train) then
       local trainInfo = TrainList.add_train(loco.train)
@@ -977,12 +995,10 @@ function findTrains(show)
     end
   end
   TrainList.reset_manual()
-  for _, station in pairs(surface.find_entities_filtered{area=bounds, type="train-stop"}) do
-    increaseStationCount(station)
-  end
   if show then
     debugDump("Found "..TrainList.count().." trains",true)
   end
+  findStations(show)
 end
 
 interface = {
@@ -1044,9 +1060,15 @@ interface = {
   end,
 
   find_trains = function()
-    global.stations = nil
+    global.station_count = nil
     on_init()
-    findTrains()
+    findTrains(true)
+  end,
+  
+  find_stations = function()
+    global.station_count = nil
+    on_init()
+    findStations(true)
   end
 }
 
