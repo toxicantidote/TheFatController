@@ -199,6 +199,16 @@ local function on_configuration_changed(data)
           end
           for i, player in pairs(game.players) do
             global.gui[i].filterModeOr = false
+            global.gui[i].automatedCount = 0
+            global.gui[i].filteredIndex = {}
+            if global.gui[i].filtered_trains then
+              for _, ti in pairs(global.gui[i].filtered_trains) do
+                global.gui[i].filteredIndex[ti.mainIndex] = true
+                if ti.automated then
+                  global.gui[i].automatedCount = global.gui[i].automatedCount + 1
+                end
+              end
+            end
           end
         end
       end
@@ -575,12 +585,18 @@ function on_train_changed_state(event)
       local old_auto = trainInfo.automated
       trainInfo.automated = train.state ~= defines.trainstate.manual_control and train.state ~= defines.trainstate.stop_for_auto_control
       if old_auto ~= trainInfo.automated then
-        if trainInfo.automated then
-          global.automatedCount[force.name] = global.automatedCount[force.name] + 1
-        else
-          global.automatedCount[force.name] = global.automatedCount[force.name] - 1
+        local change = trainInfo.automated and 1 or -1
+        global.automatedCount[force.name] = global.automatedCount[force.name] + change
+        for i, player in pairs(game.players) do
+          local guiSettings = global.gui[i]
+          if player.connected and guiSettings.activeFilterList and guiSettings.filteredIndex[trainInfo.mainIndex] then
+            guiSettings.automatedCount = guiSettings.automatedCount + change
+            if guiSettings.automatedCount == 0 or guiSettings.automatedCount == #guiSettings.filtered_trains then
+              GUI.set_toggleButtonCaption(guiSettings,player)
+            end 
+          end
         end
-        log("count:"..global.automatedCount[force.name])
+        --log("count:"..global.automatedCount[force.name])
         if global.automatedCount[force.name] == 0 or global.automatedCount[force.name] == #global.trainsByForce[force.name] then
           GUI.refreshAllTrainInfoGuis(force)
         end

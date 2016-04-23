@@ -235,10 +235,12 @@ TrainList.get_filtered_trains = function(force, guiSettings)
   local filtered = {}
   if trains then
     guiSettings.automatedCount = 0
+    guiSettings.filteredIndex = {}
     for i, ti in pairs(trains) do
       if TrainList.matchStationFilter(ti, filterList, alarm_only, mode) then
         ti.mainIndex = i
         table.insert(filtered, ti)
+        guiSettings.filteredIndex[i] = true
         if ti.automated then
           guiSettings.automatedCount = guiSettings.automatedCount + 1 
         end

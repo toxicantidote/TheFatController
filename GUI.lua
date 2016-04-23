@@ -151,6 +151,13 @@ GUI = {
       end
       return caption
     end,
+    
+    set_toggleButtonCaption = function(guiSettings, player)
+      if guiSettings.fatControllerGui and guiSettings.fatControllerGui.trainInfo then
+        local caption = GUI.get_toggleButtonCaption(guiSettings,player)
+        guiSettings.fatControllerGui.trainInfo.trainInfoControls.control.toggleButton.caption = caption
+      end
+    end,
 
     update_single_traininfo = function(trainInfo, update_cargo)
       if trainInfo then
