@@ -39,6 +39,10 @@ end
 on_gui_click = {}
 GUI = {
 
+    sanitizeName = function(name)
+      return (name:gsub("^%s*(.-)%s*$", "%1"))
+    end,
+
     get_page_button_style = function(direction, current_page, page_count)
       if direction == "back" then
         return current_page > 1 and "fatcontroller_button_style" or "fatcontroller_disabled_button"
@@ -47,7 +51,7 @@ GUI = {
       end
     end,
 
-    new_train_window = function(gui, trainInfo)
+    new_train_window = function(gui, trainInfo, guiSettings)
       if gui[trainInfo.guiName] == nil then
         gui.add({ type="frame", name=trainInfo.guiName, direction="horizontal", style="fatcontroller_thin_frame"})
       end
@@ -73,6 +77,10 @@ GUI = {
 
       if trainGui.buttons[trainInfo.guiName .. "_toggleFollowMode"] == nil then
         trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleFollowMode", caption={"text-controlbutton"}, style="fatcontroller_button_style"})
+      end
+
+      if guiSettings.renameTrains then
+        trainGui.buttons.add({type="button", name=trainInfo.guiName.. "_renameTrain", caption="R", style="fatcontroller_button_style"})
       end
 
       if trainInfo.alarm.active then
@@ -294,6 +302,8 @@ GUI = {
           refreshGui = on_gui_click.stationFilter(guiSettings, event.element, player)
         elseif endsWith(event.element.name,"_alarm") then
           refreshGui = on_gui_click.unsetAlarm(guiSettings, event.element, player)
+        elseif endsWith(event.element.name,"_renameTrain") then
+          refreshGui = on_gui_click.renameTrain(guiSettings, event.element, player)
         end
 
         if refreshGui then
@@ -330,7 +340,7 @@ GUI = {
       if newGui.trainInfoControls.pageButtons.page_back == nil then
         newGui.trainInfoControls.pageButtons.add({type="button", name="page_back", caption="<", style=GUI.get_page_button_style("back",guiSettings.page)})
       end
-      
+
       local caption = guiSettings.page .. "/" .. guiSettings.pageCount
       if newGui.trainInfoControls.pageButtons.page_number == nil then
         newGui.trainInfoControls.pageButtons.add({type="button", name="page_number", caption= caption, style="fatcontroller_button_style"})
@@ -368,8 +378,7 @@ GUI = {
       end
 
       if newGui.trainInfoControls.control.toggleButton == nil then
-        local caption = GUI.get_toggleButtonCaption(guiSettings,player)
-        newGui.trainInfoControls.control.add({type = "button", name="toggleButton", caption=caption, style="fatcontroller_button_style"})
+        newGui.trainInfoControls.control.add({type = "button", name="toggleButton", caption=GUI.get_toggleButtonCaption(guiSettings,player), style="fatcontroller_button_style"})
       end
 
       return newGui
@@ -532,8 +541,11 @@ GUI = {
             stateNoFuel = false
           end
           window.add({type="checkbox", name="alarmNoFuel", caption={"text-alarmtimenofuel"}, state=stateNoFuel})
-          window.add({type="button", name="alarmOK", caption={"msg-OK"}})
-          window.add({type="button", name="findCharacter", caption="Find character"})
+          window.add({type="checkbox", name="renameTrains", caption="enable renaming trains", state=guiSettings.renameTrains})
+
+          local flow3 = window.add({name="flowButtons", type="flow", direction="horizontal"})
+          flow3.add({type="button", name="alarmOK", caption={"msg-OK"}})
+          flow3.add({type="button", name="findCharacter", caption="Find character"})
 
           stationDuration.text = global.force_settings[game.players[player_index].force.name].stationDuration/3600
           signalDuration.text = global.force_settings[game.players[player_index].force.name].signalDuration/3600
@@ -577,25 +589,25 @@ on_gui_click.returnToPlayer = function(guiSettings, element, player)
   end
 end
 
-on_gui_click.page_back = function(guiSettings, element, player)
+on_gui_click.page_back = function(guiSettings)
   if guiSettings.page > 1 then
     guiSettings.page = guiSettings.page - 1
     return true
   end
 end
 
-on_gui_click.page_forward = function(guiSettings, element, player)
+on_gui_click.page_forward = function(guiSettings)
   if guiSettings.page < guiSettings.pageCount then
     guiSettings.page = guiSettings.page + 1
     return true
   end
 end
 
-on_gui_click.page_number = function(guiSettings, element, player)
+on_gui_click.page_number = function(guiSettings, _, player)
   GUI.togglePageSelectWindow(player.gui.center, guiSettings)
 end
 
-on_gui_click.pageSelectOK = function(guiSettings, element, player)
+on_gui_click.pageSelectOK = function(guiSettings, _, player)
   local gui = player.gui.center.pageSelect
   if gui ~= nil then
     local newInt = tonumber(gui.pageSelectValue.text)
@@ -615,11 +627,11 @@ on_gui_click.pageSelectOK = function(guiSettings, element, player)
   end
 end
 
-on_gui_click.toggleStationFilter = function(guiSettings, element, player)
+on_gui_click.toggleStationFilter = function(guiSettings, _, player)
   GUI.toggleStationFilterWindow(player.gui.center, guiSettings, player)
 end
 
-on_gui_click.stationFilterClear = function(guiSettings, element, player)
+on_gui_click.stationFilterClear = function(guiSettings, _, player)
   local refresh = false
   if guiSettings.activeFilterList or guiSettings.filter_alarms then
     guiSettings.activeFilterList = nil
@@ -638,7 +650,7 @@ on_gui_click.clearStationFilter = function(guiSettings, element, player)
   return on_gui_click.stationFilterClear(guiSettings, element, player)
 end
 
-on_gui_click.stationFilterOK = function(guiSettings, element, player)
+on_gui_click.stationFilterOK = function(guiSettings, _, player)
   local gui = player.gui.center.stationFilterWindow
   if gui ~= nil and gui.checkboxGroup ~= nil then
     local newFilter = {}
@@ -661,7 +673,7 @@ on_gui_click.stationFilterOK = function(guiSettings, element, player)
   end
 end
 
-on_gui_click.filter_page_forward = function(guiSettings, element, player)
+on_gui_click.filter_page_forward = function(guiSettings, _, player)
   if guiSettings.filter_page < get_filter_PageCount(player.force) then
     guiSettings.filter_page = guiSettings.filter_page + 1
     GUI.toggleStationFilterWindow(player.gui.center, guiSettings, player)
@@ -669,7 +681,7 @@ on_gui_click.filter_page_forward = function(guiSettings, element, player)
   end
 end
 
-on_gui_click.filter_page_back = function(guiSettings, element, player)
+on_gui_click.filter_page_back = function(guiSettings, _, player)
   if guiSettings.filter_page > 1 then
     guiSettings.filter_page = guiSettings.filter_page - 1
     GUI.toggleStationFilterWindow(player.gui.center, guiSettings, player)
@@ -677,7 +689,7 @@ on_gui_click.filter_page_back = function(guiSettings, element, player)
   end
 end
 
-on_gui_click.alarmOK = function(guiSettings, element, player)
+on_gui_click.alarmOK = function( _, _, player)
   local gui = player.gui.center
   local station = sanitizeNumber(gui.alarmWindow.flowStation.alarmTimeToStationDuration.text,defaults.stationDuration)*3600
   local signal = sanitizeNumber(gui.alarmWindow.flowSignal.alarmTimeAtSignalDuration.text,defaults.signalDuration)*3600
@@ -686,27 +698,27 @@ on_gui_click.alarmOK = function(guiSettings, element, player)
   GUI.toggleAlarmWindow(player.gui.center, player.index)
 end
 
-on_gui_click.alarmButton = function(guiSettings, element, player)
+on_gui_click.alarmButton = function(_, _, player)
   GUI.toggleAlarmWindow(player.gui.center, player.index)
 end
 
-on_gui_click.alarmTimeToStation = function(guiSettings, element, player)
+on_gui_click.alarmTimeToStation = function(guiSettings, element, _)
   guiSettings.alarm.timeToStation = element.state
 end
 
-on_gui_click.alarmTimeAtSignal = function(guiSettings, element, player)
+on_gui_click.alarmTimeAtSignal = function(guiSettings, element, _)
   guiSettings.alarm.timeAtSignal = element.state
 end
 
-on_gui_click.alarmNoPath = function(guiSettings, element, player)
+on_gui_click.alarmNoPath = function(guiSettings, element, _)
   guiSettings.alarm.noPath = element.state
 end
 
-on_gui_click.alarmNoFuel = function(guiSettings, element, player)
+on_gui_click.alarmNoFuel = function(guiSettings, element, _)
   guiSettings.alarm.noFuel = element.state
 end
 
-on_gui_click.toggleButton = function(guiSettings, element, player)
+on_gui_click.toggleButton = function(guiSettings, _, player)
   --run/stop the trains
   local trains = guiSettings.activeFilterList and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
   local requested_state = not guiSettings.stopButton_state
@@ -719,7 +731,7 @@ on_gui_click.toggleButton = function(guiSettings, element, player)
   return true
 end
 
-on_gui_click.toggleManualMode = function(guiSettings, element, player)
+on_gui_click.toggleManualMode = function(_, element, player)
   local trains = global.trainsByForce[player.force.name]
   local option1 = element.name:match("Info(%w+)_")
   option1 = tonumber(option1)
@@ -789,7 +801,7 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
   end
 end
 
-on_gui_click.unsetAlarm = function(guiSettings, element, player)
+on_gui_click.unsetAlarm = function(_, element, player)
   local trains = global.trainsByForce[player.force.name]
   local option1 = element.name:match("Info(%w+)_")
   option1 = tonumber(option1)
@@ -838,7 +850,7 @@ on_gui_click.filterAlarms = function(guiSettings, element, player)
   return true
 end
 
-on_gui_click.findCharacter = function(guiSettings, element, player)
+on_gui_click.findCharacter = function(guiSettings, _, player)
   local _, err = pcall(function()
     if player.connected then
       if player.character.name == "fatcontroller" then
@@ -861,4 +873,41 @@ on_gui_click.findCharacter = function(guiSettings, element, player)
     end
   end)
   if err then debugDump(err,true) end
+end
+
+on_gui_click.renameTrains = function(guiSettings, element, _)
+  guiSettings.renameTrains = element.state
+  return true
+end
+
+on_gui_click.renameTrain = function(guiSettings, element, player)
+  local trains = global.trainsByForce[player.force.name]
+  local option1 = element.name:match("Info(%w+)_")
+  option1 = tonumber(option1)
+  local trainInfo = trains[option1]
+  local textfield_name = "Info"..option1.."_name"
+  guiSettings.renameTrain[option1] = not guiSettings.renameTrain[option1]
+  if trainInfo and trainInfo.train and trainInfo.train.valid then
+    local flow = element.parent
+    if flow and flow.valid then
+      if guiSettings.renameTrain[option1] then
+        flow.add({type="textfield", name=textfield_name, text=""})
+      else
+        local name = GUI.sanitizeName((flow[textfield_name].text))
+        if name ~= "" then
+          for _, locos in pairs(trainInfo.train.locomotives) do
+            for _, loco in pairs(locos) do
+              if remote.interfaces.EventsPlus then
+                remote.call("EventsPlus", "rename_entity", loco, name)
+              else
+                loco.backer_name = name
+              end
+            end
+          end
+        end
+        flow[textfield_name].destroy()
+      end
+    end
+    GUI.update_single_traininfo(trainInfo)
+  end
 end

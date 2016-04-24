@@ -46,7 +46,9 @@ defaultGuiSettings = {
   filter_alarms = false,
   automatedCount = 0,
   stopButton_state = false,
-  displayed_trains = {}
+  displayed_trains = {},
+  renameTrains = false,
+  renameTrain = {},
 }
 
 character_blacklist = {
@@ -56,7 +58,7 @@ character_blacklist = {
 
 function debugDump(var, force)
   if false or force then
-    for i,player in pairs(game.players) do
+    for _,player in pairs(game.players) do
       local msg
       if type(var) == "string" then
         msg = var
@@ -68,13 +70,10 @@ function debugDump(var, force)
   end
 end
 
-function pauseError(err, desc)
+function pauseError(err)
   if game then
     debugDump("Error in FatController:",true)
     debugDump(err,true)
-    --global.error = {msg = err, desc = desc}
-    --game.write_file("errorReportFatController.txt", serpent.block(global, {name="global"}))
-    --global.error = nil
   else
     log(err)
   end
@@ -108,7 +107,7 @@ local function init_player(player)
 end
 
 local function init_players()
-  for i,player in pairs(game.players) do
+  for _,player in pairs(game.players) do
     init_player(player)
   end
 end
@@ -123,14 +122,14 @@ local function init_force(force)
     global.unlockedByForce[force.name] = true
     global.unlocked = true
     register_events()
-    for i,p in pairs(force.players) do
+    for _,p in pairs(force.players) do
       init_player(p)
     end
   end
 end
 
 local function init_forces()
-  for i, force in pairs(game.forces) do
+  for _, force in pairs(game.forces) do
     init_force(force)
   end
 end
@@ -160,8 +159,8 @@ local function on_configuration_changed(data)
   if not data or not data.mod_changes then
     return
   end
-  local newVersion = false
-  local oldVersion = false
+  local newVersion
+  local oldVersion
   if data.mod_changes[MOD_NAME] then
     newVersion = data.mod_changes[MOD_NAME].new_version
     oldVersion = data.mod_changes[MOD_NAME].old_version
@@ -170,7 +169,7 @@ local function on_configuration_changed(data)
       if oldVersion < "0.4.0" then
         debugDump("Resetting FatController settings",true)
         local tmp = {}
-        for i, player in pairs(game.players) do
+        for i, _ in pairs(game.players) do
           tmp[i] = {}
           tmp[i].fatControllerGui = global.guiSettings[i].fatControllerGui
           tmp[i].fatControllerButtons = global.guiSettings[i].fatControllerButtons
@@ -179,7 +178,7 @@ local function on_configuration_changed(data)
         global = {}
         global.character = tmpCharacter
         on_init()
-        for i, player in pairs(game.players) do
+        for i, _ in pairs(game.players) do
           global.gui[i].fatControllerGui = tmp[i].fatControllerGui
           global.gui[i].fatControllerButtons = tmp[i].fatControllerButtons
         end
@@ -188,16 +187,16 @@ local function on_configuration_changed(data)
       if oldVersion > "0.4.0" then
         if oldVersion < "0.4.12" then
           init_forces()
-          for i, force in pairs(game.forces) do
+          for _, force in pairs(game.forces) do
             TrainList.remove_invalid(force,true)
-            for j, ti in pairs(global.trainsByForce[force.name]) do
+            for _, ti in pairs(global.trainsByForce[force.name]) do
               ti.automated = ti.train.state ~= defines.trainstate.manual_control and ti.train.state ~= defines.trainstate.stop_for_auto_control
               if ti.automated then
                 global.automatedCount[force.name] = global.automatedCount[force.name] + 1
               end
             end
           end
-          for i, player in pairs(game.players) do
+          for i, _ in pairs(game.players) do
             global.gui[i].filterModeOr = false
             global.gui[i].automatedCount = 0
             global.gui[i].filteredIndex = {}
@@ -208,6 +207,13 @@ local function on_configuration_changed(data)
                   global.gui[i].automatedCount = global.gui[i].automatedCount + 1
                 end
               end
+            end
+          end
+        end
+        if oldVersion < "0.4.14" then
+          for _, guiSetting in pairs(global.gui) do
+            if guiSetting.renameTrains == nil then
+              guiSetting.renameTrains = false
             end
           end
         end
@@ -230,10 +236,6 @@ local function on_force_created(event)
   init_force(event.force)
 end
 
-local function on_forces_merging(event)
-
-end
-
 function on_research_finished(event)
   if event.research.name == "rail-signals" then
     global.unlockedByForce[event.research.force.name] = true
@@ -253,7 +255,7 @@ script.on_event(defines.events.on_force_created, on_force_created)
 script.on_event(defines.events.on_forces_merging, on_forces_merging)
 
 script.on_event(defines.events.on_research_finished, function(event)
-  local status, err = pcall(on_research_finished, event)
+  local _, err = pcall(on_research_finished, event)
   if err then debugDump(err,true) end
 end)
 
@@ -284,7 +286,7 @@ function getHighestInventoryCount(trainInfo)
     local items = {}
     for i, carriage in pairs(trainInfo.train.cargo_wagons) do
       if carriage.name == "rail-tanker" then
-        local success, liquid = pcall(remote.call, "railtanker","getLiquidByWagon",carriage)
+        local _, liquid = pcall(remote.call, "railtanker","getLiquidByWagon",carriage)
         if liquid and liquid.amount then
           local name = liquid.type
           if name then
@@ -298,8 +300,7 @@ function getHighestInventoryCount(trainInfo)
       else
         if trainInfo.proxy_chests and trainInfo.proxy_chests[i] then
           --wagon is used by logistics railway
-          local inventory = trainInfo.proxy_chests[i].get_inventory(defines.inventory.chest)
-          local contents = inventory.get_contents()
+          local contents = trainInfo.proxy_chests[i].get_inventory(defines.inventory.chest).get_contents()
           items = addInventoryContents(items, contents)
         else
           items = addInventoryContents(items,carriage.get_inventory(1).get_contents())
@@ -307,7 +308,7 @@ function getHighestInventoryCount(trainInfo)
       end
     end
     for name, count in pairs(items) do
-      if largestItem.count == nil or largestItem.count < items[name] then
+      if largestItem.count == nil or largestItem.count < count then
         largestItem.name = name
         largestItem.count = items[name]
       end
@@ -359,10 +360,10 @@ end
 script.on_event(defines.events.on_player_driving_changed_state, on_player_driving_changed_state)
 
 function on_tick(event)
-  local status, err = pcall(function()
+  local _, err = pcall(function()
     local tick = event.tick
     if global.updateEntities then
-      for i, ent in pairs(global.updateEntities) do
+      for _, ent in pairs(global.updateEntities) do
         --debugDump("updateEnt"..i,true)
         if ent == true then
           TrainList.removeAlarms()
@@ -545,7 +546,7 @@ script.on_event(defines.events.on_built_entity, on_built_entity)
 
 function on_train_changed_state(event)
   --debugDump("state:"..event.train.state,true)
-  local status, err = pcall(function()
+  local _, err = pcall(function()
     local train = event.train
     local force = train.carriages[1].force
     --debugDump(game.tick.." state:"..train.state,true)
@@ -659,7 +660,7 @@ function on_train_changed_state(event)
       debugDump("no traininfo",true)
       TrainList.remove_invalid(force)
       if not TrainList.get_traininfo(train) then
-        trainInfo = TrainList.add_train(train)
+        TrainList.add_train(train)
       end
     end
   end)
@@ -692,7 +693,7 @@ function on_station_rename(station, oldName)
   --if not event.entity.type == "train-stop" then return end
   --local station, oldName, newName = event.entity, event.old_name, event.new_name
   local oldc = decreaseStationCount(station, oldName)
-  local newc = increaseStationCount(station)
+  increaseStationCount(station)
   if oldc == 0 then
     global.station_count[station.force.name][oldName] = nil
   end
@@ -701,9 +702,11 @@ end
 function on_player_opened(event)
   if event.entity.valid and game.players[event.player_index].valid then
     if event.entity.type == "locomotive" and event.entity.train then
-
+      --TODO do something here?
+      return
     elseif event.entity.type == "cargo-wagon" and event.entity.train then
-
+      --TODO do something here?
+      return
     elseif event.entity.type == "train-stop" then
       global.opened_name[event.player_index] = event.entity.backer_name
     end
@@ -723,7 +726,7 @@ function on_player_closed(event)
     elseif event.entity.type == "cargo-wagon" and event.entity.train then
       local ti = TrainList.get_traininfo(event.entity.force, event.entity.train)
       if not ti then
-        ti = TrainList.add_train(event.entity.train)
+        TrainList.add_train(event.entity.train)
       else
         GUI.update_single_traininfo(ti, true)
       end
@@ -766,7 +769,6 @@ if remote.interfaces.logistics_railway then
 
   script.on_event(remote.call("logistics_railway", "get_chest_destroyed_event"), function(event)
     local status, err = pcall(function()
-      local chest = event.chest
       local wagon_index = event.wagon_index
       local train = event.train
       --debugDump("destroyed a chest",true)
@@ -786,8 +788,8 @@ end
 function getPageCount(guiSettings, player)
   local trains = (guiSettings.activeFilterList or guiSettings.filter_alarms) and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
   if not trains then error("no trains", 2) end
-  local trainCount = 0
-  trainCount = #trains
+  local trainCount
+  trainCount = #trains or 0
   local p = math.floor((trainCount - 1) / guiSettings.displayCount) + 1
   p = p > 0 and p or 1
   guiSettings.page = guiSettings.page > p and p or guiSettings.page
@@ -795,7 +797,7 @@ function getPageCount(guiSettings, player)
 end
 
 function update_pageCount(force)
-  for i, p in pairs(force.players) do
+  for _, p in pairs(force.players) do
     local guiSettings = global.gui[p.index]
     guiSettings.pageCount = getPageCount(guiSettings,p)
   end
@@ -803,7 +805,7 @@ end
 
 function get_filter_PageCount(force)
   local stationCount = 0
-  for _, s in pairs(global.station_count[force.name]) do
+  for _, _ in pairs(global.station_count[force.name]) do
     stationCount = stationCount + 1
   end
   local p = math.floor((stationCount - 1) / (global.PAGE_SIZE)) + 1
@@ -875,9 +877,7 @@ end
 
 function tableIsEmpty(tableA)
   if tableA ~= nil then
-    for i,v in pairs(tableA) do
-      return false
-    end
+    return next(tableA) == nil
   end
   return true
 end
@@ -906,10 +906,8 @@ function pairsByKeys (t, f)
 end
 
 function saveVar(var, name, varname)
-  local var = var or global
-  local varname = varname or "global"
   local n = name or ""
-  game.write_file("FAT"..n..".lua", serpent.block(var, {name=varname}))
+  game.write_file("FAT"..n..".lua", serpent.block(var or global, {name=varname or "global"}))
 end
 
 function map_bounds(surface)
@@ -942,8 +940,8 @@ function findCharacters(show)
   for _, character in pairs(surface.find_entities_filtered{area=bounds, type="player"}) do
     table.insert(characters,character)
   end
-  for forceName, trains in pairs(global.trainsByForce) do
-    for i, t in pairs(trains) do
+  for _, trains in pairs(global.trainsByForce) do
+    for _, t in pairs(trains) do
       for _, c in pairs(t.train.carriages) do
         if c.passenger then
           table.insert(characters,c.passenger)
@@ -973,7 +971,7 @@ function findStations(show)
     count = count + 1
     increaseStationCount(station)
   end
-  
+
   if show then
     debugDump("Found "..count.." stations", true)
   end
@@ -1013,19 +1011,19 @@ interface = {
 
   remove_invalid_players = function()
     local delete = {}
-    for i,p in pairs(global.gui) do
+    for i,_ in pairs(global.gui) do
       if not game.players[i] then
         delete[i] = true
       end
     end
-    for j,c in pairs(delete) do
+    for j,_ in pairs(delete) do
       global.gui[j] = nil
     end
   end,
 
   init = function()
     global.PAGE_SIZE = 60
-    for i,g in pairs(global.gui) do
+    for _,g in pairs(global.gui) do
       g.filter_page = 1
       g.filter_pageCount = get_filter_PageCount(g)
       g.stopButton_state = false
@@ -1045,7 +1043,7 @@ interface = {
         end
       end
     end
-    for force, trains in pairs(global.trainsByForce) do
+    for _, trains in pairs(global.trainsByForce) do
       local c = #trains
       for i=c,1,-1 do
         if not trains[i].train.valid then
@@ -1065,17 +1063,11 @@ interface = {
     on_init()
     findTrains(true)
   end,
-  
+
   find_stations = function()
     global.station_count = nil
     on_init()
     findStations(true)
   end
 }
-
---alternative for script.on_event/game.raise_event ??
-interface.on_player_closed = function(event)
---log("remote call")
---on_player_closed(event)
-end
 remote.add_interface("fat", interface)
