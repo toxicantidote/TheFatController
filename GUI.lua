@@ -24,7 +24,7 @@ function start_following(carriage, guiSettings, element, player)
   end
 end
 
-function stop_following(guiSettings, player)
+function stop_following(guiSettings)
   guiSettings.followEntity = nil
   if guiSettings.followGui and guiSettings.followGui.valid then
     guiSettings.followGui.caption = "c"
@@ -39,7 +39,7 @@ end
 on_gui_click = {}
 GUI = {
 
-    new_train_window = function(gui, trainInfo, guiSettings)
+    new_train_window = function(gui, trainInfo)
       if gui[trainInfo.guiName] == nil then
         gui.add({ type="frame", name=trainInfo.guiName, direction="horizontal", style="fatcontroller_thin_frame"})
       end
@@ -141,7 +141,7 @@ GUI = {
     end,
 
     get_toggleButtonCaption = function(guiSettings, player)
-      local caption = guiSettings.activeFilterList and "filtered" or "all"
+      local caption = (guiSettings.activeFilterList or guiSettings.filter_alarms) and "filtered" or "all"
       local count = guiSettings.activeFilterList and guiSettings.automatedCount or global.automatedCount[player.force.name]
       guiSettings.stopButton_state = count == 0
       if guiSettings.stopButton_state then
@@ -167,7 +167,7 @@ GUI = {
         end
         local cargo_updated = false
         local alarm = trainInfo.alarm.active and trainInfo.alarm.type or false
-        for player_index, gui in pairs(trainInfo.opened_guis) do
+        for _, gui in pairs(trainInfo.opened_guis) do
           if gui and gui.valid then
             if alarm then
               local style = "fatcontroller_icon_" .. trainInfo.alarm.type
@@ -212,7 +212,7 @@ GUI = {
     refreshAllTrainInfoGuis = function(force)
       --debugDump(game.tick.." refresh",true)
       update_pageCount(force)
-      for i,player in pairs(force.players) do
+      for _,player in pairs(force.players) do
         local gui = global.gui[player.index]
         if gui.page > gui.pageCount then gui.page = gui.pageCount end
         gui.page = gui.page > 0 and gui.page or 1
@@ -236,7 +236,6 @@ GUI = {
       end
 
       local player_gui = global.gui[player.index]
-      local forceName = player.force.name
 
       if player.gui.left.fatController == nil then
         player_gui.fatControllerGui = player.gui.left.add({ type="flow", name="fatController", direction="vertical"})--, style="fatcontroller_thin_flow"}) --caption="Fat Controller",
@@ -263,7 +262,7 @@ GUI = {
 
 
     onguiclick = function(event)
-      local status, err = pcall(function()
+      local _, err = pcall(function()
         local refreshGui = false
         local player_index = event.element.player_index
         local guiSettings = global.gui[player_index]
@@ -392,8 +391,7 @@ GUI = {
               remove_invalid = true
             end
             local i = trainInfo.mainIndex
-            local newGuiName = nil
-            newGuiName = "Info" .. i
+            local newGuiName = "Info" .. i
             if gui[newGuiName] == nil then
               trainInfo.guiName = newGuiName
               guiSettings.displayed_trains[i] = trainInfo
@@ -467,7 +465,7 @@ GUI = {
           local i=0
           local upper = guiSettings.filter_page*global.PAGE_SIZE
           local lower = guiSettings.filter_page*global.PAGE_SIZE-global.PAGE_SIZE
-          for name, value in pairsByKeys(global.station_count[player.force.name]) do
+          for name, _ in pairsByKeys(global.station_count[player.force.name]) do
             if i>=lower and i<upper then
               local state = false
               if guiSettings.activeFilterList and guiSettings.activeFilterList[name] then
@@ -540,8 +538,7 @@ GUI = {
     end,
 
     reset_displayed_trains = function(guiSettings, player)
-      local trains = global.trainsByForce[player.force.name]
-      for i, ti in pairs(guiSettings.displayed_trains) do
+      for _, ti in pairs(guiSettings.displayed_trains) do
         if ti then
           ti.opened_guis[player.index] = nil
         end
@@ -614,7 +611,6 @@ on_gui_click.pageSelectOK = function(guiSettings, element, player)
 end
 
 on_gui_click.toggleStationFilter = function(guiSettings, element, player)
-  local trains = global.trainsByForce[player.force.name]
   GUI.toggleStationFilterWindow(player.gui.center, guiSettings, player)
 end
 
@@ -642,7 +638,7 @@ on_gui_click.stationFilterOK = function(guiSettings, element, player)
   if gui ~= nil and gui.checkboxGroup ~= nil then
     local newFilter = {}
     local listEmpty = true
-    for station,value in pairs(global.station_count[player.force.name]) do
+    for station,_ in pairs(global.station_count[player.force.name]) do
       local checkboxA = gui.checkboxGroup[station .. "_stationFilter"]
       if checkboxA ~= nil and checkboxA.state then
         listEmpty = false
@@ -709,7 +705,7 @@ on_gui_click.toggleButton = function(guiSettings, element, player)
   --run/stop the trains
   local trains = guiSettings.activeFilterList and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
   local requested_state = not guiSettings.stopButton_state
-  for i, trainInfo in pairs(trains) do
+  for _, trainInfo in pairs(trains) do
     if trainInfo.train.valid then
       trainInfo.train.manual_mode = requested_state
     end
@@ -803,7 +799,7 @@ end
 on_gui_click.updateFilter = function(guiSettings, player)
   guiSettings.filtered_trains = TrainList.get_filtered_trains(player.force, guiSettings)
   guiSettings.pageCount = getPageCount(guiSettings, player)
-  guiSettings.page = 1
+  guiSettings.page = guiSettings.page > guiSettings.pageCount and guiSettings.pageCount or guiSettings.page 
 end
 
 on_gui_click.stationFilter = function(guiSettings, element, player)
@@ -839,7 +835,7 @@ on_gui_click.filterAlarms = function(guiSettings, element, player)
 end
 
 on_gui_click.findCharacter = function(guiSettings, element, player)
-  local status, err = pcall(function()
+  local _, err = pcall(function()
     if player.connected then
       if player.character.name == "fatcontroller" then
         if global.character[player.index] and global.character[player.index].name ~= "fatcontroller" then
@@ -856,8 +852,6 @@ on_gui_click.findCharacter = function(guiSettings, element, player)
           end
           TrainList.reset_manual(global.gui[player.index].vehicle)
           global.gui[player.index].vehicle = false
-        else
-
         end
       end
     end

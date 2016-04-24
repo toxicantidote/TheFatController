@@ -49,13 +49,12 @@ TrainList.add_train = function(train)
   if ti then
     table.insert(global.trainsByForce[force.name], ti)
   end
-  local removed = TrainList.remove_invalid(force,true)
+  TrainList.remove_invalid(force,true)
   return ti
 end
 
 TrainList.remove_invalid = function(force, show)
   local removed = 0
-  local show = show or debug
   TrainList.removeAlarms()
   local decoupled = false
   for i=#global.trainsByForce[force.name],1,-1 do
@@ -108,7 +107,7 @@ TrainList.remove_invalid = function(force, show)
     end
   end
   if removed > 0 then
-    if show then --removed > 0 and show then
+    if show or debug then --removed > 0 and show then
       debugDump(game.tick.." Removed "..removed.." invalid trains",true)
       --flyingText("Removed "..removed.." invalid trains", RED, false, true)
     end
@@ -160,7 +159,6 @@ end
 TrainList.remove_train = function(train)
   local force = train.carriages[1].force
   local trains = global.trainsByForce[force.name]
-  local removed = false
   for i=#trains, 1,-1 do
     if trains[i].train == train then
       table.remove(trains, i)
@@ -195,7 +193,7 @@ TrainList.update_stations = function(ti)
   local records = (ti.train.schedule and #ti.train.schedule.records > 0) and ti.train.schedule.records or false
   ti.stations = {}
   if not records then return end
-  for i, record in pairs(records) do
+  for _, record in pairs(records) do
     ti.stations[record.station] = true
   end
 end
@@ -208,7 +206,7 @@ TrainList.matchStationFilter = function(trainInfo, activeFilterList, alarm, mode
     if not activeFilterList then
       return true
     end
-    for filter, value in pairs(activeFilterList) do
+    for filter, _ in pairs(activeFilterList) do
       if modeOR and trainInfo.stations[filter] then
         return true
       end
@@ -281,11 +279,7 @@ TrainList.add_manual = function(ti, player)
       if player or ti.train.speed == 0 then
         ti.passenger = player
         --debugDump("added to manual",true)
-        if TickTable.insert_unique(game.tick + update_rate_manual, "updateManual", ti) then
-        --debugDump("inserted",true)
-        else
-        --debugDump("didn't insert, duplicate",true)
-        end
+        TickTable.insert_unique(game.tick + update_rate_manual, "updateManual", ti)
       end
     end
   end
@@ -294,7 +288,7 @@ end
 TrainList.reset_manual = function(train)
   if not train then
     global.updateManual = {}
-    for i, p in pairs(game.players) do
+    for _, p in pairs(game.players) do
       if p.vehicle and (p.vehicle.type == "locomotive" or p.vehicle.type == "cargo-wagon") then
         local ti = TrainList.get_traininfo(p.force, p.vehicle.train)
         if ti and ti.train and ti.train.valid then
@@ -309,7 +303,7 @@ TrainList.reset_manual = function(train)
       end
     end
   elseif train.valid then
-    for tick, trains in pairs(global.updateManual) do
+    for _, trains in pairs(global.updateManual) do
       for i=#trains,1,-1 do
         local ti = trains[i]
         if ti and ti.train.valid and ti.train == train and train.speed ~= 0 then
@@ -327,7 +321,7 @@ TrainList.count = function(force)
     return #global.trainsByForce[force.name]
   else
     local c = 0
-    for force, trains in pairs(global.trainsByForce) do
+    for _, trains in pairs(global.trainsByForce) do
       c = c + #trains
     end
     return c

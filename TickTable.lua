@@ -11,7 +11,7 @@ function TickTable.insert(tick, key, value)
 end
 
 function TickTable.remove(key, value)
-  for t, values in pairs(global[key]) do
+  for _, values in pairs(global[key]) do
     for i=#values,1,-1 do
       if values[i] == value or (value.train and not value.train.valid) then
         values[i] = nil
@@ -21,7 +21,7 @@ function TickTable.remove(key, value)
 end
 
 function TickTable.remove_by_train(key, train)
-  for t, values in pairs(global[key]) do
+  for _, values in pairs(global[key]) do
     for i=#values,1,-1 do
       if values[i] and values[i].train and values[i].train == train then
       --if values[i].train and values[i].train == train then
@@ -45,7 +45,7 @@ function TickTable.remove_from_tick(tick, key, train)
 end
 
 function TickTable.insert_unique(tick, key, value)
-  for t, values in pairs(global[key]) do
+  for _, values in pairs(global[key]) do
     for _, v in pairs(values) do
       if v == value then
         return false

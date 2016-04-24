@@ -16,10 +16,9 @@ end
 
 Alerts.check_alerts = function(trainInfo)
   local force = trainInfo.force
-  local stationDuration = global.force_settings[force.name].stationDuration
-  local signalDuration = global.force_settings[force.name].signalDuration
   local update = false
   if trainInfo.alarm.arrived_at_signal then
+    local signalDuration = global.force_settings[force.name].signalDuration
     if trainInfo.last_state == defines.trainstate.wait_signal and trainInfo.alarm.arrived_at_signal == game.tick - signalDuration then
       Alerts.set_alert(trainInfo,"timeAtSignal",signalDuration/3600)
       update = true
@@ -38,14 +37,14 @@ end
 Alerts.check_noFuel = function(trainInfo)
   local noFuel = false
   local locos = trainInfo.train.locomotives
-  for i,carriage in pairs(locos.front_movers) do
+  for _,carriage in pairs(locos.front_movers) do
     if carriage.get_inventory(1).is_empty() then
       noFuel = true
       break
     end
   end
   if not noFuel then
-    for i,carriage in pairs(locos.back_movers) do
+    for _,carriage in pairs(locos.back_movers) do
       if carriage.get_inventory(1).is_empty() then
         noFuel = true
         break
@@ -74,14 +73,14 @@ Alerts.reset_alarm = function(trainInfo)
 end
 
 Alerts.update_filters = function()
-  for i, player in pairs(game.players) do
+  for _, player in pairs(game.players) do
     local guiSettings = global.gui[player.index]
     if guiSettings.filter_alarms then
       guiSettings.filtered_trains = TrainList.get_filtered_trains(player.force, guiSettings)
       guiSettings.pageCount = getPageCount(guiSettings, player)
       guiSettings.page = 1
       if guiSettings.fatControllerGui.trainInfo then
-        GUI.newTrainInfoWindow(guiSettings)
+        GUI.newTrainInfoWindow(guiSettings, player)
         GUI.refreshTrainInfoGui(guiSettings, player)
       end
     end
