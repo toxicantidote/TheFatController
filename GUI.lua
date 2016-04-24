@@ -130,7 +130,13 @@ GUI = {
         elseif trainInfo.last_state == 7 then
           topString = "Station || " .. station
           if trainInfo.depart_at and trainInfo.depart_at > 0 then
-            topString = topString .. " (" .. util.formattime(trainInfo.depart_at-game.tick) ..")"
+            local diff = trainInfo.depart_at-game.tick
+            --TODO remove with remote call to SmartTrains
+            if diff < 216000 then
+              topString = topString .. " (" .. util.formattime(diff) ..")"
+            else
+              topString = {"", topString, " (", {"text-forever"}, ")"}
+            end
           end
         else
           topString = "Moving -> " .. station
