@@ -8,6 +8,10 @@ Alerts.set_alert = function(trainInfo, type, time)
   trainInfo.alarm.active = true
   trainInfo.alarm.type = type
   trainInfo.alarm.message = time and ({"msg-alarm-"..type, time}) or {"msg-alarm-"..type}
+  if type == "noPath" and #trainInfo.train.schedule.records > 0 then
+    local station = trainInfo.train.schedule.records[trainInfo.train.schedule.current].station
+    trainInfo.alarm.message = {"msg-alarm-"..type, station}
+  end
   Alerts.update_filters()
   if type ~= "noFuel" or trainInfo.alarm.last_message+600 < game.tick then
     Alerts.alert_force(trainInfo.force, trainInfo)

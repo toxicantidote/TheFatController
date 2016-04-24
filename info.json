@@ -1,9 +1,9 @@
 {
 	"name":"TheFatController",
 	"author":"JamesOFarrell, Choumiko",
-	"version":"0.4.12",
+	"version":"0.4.13",
 	"title":"The Fat Controller",
 	"homepage":"http://en.wikipedia.org/wiki/The_Fat_Controller",
 	"description":"A conductor of trains.",
-	"dependencies": ["base >= 0.12.20", "? Logistics Railway >= 1.0.5"]
+	"dependencies": ["base >= 0.12.29", "? Logistics Railway >= 1.0.5"]
 }
