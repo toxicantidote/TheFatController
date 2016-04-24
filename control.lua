@@ -784,12 +784,13 @@ if remote.interfaces.logistics_railway then
 end
 
 function getPageCount(guiSettings, player)
-  local trains = guiSettings.activeFilterList and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
+  local trains = (guiSettings.activeFilterList or guiSettings.filter_alarms) and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
   if not trains then error("no trains", 2) end
   local trainCount = 0
   trainCount = #trains
   local p = math.floor((trainCount - 1) / guiSettings.displayCount) + 1
   p = p > 0 and p or 1
+  guiSettings.page = guiSettings.page > p and p or guiSettings.page
   return p
 end
 

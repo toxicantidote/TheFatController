@@ -39,6 +39,14 @@ end
 on_gui_click = {}
 GUI = {
 
+    get_page_button_style = function(direction, current_page, page_count)
+      if direction == "back" then
+        return current_page > 1 and "fatcontroller_button_style" or "fatcontroller_disabled_button"
+      else
+        return current_page < page_count and "fatcontroller_button_style" or "fatcontroller_disabled_button"
+      end
+    end,
+
     new_train_window = function(gui, trainInfo)
       if gui[trainInfo.guiName] == nil then
         gui.add({ type="frame", name=trainInfo.guiName, direction="horizontal", style="fatcontroller_thin_frame"})
@@ -151,7 +159,7 @@ GUI = {
       end
       return caption
     end,
-    
+
     set_toggleButtonCaption = function(guiSettings, player)
       if guiSettings.fatControllerGui and guiSettings.fatControllerGui.trainInfo then
         local caption = GUI.get_toggleButtonCaption(guiSettings,player)
@@ -314,26 +322,18 @@ GUI = {
       end
 
       if newGui.trainInfoControls.pageButtons.page_back == nil then
-        if guiSettings.page > 1 then
-          newGui.trainInfoControls.pageButtons.add({type="button", name="page_back", caption="<", style="fatcontroller_button_style"})
-        else
-          newGui.trainInfoControls.pageButtons.add({type="button", name="page_back", caption="<", style="fatcontroller_disabled_button"})
-        end
+        newGui.trainInfoControls.pageButtons.add({type="button", name="page_back", caption="<", style=GUI.get_page_button_style("back",guiSettings.page)})
       end
-
+      
+      local caption = guiSettings.page .. "/" .. guiSettings.pageCount
       if newGui.trainInfoControls.pageButtons.page_number == nil then
-        newGui.trainInfoControls.pageButtons.add({type="button", name="page_number", caption=guiSettings.page .. "/" .. guiSettings.pageCount, style="fatcontroller_button_style"})
+        newGui.trainInfoControls.pageButtons.add({type="button", name="page_number", caption= caption, style="fatcontroller_button_style"})
       else
-        newGui.trainInfoControls.pageButtons.page_number.caption = guiSettings.page .. "/" .. guiSettings.pageCount
+        newGui.trainInfoControls.pageButtons.page_number.caption = caption
       end
 
       if newGui.trainInfoControls.pageButtons.page_forward == nil then
-        if guiSettings.page < guiSettings.pageCount then
-          newGui.trainInfoControls.pageButtons.add({type="button", name="page_forward", caption=">", style="fatcontroller_button_style"})
-        else
-          newGui.trainInfoControls.pageButtons.add({type="button", name="page_forward", caption=">", style="fatcontroller_disabled_button"})
-        end
-
+        newGui.trainInfoControls.pageButtons.add({type="button", name="page_forward", caption=">", style=GUI.get_page_button_style("forward",guiSettings.page,guiSettings.pageCount)})
       end
 
       if newGui.trainInfoControls.filterButtons == nil then
@@ -601,7 +601,6 @@ on_gui_click.pageSelectOK = function(guiSettings, element, player)
       end
       guiSettings.displayCount = newInt
       guiSettings.pageCount = getPageCount(guiSettings, player)
-      guiSettings.page = 1
     else
       player.print({"msg-notanumber"})
     end
@@ -651,7 +650,7 @@ on_gui_click.stationFilterOK = function(guiSettings, element, player)
       guiSettings.activeFilterList = nil
     end
     gui.destroy()
-    guiSettings.page = 1
+    --guiSettings.page = 1
     return true
   end
 end
@@ -799,7 +798,6 @@ end
 on_gui_click.updateFilter = function(guiSettings, player)
   guiSettings.filtered_trains = TrainList.get_filtered_trains(player.force, guiSettings)
   guiSettings.pageCount = getPageCount(guiSettings, player)
-  guiSettings.page = guiSettings.page > guiSettings.pageCount and guiSettings.pageCount or guiSettings.page 
 end
 
 on_gui_click.stationFilter = function(guiSettings, element, player)

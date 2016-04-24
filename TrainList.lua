@@ -238,7 +238,7 @@ TrainList.get_filtered_trains = function(force, guiSettings)
         table.insert(filtered, ti)
         guiSettings.filteredIndex[i] = true
         if ti.automated then
-          guiSettings.automatedCount = guiSettings.automatedCount + 1 
+          guiSettings.automatedCount = guiSettings.automatedCount + 1
         end
       end
     end
