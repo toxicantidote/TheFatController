@@ -43,9 +43,9 @@ TrainList = {}
 
 --- add a train to the list
 -- @return #TrainInfo description
-TrainList.add_train = function(train)
+TrainList.add_train = function(train, no_alarm)
   local force = train.carriages[1].force
-  local ti = TrainList.createTrainInfo(train)
+  local ti = TrainList.createTrainInfo(train, no_alarm)
   if ti then
     table.insert(global.trainsByForce[force.name], ti)
   end
@@ -64,7 +64,7 @@ TrainList.remove_invalid = function(force, show)
         local first_train = (ti.first_carriage and ti.first_carriage.valid and ti.first_carriage.train.valid) and ti.first_carriage.train or false
         local last_train = (ti.last_carriage and ti.last_carriage.valid and ti.last_carriage.train.valid) and ti.last_carriage.train or false
         if first_train then
-          local tmp = TrainList.createTrainInfo(first_train)
+          local tmp = TrainList.createTrainInfo(first_train, true)
           if tmp then
             tmp.mainIndex = i
             global.trainsByForce[force.name][i] = tmp
@@ -73,7 +73,7 @@ TrainList.remove_invalid = function(force, show)
           end
         end
         if last_train then
-          local tmp = TrainList.createTrainInfo(last_train)
+          local tmp = TrainList.createTrainInfo(last_train, true)
           if tmp then
             if first_train then
               decoupled = tmp
@@ -131,7 +131,7 @@ end
 
 --- empty traininfo
 -- @return #TrainInfo description
-TrainList.createTrainInfo = function(train)
+TrainList.createTrainInfo = function(train, no_alarm)
   if #train.locomotives.front_movers == 0 and #train.locomotives.back_movers == 0 then
     return false
   end
@@ -140,6 +140,9 @@ TrainList.createTrainInfo = function(train)
   ti.first_carriage = train.carriages[1]
   ti.last_carriage = train.carriages[#train.carriages]
   ti.force = ti.first_carriage.force
+  if no_alarm then
+      ti.alarm.last_message = game.tick + 60*60
+  end  
   if ti.first_carriage == ti.last_carriage then
     ti.last_carriage = false
   end

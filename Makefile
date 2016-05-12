@@ -12,7 +12,7 @@ OUT_FILES := $(SED_FILES:%=$(OUTPUT_DIR)/%)
 SED_EXPRS := -e 's/{{MOD_NAME}}/$(PACKAGE_NAME)/g'
 SED_EXPRS += -e 's/{{VERSION}}/$(VERSION_STRING)/g'
 
-all: clean package install_mod
+all: clean verify package install_mod
 
 package-copy: $(PKG_DIRS) $(PKG_FILES)
 	mkdir -p $(OUTPUT_DIR)
@@ -36,7 +36,7 @@ clean:
 	rm -rf build/
 
 verify:
-	luacheck . --exclude-files factorio_mods/ --exclude-files build/ --exclude-files data*.lua --exclude-files prototypes/ -d --globals game global remote serpent bit32 defines script table string
+	luacheck . --exclude-files factorio_mods/ --exclude-files build/ --exclude-files data*.lua --exclude-files prototypes/ -d --globals game global remote serpent bit32 defines script table string util log
 
 install_mod:
 	if [ -L factorio_mods ] ; \

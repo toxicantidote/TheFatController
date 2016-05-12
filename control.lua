@@ -51,10 +51,10 @@ defaultGuiSettings = {
   renameTrain = {},
 }
 
-character_blacklist = {
+--[[character_blacklist = {
   ["orbital-uplink"] = true, --Satellite Uplink Station
   ["yarm-remote-viewer"] = true, --YARM
-}
+}--]]
 
 function debugDump(var, force)
   if false or force then
@@ -146,12 +146,6 @@ local function on_load()
   generateEvents()
   if global.unlocked then
     register_events()
-  end
-end
-
-function destroyGui(guiA)
-  if guiA ~= nil and guiA.valid then
-    guiA.destroy()
   end
 end
 
@@ -255,7 +249,7 @@ script.on_load(on_load)
 script.on_configuration_changed(on_configuration_changed)
 script.on_event(defines.events.on_player_created, on_player_created)
 script.on_event(defines.events.on_force_created, on_force_created)
-script.on_event(defines.events.on_forces_merging, on_forces_merging)
+--script.on_event(defines.events.on_forces_merging, on_forces_merging)
 
 script.on_event(defines.events.on_research_finished, function(event)
   local _, err = pcall(on_research_finished, event)
@@ -463,7 +457,7 @@ function on_built_entity(event)
     if ctype == "locomotive" or ctype == "cargo-wagon" then
       -- can be a new train or added to an existing one
       if #ent.train.carriages == 1 and ctype == "locomotive" then
-        local ti = TrainList.add_train(ent.train)
+        local ti = TrainList.add_train(ent.train, true)
         if ent.type == "locomotive" then
           Alerts.check_noFuel(ti)
         end
@@ -473,7 +467,7 @@ function on_built_entity(event)
           local train = ent.train
           local c = #train.locomotives.front_movers + #train.locomotives.back_movers
           if c == 1 then
-            TrainList.add_train(ent.train)
+            TrainList.add_train(ent.train, true)
             added = true
           end
         end
@@ -888,15 +882,6 @@ function tableIsEmpty(tableA)
   return true
 end
 
-function round(num, idp)
-  local mult = 10^(idp or 0)
-  return math.floor(num * mult + 0.5) / mult
-end
-
-function startsWith(String,Start)
-  return string.sub(String,1,string.len(Start))==Start
-end
-
 function pairsByKeys (t, f)
   local a = {}
   for n in pairs(t) do table.insert(a, n) end
@@ -933,35 +918,6 @@ function map_bounds(surface)
   end
   -- create bounding box covering entire generated map
   return {{min_x*32,min_y*32},{max_x*32,max_y*32}}
-end
-
-function findCharacters(show)
-  local surface = game.surfaces['nauvis']
-  local bounds = map_bounds(surface)
-  if show then
-    debugDump("Searching characters..",true)
-  end
-
-  local characters = {}
-  for _, character in pairs(surface.find_entities_filtered{area=bounds, type="player"}) do
-    table.insert(characters,character)
-  end
-  for _, trains in pairs(global.trainsByForce) do
-    for _, t in pairs(trains) do
-      for _, c in pairs(t.train.carriages) do
-        if c.passenger then
-          table.insert(characters,c.passenger)
-        end
-      end
-    end
-  end
-  for i, c in pairs(characters) do
-    debugDump({i=i,c=c.type},true)
-  end
-  if show then
-    debugDump("Found "..#characters.." characters",true)
-  end
-  return characters
 end
 
 function findStations(show)
