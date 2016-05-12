@@ -1,2 +1,3 @@
-/control3.lua
-*.xcf
+build
+build/*
+factorio_mods

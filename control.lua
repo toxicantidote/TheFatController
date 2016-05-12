@@ -58,13 +58,13 @@ character_blacklist = {
 
 function debugDump(var, force)
   if false or force then
+    local msg
+    if type(var) == "string" then
+      msg = var
+    else
+      msg = serpent.dump(var, {name="var", comment=false, sparse=false, sortkeys=true})
+    end
     for _,player in pairs(game.players) do
-      local msg
-      if type(var) == "string" then
-        msg = var
-      else
-        msg = serpent.dump(var, {name="var", comment=false, sparse=false, sortkeys=true})
-      end
       player.print(msg)
     end
   end
@@ -72,10 +72,11 @@ end
 
 function pauseError(err)
   if game then
-    debugDump("Error in FatController:",true)
+    debugDump("Error in FatController " .. global.version, true)
     debugDump(err,true)
   else
-    log(err)
+    log("Error in FatController " .. global.version)
+    log(global.version .. " " .. err)
   end
 end
 
@@ -214,6 +215,7 @@ local function on_configuration_changed(data)
           for _, guiSetting in pairs(global.gui) do
             if guiSetting.renameTrains == nil then
               guiSetting.renameTrains = false
+              guiSetting.renameTrain = {}
             end
           end
         end
@@ -222,6 +224,7 @@ local function on_configuration_changed(data)
     if not oldVersion or oldVersion < "0.4.0" then
       findTrains(true)
     end
+    global.version = newVersion
   end
   --reset item cache if a mod has changed
   global.items = {}
@@ -256,7 +259,7 @@ script.on_event(defines.events.on_forces_merging, on_forces_merging)
 
 script.on_event(defines.events.on_research_finished, function(event)
   local _, err = pcall(on_research_finished, event)
-  if err then debugDump(err,true) end
+  if err then pauseError(err,true) end
 end)
 
 function register_events()
@@ -329,33 +332,36 @@ function getHighestInventoryCount(trainInfo)
 end
 
 function on_player_driving_changed_state(event)
-  local player = game.players[event.player_index]
-  if player.vehicle and (player.vehicle.type == "locomotive" or player.vehicle.type == "cargo-wagon") then
-    local ti = TrainList.get_traininfo(player.force, player.vehicle.train)
-    if ti and ti.train.state == defines.trainstate.manual_control then
-      TrainList.add_manual(ti, player)
-      global.gui[player.index].vehicle = ti.train
-    end
-  end
-  if player.vehicle == nil then
-    if global.gui[player.index].followEntity then
-      local guiSettings = global.gui[player.index]
-      if player.connected then
-        swapPlayer(game.players[player.index], global.character[player.index])
-        global.character[player.index] = nil
-        stop_following(guiSettings, player)
-        if player.vehicle and player.vehicle.name == "farl" then
-          game.raise_event(defines.events.on_player_driving_changed_state, {tick=game.tick, player_index = player.index, name=defines.events.on_player_driving_changed_state})
-        end
-      else
-        if not global.to_swap then global.to_swap = {} end
-        table.insert(global.to_swap, {index=player.index, character=global.character[player.index]})
+  local _, err = pcall(function()
+    local player = game.players[event.player_index]
+    if player.vehicle and (player.vehicle.type == "locomotive" or player.vehicle.type == "cargo-wagon") then
+      local ti = TrainList.get_traininfo(player.force, player.vehicle.train)
+      if ti and ti.train.state == defines.trainstate.manual_control then
+        TrainList.add_manual(ti, player)
+        global.gui[player.index].vehicle = ti.train
       end
     end
-    TrainList.remove_invalid(player.force, true)
-    TrainList.reset_manual(global.gui[player.index].vehicle)
-    global.gui[player.index].vehicle = false
-  end
+    if player.vehicle == nil then
+      if global.gui[player.index].followEntity then
+        local guiSettings = global.gui[player.index]
+        if player.connected then
+          swapPlayer(game.players[player.index], global.character[player.index])
+          global.character[player.index] = nil
+          stop_following(guiSettings, player)
+          if player.vehicle and player.vehicle.name == "farl" then
+            game.raise_event(defines.events.on_player_driving_changed_state, {tick=game.tick, player_index = player.index, name=defines.events.on_player_driving_changed_state})
+          end
+        else
+          if not global.to_swap then global.to_swap = {} end
+          table.insert(global.to_swap, {index=player.index, character=global.character[player.index]})
+        end
+      end
+      TrainList.remove_invalid(player.force, true)
+      TrainList.reset_manual(global.gui[player.index].vehicle)
+      global.gui[player.index].vehicle = false
+    end
+  end)
+  if err then pauseError(err) end
 end
 script.on_event(defines.events.on_player_driving_changed_state, on_player_driving_changed_state)
 
@@ -445,7 +451,7 @@ function on_tick(event)
       end
     end
   end)
-  if err then debugDump(err,true) end
+  if err then pauseError(err) end
 end
 
 script.on_event(defines.events.on_tick, on_tick)
@@ -664,7 +670,7 @@ function on_train_changed_state(event)
       end
     end
   end)
-  if err then debugDump(err,true) end
+  if err then pauseError(err) end
 end
 
 script.on_event(defines.events.on_train_changed_state, on_train_changed_state)
@@ -763,7 +769,7 @@ if remote.interfaces.logistics_railway then
       end
     end)
     if not status then
-      debugDump(err,true)
+      pauseError(err)
     end
   end)
 
@@ -780,7 +786,7 @@ if remote.interfaces.logistics_railway then
       end
     end)
     if not status then
-      debugDump(err,true)
+      pauseError(err)
     end
   end)
 end

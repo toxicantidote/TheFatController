@@ -102,7 +102,7 @@ TrainList.remove_invalid = function(force, show)
   for i,ti in pairs(global.trainsByForce[force.name]) do
     ti.mainIndex = i
     ti.opened_guis = {}
-    if ti.train.state == defines.trainstate.manual_control and ti.train.speed == 0 then
+    if ti.train.valid and ti.train.state == defines.trainstate.manual_control and ti.train.speed == 0 then
       TrainList.add_manual(ti)
     end
   end

@@ -541,7 +541,7 @@ GUI = {
             stateNoFuel = false
           end
           window.add({type="checkbox", name="alarmNoFuel", caption={"text-alarmtimenofuel"}, state=stateNoFuel})
-          window.add({type="checkbox", name="renameTrains", caption="enable renaming trains", state=guiSettings.renameTrains})
+          --window.add({type="checkbox", name="renameTrains", caption="enable renaming trains", state=guiSettings.renameTrains})
 
           local flow3 = window.add({name="flowButtons", type="flow", direction="horizontal"})
           flow3.add({type="button", name="alarmOK", caption={"msg-OK"}})
