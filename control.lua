@@ -554,7 +554,7 @@ function on_train_changed_state(event)
     if not trainInfo then
       debugDump("no traininfo",true)
       TrainList.remove_invalid(force)
-      if not TrainList.get_traininfo(train) then
+      if not TrainList.get_traininfo(force, train) then
         trainInfo = TrainList.add_train(train)
       end
     end
@@ -659,7 +659,7 @@ function on_train_changed_state(event)
       debugDump("You should never ever see this! Look away!",true)
       debugDump("no traininfo",true)
       TrainList.remove_invalid(force)
-      if not TrainList.get_traininfo(train) then
+      if not TrainList.get_traininfo(force, train) then
         TrainList.add_train(train)
       end
     end
