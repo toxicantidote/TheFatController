@@ -8,11 +8,11 @@ end
 
 function start_following(carriage, guiSettings, element, player)
   if guiSettings.followGui and guiSettings.followGui.valid then
-    guiSettings.followGui.caption = "c"
+    guiSettings.followGui.caption = {"text-controlbutton"}
     guiSettings.followGui.style = "fatcontroller_button_style"
   end
   element.style = "fatcontroller_selected_button"
-  element.caption = "X"
+  element.caption = {"text-followbutton"}
   guiSettings.followEntity = carriage
   guiSettings.followGui = element
   if not guiSettings.fatControllerButtons.returnToPlayer then
@@ -27,7 +27,7 @@ end
 function stop_following(guiSettings)
   guiSettings.followEntity = nil
   if guiSettings.followGui and guiSettings.followGui.valid then
-    guiSettings.followGui.caption = "c"
+    guiSettings.followGui.caption = {"text-controlbutton"}
     guiSettings.followGui.style = "fatcontroller_button_style"
     guiSettings.followGui = nil
   end
@@ -74,13 +74,12 @@ GUI = {
         trainGui.buttons[trainInfo.guiName .. "_toggleManualMode"].caption = "ll"
       end
 
-
       if trainGui.buttons[trainInfo.guiName .. "_toggleFollowMode"] == nil then
         trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleFollowMode", caption={"text-controlbutton"}, style="fatcontroller_button_style"})
       end
 
       if guiSettings.renameTrains then
-        trainGui.buttons.add({type="button", name=trainInfo.guiName.. "_renameTrain", caption="R", style="fatcontroller_button_style"})
+        trainGui.buttons.add({type="button", name=trainInfo.guiName.. "_renameTrain", caption = {"text-renamebutton"}, style="fatcontroller_button_style"})
       end
 
       if trainInfo.alarm.active then
@@ -99,58 +98,64 @@ GUI = {
       end
 
       if trainGui.info.topInfo == nil then
-        trainGui.info.add({type="label", name="topInfo", style="fatcontroller_label_style"})
+        trainGui.info.add({type="label", name="topInfo", style = "fatcontroller_label_style"})
       end
+      local show_name = global.gui[gui.player_index].show_names
+      local topString = GUI.get_topstring(trainInfo, show_name)
+      --trainGui.info.topInfo.style = show_name and "fatcontroller_label_style_small" or "fatcontroller_label_style"
+      trainGui.info.topInfo.caption = topString
+
       if trainGui.info.bottomInfo == nil then
         trainGui.info.add({type="label", name="bottomInfo", style="fatcontroller_label_style"})
       end
 
-      local topString = GUI.get_topstring(trainInfo)
       local bottomString = GUI.get_bottomstring(trainInfo)
-
-      trainGui.info.topInfo.caption = topString
       trainGui.info.bottomInfo.caption = bottomString
 
       trainInfo.last_update = game.tick
       return trainGui
     end,
 
-    get_topstring = function(trainInfo)
+    get_topstring = function(trainInfo, show_name)
       local topString = ""
       local station = trainInfo.current_station
       if not station then station = "" end
       if trainInfo.last_state then
         if trainInfo.last_state == 1  or trainInfo.last_state == 3 then
-          topString = "No Path "-- .. trainInfo.last_state
+          topString = {"", {"text-no-path"}}
         elseif trainInfo.last_state == 2 then
-          topString = "No schedule"
+          topString = {"", {"text-no-schedule"}}
         elseif trainInfo.last_state == 5 then
-          topString = "Signal || " .. station
+          topString = {"", {"text-signal"}, " || ", station}
         elseif (trainInfo.last_state == 8  or trainInfo.last_state == 9   or trainInfo.last_state == 10) then
-          topString = "Manual"
+          topString = {"", {"text-manual"}, ": "}
           if trainInfo.train.speed == 0 then
-            topString = topString .. ": " .. "Stopped" -- REPLACE WITH TRANSLAION
+            table.insert(topString, {"text-stopped"})
           else
-            topString = topString .. ": " .. "Moving" -- REPLACE WITH TRANSLAION
+            table.insert(topString, {"text-moving"})
           end
         elseif trainInfo.last_state == 6 then
-          topString = "Stopping -> " .. station
+          topString = {"", {"text-stopping"}, " -> ", station}
         elseif trainInfo.last_state == 7 then
-          topString = "Station || " .. station
+          topString = {"", {"text-station"}, ": ", station}
           if trainInfo.depart_at and trainInfo.depart_at > 0 then
-            local diff = trainInfo.depart_at-game.tick
+            local diff = trainInfo.depart_at - game.tick
             --TODO remove with remote call to SmartTrains
+            table.insert(topString, " (")
             if diff < 216000 then
-              topString = topString .. " (" .. util.formattime(diff) ..")"
+              table.insert(topString, util.formattime(diff))
             else
-              topString = {"", topString, " (", {"text-forever"}, ")"}
+              table.insert(topString, {"text-forever"})
             end
+            table.insert(topString, ")")
           end
         else
-          topString = "Moving -> " .. station
+          topString = {"", {"text-moving"}, " -> ", station}
         end
       end
-
+      if show_name then
+        table.insert(topString, " || " .. trainInfo.name)
+      end
       return topString
     end,
 
@@ -163,13 +168,13 @@ GUI = {
     end,
 
     get_toggleButtonCaption = function(guiSettings, player)
-      local caption = (guiSettings.activeFilterList or guiSettings.filter_alarms) and "filtered" or "all"
+      local caption = (guiSettings.activeFilterList or guiSettings.filter_alarms) and {"text-filtered"} or {"text-all"}
       local count = guiSettings.activeFilterList and guiSettings.automatedCount or global.automatedCount[player.force.name]
       guiSettings.stopButton_state = count == 0
       if guiSettings.stopButton_state then
-        caption = "Resume "..caption
+        caption = {{"text-resume"}, " ", caption}
       else
-        caption = "Stop "..caption
+        caption = {{"text-stop"}, " ", caption}
       end
       return caption
     end,
@@ -208,8 +213,13 @@ GUI = {
               trainInfo.inventory = getHighestInventoryCount(trainInfo)
               cargo_updated = true
             end
-            gui.info.topInfo.caption = GUI.get_topstring(trainInfo)
+
+            local show_name = global.gui[gui.player_index].show_names
+            --gui.info.topInfo.style = show_name and "fatcontroller_label_style_small" or "fatcontroller_label_style"
+            gui.info.topInfo.caption = GUI.get_topstring(trainInfo, show_name)
+
             gui.info.bottomInfo.caption = GUI.get_bottomstring(trainInfo)
+
             if trainInfo.train.manual_mode then
               gui.buttons[trainInfo.guiName .. "_toggleManualMode"].caption = ">"
             else
@@ -415,10 +425,10 @@ GUI = {
             end
             if character ~= nil and character.name == "fatcontroller" and ((character.vehicle.type == "cargo-wagon" or character.vehicle.type == "locomotive") and trainInfo.train == character.vehicle.train) then
               gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].style = "fatcontroller_selected_button"
-              gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].caption = "X"
+              gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].caption = {"text-followbutton"}
             else
               gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].style = "fatcontroller_button_style"
-              gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].caption = "c"
+              gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].caption = {"text-controlbutton"}
             end
             trainInfo.guiName = newGuiName
           end
@@ -470,10 +480,10 @@ GUI = {
           window.buttonFlow.add({type="button", name="stationFilterClear", caption={"msg-Clear"}, style="fatcontroller_button_style"})
           window.buttonFlow.add({type="button", name="stationFilterOK", caption={"msg-OK"} , style="fatcontroller_button_style"})
           local style = guiSettings.filter_alarms and "fatcontroller_selected_button" or "fatcontroller_button_style"
-          pageFlow.add({type="button", name="filterAlarms", caption="Alarms", style=style})
+          pageFlow.add({type="button", name="filterAlarms", caption = {"text-alarms"}, style=style})
 
           local buttonflow2 = window.add({type = "flow", name="buttonflow2"})
-          local caption = guiSettings.filterModeOr and "Combine with OR" or "Combine with AND"
+          local caption = guiSettings.filterModeOr and {"text-filter-or"} or {"text-filter-and"}
           buttonflow2.add({type = "button", name="toggleFilterMode", caption=caption, style="fatcontroller_button_style"})
 
           window.add({type="table", name="checkboxGroup", colspan=3})
@@ -541,7 +551,8 @@ GUI = {
             stateNoFuel = false
           end
           window.add({type="checkbox", name="alarmNoFuel", caption={"text-alarmtimenofuel"}, state=stateNoFuel})
-          --window.add({type="checkbox", name="renameTrains", caption="enable renaming trains", state=guiSettings.renameTrains})
+          window.add({type="checkbox", name="renameTrains", caption = {"text-rename-trains"}, state=guiSettings.renameTrains})
+          window.add({type="checkbox", name="showNames", caption = {"text-show-names"}, state=guiSettings.show_names})
 
           local flow3 = window.add({name="flowButtons", type="flow", direction="horizontal"})
           flow3.add({type="button", name="alarmOK", caption={"msg-OK"}})
@@ -793,7 +804,7 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
     swapPlayer(player, newFatControllerEntity(player))
     guiSettings.followEntity = nil
     if guiSettings.followGui and guiSettings.followGui.valid then
-      guiSettings.followGui.caption = "c"
+      guiSettings.followGui.caption = {"text-controlbutton"}
       guiSettings.followGui.style = "fatcontroller_button_style"
       guiSettings.followGui = nil
     end
@@ -838,7 +849,7 @@ end
 
 on_gui_click.toggleFilterMode = function(guiSettings, element, player)
   guiSettings.filterModeOr = not guiSettings.filterModeOr
-  element.caption = guiSettings.filterModeOr and "Combine with OR" or "Combine with AND"
+  element.caption = guiSettings.filterModeOr and {"text-filter-or"} or {"text-filter-and"}
   on_gui_click.updateFilter(guiSettings,player)
   return true
 end
@@ -862,7 +873,7 @@ on_gui_click.findCharacter = function(guiSettings, _, player)
           end
           guiSettings.followEntity = nil
           if guiSettings.followGui and guiSettings.followGui.valid then
-            guiSettings.followGui.caption = "c"
+            guiSettings.followGui.caption = {"text-controlbutton"}
             guiSettings.followGui.style = "fatcontroller_button_style"
             guiSettings.followGui = nil
           end
@@ -877,7 +888,7 @@ end
 
 on_gui_click.renameTrains = function(guiSettings, element, _)
   guiSettings.renameTrains = element.state
-  return true
+  return guiSettings.fatControllerGui.trainInfo ~= nil
 end
 
 on_gui_click.renameTrain = function(guiSettings, element, player)
@@ -892,6 +903,7 @@ on_gui_click.renameTrain = function(guiSettings, element, player)
     if flow and flow.valid then
       if guiSettings.renameTrain[option1] then
         flow.add({type="textfield", name=textfield_name, text=""})
+        element.style = "fatcontroller_selected_button"
       else
         local name = GUI.sanitizeName((flow[textfield_name].text))
         if name ~= "" then
@@ -904,10 +916,21 @@ on_gui_click.renameTrain = function(guiSettings, element, player)
               end
             end
           end
+          if name:len() > 20 then
+            trainInfo.name = trainInfo.name:sub(1, 20) .. "..."
+          else
+            trainInfo.name = name
+          end
         end
         flow[textfield_name].destroy()
+        element.style = "fatcontroller_button_style"
       end
     end
     GUI.update_single_traininfo(trainInfo)
   end
+end
+
+on_gui_click.showNames = function(guiSettings, _, _)
+  guiSettings.show_names = not guiSettings.show_names
+  return guiSettings.fatControllerGui.trainInfo ~= nil
 end

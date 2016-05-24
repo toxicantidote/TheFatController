@@ -4,6 +4,7 @@
 --- Train info
 -- @type TrainInfo
 TrainInfo = {
+  name = "", -- name of the train
   current_station = false, --name of current station
   depart_at = 0, --tick when train will depart the station
   --main_index = 0, -- always equal to global.trainsByForce[force.name] index
@@ -141,11 +142,21 @@ TrainList.createTrainInfo = function(train, no_alarm)
   ti.last_carriage = train.carriages[#train.carriages]
   ti.force = ti.first_carriage.force
   if no_alarm then
-      ti.alarm.last_message = game.tick + 60*60
-  end  
+    ti.alarm.last_message = game.tick + 60*60
+  end
   if ti.first_carriage == ti.last_carriage then
     ti.last_carriage = false
   end
+
+  if #train.locomotives.front_movers > 0 then
+    ti.name = train.locomotives.front_movers[1].backer_name
+  else
+    ti.name = train.locomotives.back_movers[1].backer_name
+  end
+  if ti.name:len() > 20 then
+    ti.name = ti.name:sub(1, 20) .. "..."
+  end
+
   ti.last_state = ti.train.state
   ti.last_update = 0
   ti.inventory = getHighestInventoryCount(ti)
@@ -236,6 +247,7 @@ TrainList.get_filtered_trains = function(force, guiSettings)
     guiSettings.automatedCount = 0
     guiSettings.filteredIndex = {}
     for i, ti in pairs(trains) do
+      TrainList.update_stations(ti)
       if TrainList.matchStationFilter(ti, filterList, alarm_only, mode) then
         ti.mainIndex = i
         table.insert(filtered, ti)

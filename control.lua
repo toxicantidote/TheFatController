@@ -48,13 +48,11 @@ defaultGuiSettings = {
   stopButton_state = false,
   displayed_trains = {},
   renameTrains = false,
+  show_names = false,
   renameTrain = {},
 }
 
---[[character_blacklist = {
-  ["orbital-uplink"] = true, --Satellite Uplink Station
-  ["yarm-remote-viewer"] = true, --YARM
-}--]]
+-- character_blacklist = { ["orbital-uplink"] = true, ["yarm-remote-viewer"] = true, }
 
 function debugDump(var, force)
   if false or force then
@@ -210,6 +208,25 @@ local function on_configuration_changed(data)
             if guiSetting.renameTrains == nil then
               guiSetting.renameTrains = false
               guiSetting.renameTrain = {}
+            end
+          end
+        end
+        if oldVersion < "0.4.15" then
+          for _, guiSetting in pairs(global.gui) do
+            if guiSetting.show_names == nil then
+              guiSetting.show_names = false
+            end
+          end
+          for _, trains in pairs(global.trainsByForce) do
+            for _, ti in pairs(trains) do
+              if #ti.train.locomotives.front_movers > 0 then
+                ti.name = ti.train.locomotives.front_movers[1].backer_name
+              else
+                ti.name = ti.train.locomotives.back_movers[1].backer_name
+              end
+              if ti.name:len() > 20 then
+                ti.name = ti.name:sub(1, 20) .. "..."
+              end
             end
           end
         end
