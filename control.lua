@@ -70,11 +70,11 @@ end
 
 function pauseError(err)
   if game then
-    debugDump("Error in FatController " .. global.version, true)
+    debugDump("Error in FatController " .. serpent.line(global.version, {comment=false}), true)
     debugDump(err,true)
   else
-    log("Error in FatController " .. global.version)
-    log(global.version .. " " .. err)
+    log("Error in FatController " .. serpent.line(global.version, {comment=false}))
+    log(serpent.line(global.version, {comment=false}) .. " " .. err)
   end
 end
 
@@ -256,7 +256,7 @@ function on_research_finished(event)
     global.unlocked = true
     register_events() ;
     for _, p in pairs(event.research.force.players) do
-      GUI.init_gui(p)
+      init_player(p)
     end
   end
 end
