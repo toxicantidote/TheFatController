@@ -23,7 +23,7 @@ Alerts.check_alerts = function(trainInfo)
   local update = false
   if trainInfo.alarm.arrived_at_signal then
     local signalDuration = global.force_settings[force.name].signalDuration
-    if trainInfo.last_state == defines.trainstate.wait_signal and trainInfo.alarm.arrived_at_signal == game.tick - signalDuration then
+    if trainInfo.last_state == defines.train_state.wait_signal and trainInfo.alarm.arrived_at_signal == game.tick - signalDuration then
       Alerts.set_alert(trainInfo,"timeAtSignal",signalDuration/3600)
       update = true
     end

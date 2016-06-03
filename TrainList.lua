@@ -103,7 +103,7 @@ TrainList.remove_invalid = function(force, show)
   for i,ti in pairs(global.trainsByForce[force.name]) do
     ti.mainIndex = i
     ti.opened_guis = {}
-    if ti.train.valid and ti.train.state == defines.trainstate.manual_control and ti.train.speed == 0 then
+    if ti.train.valid and ti.train.state == defines.train_state.manual_control and ti.train.speed == 0 then
       TrainList.add_manual(ti)
     end
   end
@@ -160,11 +160,11 @@ TrainList.createTrainInfo = function(train, no_alarm)
   ti.last_state = ti.train.state
   ti.last_update = 0
   ti.inventory = getHighestInventoryCount(ti)
-  ti.automated = train.state ~= defines.trainstate.manual_control and train.state ~= defines.trainstate.stop_for_auto_control
+  ti.automated = train.state ~= defines.train_state.manual_control and train.state ~= defines.train_state.stop_for_auto_control
   TrainList.update_stations(ti)
   local station = (#train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
   ti.current_station = station
-  if ti.train.state == defines.trainstate.wait_station and train.schedule and #train.schedule.records > 1 then
+  if ti.train.state == defines.train_state.wait_station and train.schedule and #train.schedule.records > 1 then
     ti.depart_at = game.tick
   end
   return ti
@@ -289,8 +289,8 @@ end
 TrainList.add_manual = function(ti, player)
   if ti and ti.train and ti.train.valid then
     local state = ti.train.state
-    if state == defines.trainstate.manual_control
-      or state == defines.trainstate.no_path then
+    if state == defines.train_state.manual_control
+      or state == defines.train_state.no_path then
       if player or ti.train.speed == 0 then
         ti.passenger = player
         --debugDump("added to manual",true)
@@ -308,9 +308,9 @@ TrainList.reset_manual = function(train)
         local ti = TrainList.get_traininfo(p.force, p.vehicle.train)
         if ti and ti.train and ti.train.valid then
           local state = ti.train.state
-          if state == defines.trainstate.manual_control
-            or state == defines.trainstate.manual_control_stop
-            or state == defines.trainstate.no_path then
+          if state == defines.train_state.manual_control
+            or state == defines.train_state.manual_control_stop
+            or state == defines.train_state.no_path then
             TickTable.insert(game.tick + update_rate_manual+p.index, "updateManual", ti)
           end
           global.gui[p.index].vehicle = ti.train

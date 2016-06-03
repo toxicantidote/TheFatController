@@ -172,9 +172,9 @@ GUI = {
       local count = guiSettings.activeFilterList and guiSettings.automatedCount or global.automatedCount[player.force.name]
       guiSettings.stopButton_state = count == 0
       if guiSettings.stopButton_state then
-        caption = {{"text-resume"}, " ", caption}
+        caption = {"", {"text-resume"}, " ", caption}
       else
-        caption = {{"text-stop"}, " ", caption}
+        caption = {"", {"text-stop"}, " ", caption}
       end
       return caption
     end,

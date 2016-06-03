@@ -1,4 +1,8 @@
-require "defines"
+if not defines then
+  require "defines"
+  defines.train_state = defines.trainstate
+end
+
 require "util"
 require "TickTable"
 require "Alerts"
@@ -183,7 +187,7 @@ local function on_configuration_changed(data)
           for _, force in pairs(game.forces) do
             TrainList.remove_invalid(force,true)
             for _, ti in pairs(global.trainsByForce[force.name]) do
-              ti.automated = ti.train.state ~= defines.trainstate.manual_control and ti.train.state ~= defines.trainstate.stop_for_auto_control
+              ti.automated = ti.train.state ~= defines.train_state.manual_control and ti.train.state ~= defines.train_state.stop_for_auto_control
               if ti.automated then
                 global.automatedCount[force.name] = global.automatedCount[force.name] + 1
               end
@@ -347,7 +351,7 @@ function on_player_driving_changed_state(event)
     local player = game.players[event.player_index]
     if player.vehicle and (player.vehicle.type == "locomotive" or player.vehicle.type == "cargo-wagon") then
       local ti = TrainList.get_traininfo(player.force, player.vehicle.train)
-      if ti and ti.train.state == defines.trainstate.manual_control then
+      if ti and ti.train.state == defines.train_state.manual_control then
         TrainList.add_manual(ti, player)
         global.gui[player.index].vehicle = ti.train
       end
@@ -410,10 +414,10 @@ function on_tick(event)
           Alerts.check_noFuel(ti)
           --debugDump("updateManual",true)
           GUI.update_single_traininfo(ti, true)
-          if (ti.passenger and (ti.train.state == defines.trainstate.manual_control or
-            ti.train.state == defines.trainstate.manual_control_stop or
-            ti.train.state == defines.trainstate.no_path)) or
-            (ti.train.state == defines.trainstate.manual_control and ti.train.speed == 0) then
+          if (ti.passenger and (ti.train.state == defines.train_state.manual_control or
+            ti.train.state == defines.train_state.manual_control_stop or
+            ti.train.state == defines.train_state.no_path)) or
+            (ti.train.state == defines.train_state.manual_control and ti.train.speed == 0) then
             TickTable.insert(tick + update_rate_manual,"updateManual",ti)
           end
         end
@@ -426,7 +430,7 @@ function on_tick(event)
         if ti.train and ti.train.valid then
           Alerts.check_noFuel(ti)
           GUI.update_single_traininfo(ti, true)
-          if ti.last_state == defines.trainstate.wait_station then
+          if ti.last_state == defines.train_state.wait_station then
             TickTable.insert(tick + update_rate,"updateTrains",ti)
           else
             ti.depart_at = false
@@ -587,10 +591,10 @@ function on_train_changed_state(event)
       --  going from on_the_path to wait_signal after 1 tick
       --  arrive_signal
       local diff = game.tick - unf.previous_tick
-      if  train.state == defines.trainstate.arrive_signal or
-        (unf.previous_state == defines.trainstate.wait_signal and train.state == defines.trainstate.on_the_path
+      if  train.state == defines.train_state.arrive_signal or
+        (unf.previous_state == defines.train_state.wait_signal and train.state == defines.train_state.on_the_path
         and diff == 300)
-        or (unf.previous_state == defines.trainstate.on_the_path and train.state == defines.trainstate.wait_signal
+        or (unf.previous_state == defines.train_state.on_the_path and train.state == defines.train_state.wait_signal
         and diff == 1) then
         --debugDump(game.tick.." Skipped",true)
         return
@@ -601,7 +605,7 @@ function on_train_changed_state(event)
       trainInfo.last_state_tick = game.tick
 
       local old_auto = trainInfo.automated
-      trainInfo.automated = train.state ~= defines.trainstate.manual_control and train.state ~= defines.trainstate.stop_for_auto_control
+      trainInfo.automated = train.state ~= defines.train_state.manual_control and train.state ~= defines.train_state.stop_for_auto_control
       if old_auto ~= trainInfo.automated then
         local change = trainInfo.automated and 1 or -1
         global.automatedCount[force.name] = global.automatedCount[force.name] + change
@@ -624,16 +628,16 @@ function on_train_changed_state(event)
         Alerts.reset_alarm(trainInfo)
       end
       local update_cargo = false
-      if train.state == defines.trainstate.wait_signal then
+      if train.state == defines.train_state.wait_signal then
         trainInfo.alarm.arrived_at_signal = game.tick
         local nextUpdate = game.tick + global.force_settings[force.name].signalDuration
         TickTable.insert(nextUpdate,"updateAlarms",trainInfo)
-      elseif train.state == defines.trainstate.on_the_path then
-        if trainInfo.previous_state == defines.trainstate.wait_station then
+      elseif train.state == defines.train_state.on_the_path then
+        if trainInfo.previous_state == defines.train_state.wait_station then
           trainInfo.alarm.left_station = game.tick
           local nextUpdate = game.tick + global.force_settings[force.name].stationDuration
           TickTable.insert(nextUpdate,"updateAlarms",trainInfo)
-        elseif trainInfo.previous_state == defines.trainstate.wait_signal then
+        elseif trainInfo.previous_state == defines.train_state.wait_signal then
           if trainInfo.alarm.type and trainInfo.alarm.type == "timeAtSignal" then
             trainInfo.alarm.active = false
             trainInfo.alarm.type = false
@@ -643,14 +647,14 @@ function on_train_changed_state(event)
             trainInfo.alarm.arrived_at_signal = false
           end
         end
-      elseif train.state == defines.trainstate.wait_station then
+      elseif train.state == defines.train_state.wait_station then
         trainInfo.depart_at = game.tick + train.schedule.records[train.schedule.current].time_to_wait
         if train.schedule and #train.schedule.records < 2 then
           trainInfo.depart_at = false
         end
         update_cargo = true
         TickTable.insert(game.tick + update_rate,"updateTrains",trainInfo)
-      elseif train.state == defines.trainstate.arrive_station then
+      elseif train.state == defines.train_state.arrive_station then
         if trainInfo.alarm.left_station then
           local stationDuration = global.force_settings[force.name].stationDuration
           if trainInfo.alarm.left_station+stationDuration < game.tick then
@@ -659,9 +663,9 @@ function on_train_changed_state(event)
             TrainList.removeAlarms(train)
           end
         end
-      elseif train.state == defines.trainstate.path_lost or train.state == defines.trainstate.no_path then
+      elseif train.state == defines.train_state.path_lost or train.state == defines.train_state.no_path then
         Alerts.set_alert(trainInfo,"noPath")
-      elseif train.state == defines.trainstate.manual_control then
+      elseif train.state == defines.train_state.manual_control then
         Alerts.reset_alarm(trainInfo)
         TrainList.removeAlarms(train)
         TrainList.add_manual(trainInfo)
@@ -967,7 +971,7 @@ function findTrains(show)
   for _, loco in pairs(surface.find_entities_filtered{area=bounds, type="locomotive"}) do
     if not TrainList.get_traininfo(loco.force, loco.train) then
       local trainInfo = TrainList.add_train(loco.train)
-      if loco.train.state == defines.trainstate.wait_station then
+      if loco.train.state == defines.train_state.wait_station then
         TickTable.insert(game.tick+update_rate,"updateTrains",trainInfo)
       end
     end
