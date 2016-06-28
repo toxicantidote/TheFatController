@@ -118,12 +118,14 @@ TrainList.remove_invalid = function(force, show)
 end
 
 TrainList.remove_duplicates = function(force)
-  for i=#global.trainsByForce[force.name],1,-1 do
-    local trainA = global.trainsByForce[force.name][i].train
-    for j=i-1,1,-1 do
-      if trainA and trainA == global.trainsByForce[force.name][j].train then
-        --debugDump("Duplicate: "..i.."=="..j,true)
-        table.remove(global.trainsByForce[force.name], i)
+  for i=#global.trainsByForce[force.name], 1, -1 do
+    if global.trainsByForce[force.name][i] then
+      local trainA = global.trainsByForce[force.name][i].train
+      for j=#global.trainsByForce[force.name],1,-1 do
+        if j~=i and trainA and trainA == global.trainsByForce[force.name][j].train then
+          --debugDump("Duplicate: "..i.."=="..j,true)
+          table.remove(global.trainsByForce[force.name], i)
+        end
       end
     end
   end
@@ -162,7 +164,7 @@ TrainList.createTrainInfo = function(train, no_alarm)
   ti.inventory = getHighestInventoryCount(ti)
   ti.automated = train.state ~= defines.train_state.manual_control and train.state ~= defines.train_state.stop_for_auto_control
   TrainList.update_stations(ti)
-  local station = (#train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
+  local station = (train.schedule and train.schedule.records and #train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
   ti.current_station = station
   if ti.train.state == defines.train_state.wait_station and train.schedule and #train.schedule.records > 1 then
     ti.depart_at = game.tick
@@ -204,7 +206,7 @@ TrainList.get_traininfo = function(force, train)
 end
 
 TrainList.update_stations = function(ti)
-  local records = (ti.train.schedule and #ti.train.schedule.records > 0) and ti.train.schedule.records or false
+  local records = (ti.train.schedule and ti.train.schedule.records and #ti.train.schedule.records > 0) and ti.train.schedule.records or false
   ti.stations = {}
   if not records then return end
   for _, record in pairs(records) do

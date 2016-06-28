@@ -234,6 +234,32 @@ local function on_configuration_changed(data)
             end
           end
         end
+        
+        if oldVersion < "0.4.17" then
+          findTrains(true)
+          for _, force in pairs(game.forces) do
+              TrainList.remove_invalid(force,true)
+              for _, ti in pairs(global.trainsByForce[force.name]) do
+                ti.automated = (train.state ~= defines.train_state.manual_control and train.state ~= defines.train_state.stop_for_auto_control)
+                if ti.automated then
+                  global.automatedCount[force.name] = global.automatedCount[force.name] + 1
+                end
+              end
+              log(global.automatedCount[force.name])
+          end
+          for i, _ in pairs(game.players) do
+            global.gui[i].automatedCount = 0
+            if global.gui[i].filtered_trains then
+              for _, ti in pairs(global.gui[i].filtered_trains) do
+                global.gui[i].filteredIndex[ti.mainIndex] = true
+                if ti.automated then
+                  global.gui[i].automatedCount = global.gui[i].automatedCount + 1
+                end
+              end
+            end
+          end
+        end
+        
       end
     end
     if not oldVersion or oldVersion < "0.4.0" then
@@ -565,8 +591,17 @@ script.on_event(defines.events.on_robot_built_entity, on_robot_built_entity)
 script.on_event(defines.events.on_preplayer_mined_item, on_preplayer_mined_item)
 script.on_event(defines.events.on_built_entity, on_built_entity)
 
+function getKeyByValue(tableA, value)
+  for i,c in pairs(tableA) do
+    if c == value then
+      return i
+    end
+  end
+end
+
 function on_train_changed_state(event)
   --debugDump("state:"..event.train.state,true)
+  debugDump(game.tick .. getKeyByValue(defines.train_state, event.train.state),true)
   local _, err = pcall(function()
     local train = event.train
     local force = train.carriages[1].force
@@ -605,7 +640,7 @@ function on_train_changed_state(event)
       trainInfo.last_state_tick = game.tick
 
       local old_auto = trainInfo.automated
-      trainInfo.automated = train.state ~= defines.train_state.manual_control and train.state ~= defines.train_state.stop_for_auto_control
+      trainInfo.automated = (train.state ~= defines.train_state.manual_control and train.state ~= defines.train_state.stop_for_auto_control)
       if old_auto ~= trainInfo.automated then
         local change = trainInfo.automated and 1 or -1
         global.automatedCount[force.name] = global.automatedCount[force.name] + change
@@ -613,12 +648,18 @@ function on_train_changed_state(event)
           local guiSettings = global.gui[i]
           if player.connected and guiSettings.activeFilterList and guiSettings.filteredIndex[trainInfo.mainIndex] then
             guiSettings.automatedCount = guiSettings.automatedCount + change
+            if guiSettings.automatedCount < 0 then
+              guiSettings.automatedCount = 0
+            end
             if guiSettings.automatedCount == 0 or guiSettings.automatedCount == #guiSettings.filtered_trains then
               GUI.set_toggleButtonCaption(guiSettings,player)
             end
           end
         end
-        --log("count:"..global.automatedCount[force.name])
+        log("count:"..global.automatedCount[force.name])
+        if global.automatedCount[force.name] < 0 then
+          global.automatedCount[force.name] = 0
+        end
         if global.automatedCount[force.name] == 0 or global.automatedCount[force.name] == #global.trainsByForce[force.name] then
           GUI.refreshAllTrainInfoGuis(force)
         end
@@ -648,7 +689,16 @@ function on_train_changed_state(event)
           end
         end
       elseif train.state == defines.train_state.wait_station then
-        trainInfo.depart_at = game.tick + train.schedule.records[train.schedule.current].time_to_wait
+        local depart_at = false;
+        local conditions = train.schedule.records[train.schedule.current].wait_conditions
+        for _, condition in pairs(conditions) do
+          if condition.type == "time" then
+            depart_at = game.tick + condition.ticks
+            break
+          end
+        end 
+        
+        trainInfo.depart_at = depart_at
         if train.schedule and #train.schedule.records < 2 then
           trainInfo.depart_at = false
         end
@@ -673,7 +723,7 @@ function on_train_changed_state(event)
         trainInfo.depart_at = false
       end
       Alerts.check_noFuel(trainInfo)
-      local station = (#train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
+      local station = (train.schedule.records and #train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
       trainInfo.current_station = station
       GUI.update_single_traininfo(trainInfo, update_cargo)
     else

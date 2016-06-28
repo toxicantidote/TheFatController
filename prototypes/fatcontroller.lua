@@ -1,4 +1,21 @@
 require ("prototypes.fatcontroller_annimation")
+function copyPrototype(type, name, newName, change_results)
+  if not data.raw[type][name] then error("type "..type.." "..name.." doesn't exist") end
+  local p = table.deepcopy(data.raw[type][name])
+  p.name = newName
+  if p.minable and p.minable.result then
+    p.minable.result = newName
+  end
+  if change_results then
+    if p.place_result then
+      p.place_result = newName
+    end
+    if p.result then
+      p.result = newName
+    end
+  end
+  return p
+end
 
 data:extend({
 
@@ -25,6 +42,8 @@ data:extend({
     running_speed = 0,
     distance_per_frame = 0,
     maximum_corner_sliding_distance = 0,
+    item_pickup_distance = 0,
+    loot_pickup_distance = 0,
 
     subgroup = "creatures",
     order="z",

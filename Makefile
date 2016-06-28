@@ -1,5 +1,5 @@
 PACKAGE_NAME := TheFatController
-VERSION_STRING := 0.4.16
+VERSION_STRING := 0.4.17
 
 OUTPUT_NAME := $(PACKAGE_NAME)_$(VERSION_STRING)
 OUTPUT_DIR := build/$(OUTPUT_NAME)
@@ -36,7 +36,7 @@ clean:
 	rm -rf build/
 
 verify:
-	luacheck . --exclude-files factorio_mods/ --exclude-files build/ --exclude-files data*.lua --exclude-files prototypes/ -d --globals game global remote serpent bit32 defines script table string util log
+	luacheck . --exclude-files factorio_mods/ --exclude-files build/ --exclude-files data*.lua --exclude-files prototypes/ -dg --globals game global remote serpent bit32 defines script table string util log
 
 install_mod:
 	if [ -L factorio_mods ] ; \

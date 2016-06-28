@@ -589,6 +589,10 @@ on_gui_click.toggleTrainInfo = function(guiSettings, element, player)
 end
 
 on_gui_click.returnToPlayer = function(guiSettings, element, player)
+  if player.opened then
+    player.print("Close the train UI before trying to change follower mode")
+    return
+  end
   if global.character[element.player_index] ~= nil then
     if player.vehicle ~= nil then
       player.vehicle.passenger = nil
@@ -755,6 +759,10 @@ on_gui_click.toggleManualMode = function(_, element, player)
 end
 
 on_gui_click.toggleFollowMode = function(guiSettings, element, player)
+  if player.opened then
+    player.print("Close the train UI before trying to change follower mode")
+    return
+  end
   local trains = global.trainsByForce[player.force.name]
   local option1 = element.name:match("Info(%w+)_")
   option1 = tonumber(option1)
