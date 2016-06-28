@@ -601,7 +601,7 @@ end
 
 function on_train_changed_state(event)
   --debugDump("state:"..event.train.state,true)
-  debugDump(game.tick .. getKeyByValue(defines.train_state, event.train.state),true)
+  --debugDump(game.tick .. getKeyByValue(defines.train_state, event.train.state),true)
   local _, err = pcall(function()
     local train = event.train
     local force = train.carriages[1].force
@@ -656,7 +656,7 @@ function on_train_changed_state(event)
             end
           end
         end
-        log("count:"..global.automatedCount[force.name])
+        --log("count:"..global.automatedCount[force.name])
         if global.automatedCount[force.name] < 0 then
           global.automatedCount[force.name] = 0
         end
