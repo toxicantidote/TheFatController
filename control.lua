@@ -240,7 +240,7 @@ local function on_configuration_changed(data)
           for _, force in pairs(game.forces) do
               TrainList.remove_invalid(force,true)
               for _, ti in pairs(global.trainsByForce[force.name]) do
-                ti.automated = (train.state ~= defines.train_state.manual_control and train.state ~= defines.train_state.stop_for_auto_control)
+                ti.automated = (ti.train.state ~= defines.train_state.manual_control and ti.train.state ~= defines.train_state.stop_for_auto_control)
                 if ti.automated then
                   global.automatedCount[force.name] = global.automatedCount[force.name] + 1
                 end
