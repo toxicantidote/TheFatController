@@ -691,10 +691,12 @@ function on_train_changed_state(event)
       elseif train.state == defines.train_state.wait_station then
         local depart_at = false;
         local conditions = train.schedule.records[train.schedule.current].wait_conditions
-        for _, condition in pairs(conditions) do
-          if condition.type == "time" then
-            depart_at = game.tick + condition.ticks
-            break
+        if conditions then
+          for _, condition in pairs(conditions) do
+            if condition.type == "time" then
+              depart_at = game.tick + condition.ticks
+              break
+            end
           end
         end 
         

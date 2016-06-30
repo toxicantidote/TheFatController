@@ -253,6 +253,7 @@ GUI = {
           gui.fatControllerGui.trainInfo.destroy()
           if player.connected then
             GUI.newTrainInfoWindow(gui, player)
+            gui.filtered_trains = TrainList.get_filtered_trains(player.force, gui)
             GUI.refreshTrainInfoGui(gui, player)
           else
             gui.fatControllerButtons.toggleTrainInfo.caption = {"text-trains-collapsed"}
@@ -433,7 +434,7 @@ GUI = {
             trainInfo.guiName = newGuiName
           end
         end
-        if remove_invalid then
+       if remove_invalid then
           TrainList.remove_invalid(player.force)
         end
       end
