@@ -258,19 +258,10 @@ local function on_configuration_changed(data)
             end
           end
         end
-        
+
         if oldVersion < "0.4.19" then
           for _, gui in pairs(global.gui) do
-          if gui.fatControllerButtons and gui.fatControllerButtons.valid then
-            if gui.fatControllerButtons.toggleTrainInfo and gui.fatControllerButtons.toggleTrainInfo.valid then
-              gui.fatControllerButtons.toggleTrainInfo.destroy()
-              gui.fatControllerButtons.add({type="button", name="toggleTrainInfo", style="fatcontroller_main_button_style"})
-            end
-            if gui.fatControllerButtons.returnToPlayer and gui.fatControllerButtons.returnToPlayer.valid then
-              gui.fatControllerButtons.returnToPlayer.destroy()
-              gui.fatControllerButtons.add({ type="button", name="returnToPlayer", style = "fatcontroller_player_button"})
-            end
-          end
+            GUI.refresh_gui(gui)
           end
         end
       end
@@ -1072,10 +1063,11 @@ interface = {
 
   init = function()
     global.PAGE_SIZE = 60
-    for _,g in pairs(global.gui) do
+    for pi, g in pairs(global.gui) do
       g.filter_page = 1
-      g.filter_pageCount = get_filter_PageCount(g)
+      g.filter_pageCount = get_filter_PageCount(game.players[pi].force)
       g.stopButton_state = false
+      GUI.refresh_gui(g)
     end
     init_forces()
   end,

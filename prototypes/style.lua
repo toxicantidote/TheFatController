@@ -27,12 +27,24 @@ data.raw["gui-style"].default["fatcontroller_thin_frame"] =
     bottom_padding = 2,
   }
 
-data.raw["gui-style"].default["fatcontroller_main_frame"] =
+data.raw["gui-style"].default["fatcontroller_main_flow"] =
   {
-    type = "frame_style",
-    parent="frame_style",
+    type = "flow_style",
     top_padding  = 0,
     bottom_padding = 0,
+    left_padding = 5,
+    right_padding = 5,
+    horizontal_spacing = 0,
+    vertical_spacing = 0,
+    max_on_row = 0,
+    resize_row_to_width = true,
+  }
+data.raw["gui-style"].default["fatcontroller_top_flow"] =
+  {
+    type = "flow_style",
+    parent = "fatcontroller_main_flow",
+    top_padding  = 0,
+    left_padding = 0
   }
 
 data.raw["gui-style"].default["fatcontroller_button_flow"] =
@@ -114,7 +126,7 @@ data.raw["gui-style"].default["fatcontroller_main_button_style"] =
       }
     }
   }
-  
+
 data.raw["gui-style"].default["fatcontroller_player_button"] =
   {
     type = "button_style",

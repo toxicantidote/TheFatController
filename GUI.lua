@@ -262,12 +262,12 @@ GUI = {
       local player_gui = global.gui[player.index]
 
       if player.gui.left.fatController == nil then
-        player_gui.fatControllerGui = player.gui.left.add({ type="flow", name="fatController", direction="vertical"})--, style="fatcontroller_thin_flow"}) --caption="Fat Controller",
+        player_gui.fatControllerGui = player.gui.left.add{ type="flow", name="fatController", direction="vertical", style="fatcontroller_main_flow"} --caption="Fat Controller",
       else
         player_gui.fatControllerGui = player.gui.left.fatController
       end
       if player.gui.top.fatControllerButtons == nil then
-        player_gui.fatControllerButtons = player.gui.top.add({ type="flow", name="fatControllerButtons", direction="horizontal", style="fatcontroller_thin_flow"})
+        player_gui.fatControllerButtons = player.gui.top.add({ type="flow", name="fatControllerButtons", direction="horizontal", style="fatcontroller_main_flow"})
       else
         player_gui.fatControllerButtons = player.gui.top.fatControllerButtons
       end
@@ -284,6 +284,22 @@ GUI = {
       return player_gui
     end,
 
+    refresh_gui = function(gui)
+      if gui.fatControllerButtons and gui.fatControllerButtons.valid then
+        gui.fatControllerButtons.style = "fatcontroller_top_flow"
+        if gui.fatControllerButtons.toggleTrainInfo and gui.fatControllerButtons.toggleTrainInfo.valid then
+          gui.fatControllerButtons.toggleTrainInfo.destroy()
+          gui.fatControllerButtons.add({type="button", name="toggleTrainInfo", style="fatcontroller_main_button_style"})
+        end
+        if gui.fatControllerButtons.returnToPlayer and gui.fatControllerButtons.returnToPlayer.valid then
+          gui.fatControllerButtons.returnToPlayer.destroy()
+          gui.fatControllerButtons.add({ type="button", name="returnToPlayer", style = "fatcontroller_player_button"})
+        end
+        if gui.fatControllerGui and gui.fatControllerGui.valid then
+          gui.fatControllerGui.style = "fatcontroller_main_flow"
+        end
+      end
+    end,
 
     onguiclick = function(event)
       local _, err = pcall(function()
@@ -328,7 +344,7 @@ GUI = {
         newGui = gui.trainInfo
         debugDump("foo",true)
       else
-        newGui = gui.add({ type="flow", name="trainInfo", direction="vertical", style="fatcontroller_thin_flow"})
+        newGui = gui.add({ type="flow", name="trainInfo", direction="vertical", style="fatcontroller_main_flow"})
       end
 
       if newGui.trainInfoControls == nil then
