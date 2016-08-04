@@ -119,6 +119,7 @@ GUI = {
     get_topstring = function(trainInfo, show_name)
       local topString = ""
       local station = trainInfo.current_station
+      local state = defines.train_state
       if not station then station = "" end
       if trainInfo.last_state then
         if trainInfo.last_state == 1  or trainInfo.last_state == 3 then
@@ -136,18 +137,10 @@ GUI = {
           end
         elseif trainInfo.last_state == 6 then
           topString = {"", {"text-stopping"}, " -> ", station}
-        elseif trainInfo.last_state == 7 then
+        elseif trainInfo.last_state == state.wait_station then
           topString = {"", {"text-station"}, ": ", station}
           if trainInfo.depart_at and trainInfo.depart_at > 0 then
-            local diff = trainInfo.depart_at - game.tick
-            --TODO remove with remote call to SmartTrains
-            table.insert(topString, " (")
-            if diff < 216000 then
-              table.insert(topString, util.formattime(diff))
-            else
-              table.insert(topString, {"text-forever"})
-            end
-            table.insert(topString, ")")
+            table.insert(topString, "(".. util.formattime(trainInfo.depart_at - game.tick) .. ")")
           end
         else
           topString = {"", {"text-moving"}, " -> ", station}
@@ -169,7 +162,7 @@ GUI = {
 
     get_toggleButtonCaption = function(guiSettings, player)
       local caption = (guiSettings.activeFilterList or guiSettings.filter_alarms) and {"text-filtered"} or {"text-all"}
-      local count = guiSettings.activeFilterList and guiSettings.automatedCount or global.automatedCount[player.force.name]
+      local count = guiSettings.activeFilterList and guiSettings.automatedCount or TrainList.automatedCount(player.force)
       guiSettings.stopButton_state = count == 0
       if guiSettings.stopButton_state then
         caption = {"", {"text-resume"}, " ", caption}
@@ -434,7 +427,7 @@ GUI = {
             trainInfo.guiName = newGuiName
           end
         end
-       if remove_invalid then
+        if remove_invalid then
           TrainList.remove_invalid(player.force)
         end
       end

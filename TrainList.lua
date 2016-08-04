@@ -344,3 +344,14 @@ TrainList.count = function(force)
     return c
   end
 end
+
+TrainList.automatedCount = function(force)
+  local c = 0
+  for _, t in pairs(global.trainsByForce[force.name]) do
+    if (t.train.state ~= defines.train_state.manual_control and t.train.state ~= defines.train_state.stop_for_auto_control) then
+      c = c + 1
+    end
+  end
+  global.automatedCount[force.name] = c
+  return c
+end

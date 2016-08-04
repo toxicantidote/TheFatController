@@ -234,18 +234,17 @@ local function on_configuration_changed(data)
             end
           end
         end
-        
+
         if oldVersion < "0.4.17" then
           findTrains(true)
           for _, force in pairs(game.forces) do
-              TrainList.remove_invalid(force,true)
-              for _, ti in pairs(global.trainsByForce[force.name]) do
-                ti.automated = (ti.train.state ~= defines.train_state.manual_control and ti.train.state ~= defines.train_state.stop_for_auto_control)
-                if ti.automated then
-                  global.automatedCount[force.name] = global.automatedCount[force.name] + 1
-                end
+            TrainList.remove_invalid(force,true)
+            for _, ti in pairs(global.trainsByForce[force.name]) do
+              ti.automated = (ti.train.state ~= defines.train_state.manual_control and ti.train.state ~= defines.train_state.stop_for_auto_control)
+              if ti.automated then
+                global.automatedCount[force.name] = global.automatedCount[force.name] + 1
               end
-              log(global.automatedCount[force.name])
+            end
           end
           for i, _ in pairs(game.players) do
             global.gui[i].automatedCount = 0
@@ -259,7 +258,7 @@ local function on_configuration_changed(data)
             end
           end
         end
-        
+
       end
     end
     if not oldVersion or oldVersion < "0.4.0" then
@@ -322,8 +321,7 @@ function addInventoryContents(invA, invB)
   return res
 end
 
-function getHighestInventoryCount(trainInfo)
-  local inventory = ""
+function getHighestInventoryStack(trainInfo)
   if trainInfo and trainInfo.train and trainInfo.train.valid and trainInfo.train.cargo_wagons then
     local itemsCount = 0
     local largestItem = {}
@@ -358,16 +356,18 @@ function getHighestInventoryCount(trainInfo)
       end
       itemsCount = itemsCount + 1
     end
+    return largestItem, itemsCount
+  end
+end
 
-    if largestItem.name ~= nil then
-      if not global.items[largestItem.name] then
-        local isItem = game.item_prototypes[largestItem.name] or game.fluid_prototypes[largestItem.name]
-        global.items[largestItem.name] = isItem and isItem.localised_name or largestItem.name
-      end
-      local displayName = global.items[largestItem.name]
-      local suffix = itemsCount > 1 and "..." or ""
-      inventory = {"", displayName,": ",largestItem.count, suffix}
-    end
+function getHighestInventoryCount(trainInfo)
+  local inventory = ""
+  local largestItem, itemsCount = getHighestInventoryStack(trainInfo)
+  if largestItem.name ~= nil then
+    local isItem = game.item_prototypes[largestItem.name] or game.fluid_prototypes[largestItem.name]
+    local displayName = isItem and isItem.localised_name or largestItem.name
+    local suffix = itemsCount > 1 and "..." or ""
+    inventory = {"", displayName,": ",largestItem.count, suffix}
   end
   return inventory
 end
@@ -698,8 +698,8 @@ function on_train_changed_state(event)
               break
             end
           end
-        end 
-        
+        end
+
         trainInfo.depart_at = depart_at
         if train.schedule and #train.schedule.records < 2 then
           trainInfo.depart_at = false
@@ -729,8 +729,8 @@ function on_train_changed_state(event)
       trainInfo.current_station = station
       GUI.update_single_traininfo(trainInfo, update_cargo)
     else
-      debugDump("You should never ever see this! Look away!",true)
-      debugDump("no traininfo",true)
+      --debugDump("You should never ever see this! Look away!",true)
+      --debugDump("no traininfo",true)
       TrainList.remove_invalid(force)
       if not TrainList.get_traininfo(force, train) then
         TrainList.add_train(train)
