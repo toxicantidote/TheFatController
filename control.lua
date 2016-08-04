@@ -258,7 +258,21 @@ local function on_configuration_changed(data)
             end
           end
         end
-
+        
+        if oldVersion < "0.4.19" then
+          for _, gui in pairs(global.gui) do
+          if gui.fatControllerButtons and gui.fatControllerButtons.valid then
+            if gui.fatControllerButtons.toggleTrainInfo and gui.fatControllerButtons.toggleTrainInfo.valid then
+              gui.fatControllerButtons.toggleTrainInfo.destroy()
+              gui.fatControllerButtons.add({type="button", name="toggleTrainInfo", style="fatcontroller_main_button_style"})
+            end
+            if gui.fatControllerButtons.returnToPlayer and gui.fatControllerButtons.returnToPlayer.valid then
+              gui.fatControllerButtons.returnToPlayer.destroy()
+              gui.fatControllerButtons.add({ type="button", name="returnToPlayer", style = "fatcontroller_player_button"})
+            end
+          end
+          end
+        end
       end
     end
     if not oldVersion or oldVersion < "0.4.0" then
@@ -1072,9 +1086,6 @@ interface = {
         guiSettings.fatControllerGui.trainInfo.destroy()
         if global.character[i] then
           swapPlayer(game.players[i], global.character[i])
-        end
-        if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.toggleTrainInfo then
-          guiSettings.fatControllerButtons.toggleTrainInfo.caption = {"text-trains-collapsed"}
         end
       end
     end

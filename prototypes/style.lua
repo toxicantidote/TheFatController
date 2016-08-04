@@ -66,6 +66,104 @@ data.raw["gui-style"].default["fatcontroller_button_style"] =
     }
   }
 
+data.raw["gui-style"].default["fatcontroller_main_button_style"] =
+  {
+    type = "button_style",
+    parent = "fatcontroller_button_style",
+    type = "button_style",
+    parent = "button_style",
+    width = 33,
+    height = 33,
+    top_padding = 6,
+    right_padding = 5,
+    bottom_padding = 0,
+    left_padding = 0,
+    default_graphical_set =
+    {
+      type = "monolith",
+      monolith_image =
+      {
+        filename = "__TheFatController__/graphics/gui.png",
+        priority = "extra-high-no-scale",
+        width = 32,
+        height = 32,
+        x = 64
+      }
+    },
+    hovered_graphical_set =
+    {
+      type = "monolith",
+      monolith_image =
+      {
+        filename = "__TheFatController__/graphics/gui.png",
+        priority = "extra-high-no-scale",
+        width = 32,
+        height = 32,
+        x = 96
+      }
+    },
+    clicked_graphical_set =
+    {
+      type = "monolith",
+      monolith_image =
+      {
+        filename = "__TheFatController__/graphics/gui.png",
+        width = 32,
+        height = 32,
+        x = 96
+      }
+    }
+  }
+  
+data.raw["gui-style"].default["fatcontroller_player_button"] =
+  {
+    type = "button_style",
+    parent = "fatcontroller_button_style",
+    type = "button_style",
+    parent = "button_style",
+    width = 33,
+    height = 33,
+    top_padding = 6,
+    right_padding = 5,
+    bottom_padding = 0,
+    left_padding = 0,
+    default_graphical_set =
+    {
+      type = "monolith",
+      monolith_image =
+      {
+        filename = "__TheFatController__/graphics/guiPlayer.png",
+        priority = "extra-high-no-scale",
+        width = 32,
+        height = 32,
+        x = 96
+      }
+    },
+    hovered_graphical_set =
+    {
+      type = "monolith",
+      monolith_image =
+      {
+        filename = "__TheFatController__/graphics/guiPlayer.png",
+        priority = "extra-high-no-scale",
+        width = 32,
+        height = 32,
+        x = 64
+      }
+    },
+    clicked_graphical_set =
+    {
+      type = "monolith",
+      monolith_image =
+      {
+        filename = "__TheFatController__/graphics/guiPlayer.png",
+        width = 32,
+        height = 32,
+        x = 64
+      }
+    }
+  }
+
 data.raw["gui-style"].default["fatcontroller_disabled_button"] =
   {
     type = "button_style",

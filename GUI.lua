@@ -16,7 +16,7 @@ function start_following(carriage, guiSettings, element, player)
   guiSettings.followEntity = carriage
   guiSettings.followGui = element
   if not guiSettings.fatControllerButtons.returnToPlayer then
-    guiSettings.fatControllerButtons.add({ type="button", name="returnToPlayer", caption={"text-player"}, style = "fatcontroller_selected_button"})
+    guiSettings.fatControllerButtons.add({ type="button", name="returnToPlayer", style = "fatcontroller_player_button"})
   end
   carriage.passenger = player.character
   if player.gui.left.farl ~= nil then
@@ -248,8 +248,6 @@ GUI = {
             GUI.newTrainInfoWindow(gui, player)
             gui.filtered_trains = TrainList.get_filtered_trains(player.force, gui)
             GUI.refreshTrainInfoGui(gui, player)
-          else
-            gui.fatControllerButtons.toggleTrainInfo.caption = {"text-trains-collapsed"}
           end
         end
       end
@@ -274,7 +272,7 @@ GUI = {
         player_gui.fatControllerButtons = player.gui.top.fatControllerButtons
       end
       if player_gui.fatControllerButtons.toggleTrainInfo == nil then
-        player_gui.fatControllerButtons.add({type="button", name="toggleTrainInfo", caption = {"text-trains-collapsed"}, style="fatcontroller_button_style"})
+        player_gui.fatControllerButtons.add({type="button", name="toggleTrainInfo", style="fatcontroller_main_button_style"})
       end
 
       if player_gui.fatControllerGui.trainInfo ~= nil then
@@ -569,15 +567,12 @@ GUI = {
       guiSettings.displayed_trains = {}
     end,
 }
-on_gui_click.toggleTrainInfo = function(guiSettings, element, player)
+on_gui_click.toggleTrainInfo = function(guiSettings, _, player)
   if guiSettings.fatControllerGui.trainInfo == nil then
-    element.caption = {"text-trains"}
-    --return refreshGui
     return true
   else
     guiSettings.fatControllerGui.trainInfo.destroy()
     GUI.reset_displayed_trains(guiSettings,player)
-    element.caption = {"text-trains-collapsed"}
     return false
   end
 end
