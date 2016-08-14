@@ -35,11 +35,11 @@ function generateEvents()
   getOrLoadSwitchedEvent()
 end
 
-defaults = {stationDuration=10,signalDuration=2}
+defaults = {stationDuration = 10, signalDuration = 2}
 
 defaultGuiSettings = {
-  alarm={noPath=true,noFuel=true,timeAtSignal=true,timeToStation=true},
-  displayCount=10,
+  alarm = {noPath = true, noFuel = false, timeAtSignal = true, timeToStation = true},
+  displayCount = 10,
   fatControllerButtons = {},
   fatControllerGui = {},
   page = 1,
@@ -258,11 +258,11 @@ local function on_configuration_changed(data)
             end
           end
         end
+      end
 
-        if oldVersion < "0.4.19" then
-          for _, gui in pairs(global.gui) do
-            GUI.refresh_gui(gui)
-          end
+      if oldVersion < "0.4.19" then
+        for _, gui in pairs(global.gui) do
+          GUI.refresh_gui(gui)
         end
       end
     end
