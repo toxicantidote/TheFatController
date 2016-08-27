@@ -6,5 +6,5 @@
 	"title":"The Fat Controller",
 	"homepage":"https://forums.factorio.com/viewtopic.php?f=92&t=4504",
 	"description":"A conductor of trains.",
-	"dependencies": ["base >= 0.13.0", "? Logistics Railway >= 1.0.5"]
+	"dependencies": ["? ChoumikoTest", "? Logistics Railway >= 1.0.5"]
 }

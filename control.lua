@@ -1039,6 +1039,11 @@ function findTrains(show)
   findStations(show)
 end
 
+if remote.interfaces.buttons then
+  local buttons = remote.interfaces.buttons
+  buttons.registerButton('fatController', 'main', {})
+end
+
 interface = {
   get_player_switched_event = function()
     return getOrLoadSwitchedEvent()
