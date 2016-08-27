@@ -28,6 +28,10 @@ Be warned, if the player is not safe he can die, you can also run him over with 
 Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zyecAmcbxtM)
 
 #Changelog
+1.0.0
+
+ - version for Factorio 0.14.x
+
 0.4.20
 
  - fixed error with Stop/Resume button
