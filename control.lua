@@ -1,8 +1,3 @@
-if not defines then
-  require "defines"
-  defines.train_state = defines.trainstate
-end
-
 require "util"
 require "TickTable"
 require "Alerts"
@@ -606,7 +601,9 @@ end
 
 function on_train_changed_state(event)
   --debugDump("state:"..event.train.state,true)
-  --debugDump(game.tick .. getKeyByValue(defines.train_state, event.train.state),true)
+  local train_states = defines.train_state
+  local tick = event.tick
+  --log(game.tick .. " " .. event.train.state .. " " .. getKeyByValue(defines.train_state, event.train.state))
   local _, err = pcall(function()
     local train = event.train
     local force = train.carriages[1].force
@@ -623,17 +620,17 @@ function on_train_changed_state(event)
       unf.previous_state = trainInfo.unfiltered_state.last_state
       unf.previous_tick = trainInfo.unfiltered_state.last_tick
       unf.last_state = train.state
-      unf.last_tick = game.tick
+      unf.last_tick = tick
       trainInfo.unfiltered_state = unf
       -- skip update if:
       --  going from wait_signal to on_the_path after 300 ticks
       --  going from on_the_path to wait_signal after 1 tick
       --  arrive_signal
-      local diff = game.tick - unf.previous_tick
-      if  train.state == defines.train_state.arrive_signal or
-        (unf.previous_state == defines.train_state.wait_signal and train.state == defines.train_state.on_the_path
+      local diff = tick - unf.previous_tick
+      if  train.state == train_states.arrive_signal or
+        (unf.previous_state == train_states.wait_signal and train.state == train_states.on_the_path
         and diff == 300)
-        or (unf.previous_state == defines.train_state.on_the_path and train.state == defines.train_state.wait_signal
+        or (unf.previous_state == train_states.on_the_path and train.state == train_states.wait_signal
         and diff == 1) then
         --debugDump(game.tick.." Skipped",true)
         return
@@ -641,10 +638,10 @@ function on_train_changed_state(event)
       trainInfo.previous_state = trainInfo.last_state
       trainInfo.previous_state_tick = trainInfo.last_state_tick
       trainInfo.last_state = train.state
-      trainInfo.last_state_tick = game.tick
+      trainInfo.last_state_tick = tick
 
       local old_auto = trainInfo.automated
-      trainInfo.automated = (train.state ~= defines.train_state.manual_control and train.state ~= defines.train_state.stop_for_auto_control)
+      trainInfo.automated = (train.state ~= train_states.manual_control and train.state ~= train_states.manual_control_stop)
       if old_auto ~= trainInfo.automated then
         local change = trainInfo.automated and 1 or -1
         global.automatedCount[force.name] = global.automatedCount[force.name] + change
@@ -673,16 +670,18 @@ function on_train_changed_state(event)
         Alerts.reset_alarm(trainInfo)
       end
       local update_cargo = false
-      if train.state == defines.train_state.wait_signal then
-        trainInfo.alarm.arrived_at_signal = game.tick
-        local nextUpdate = game.tick + global.force_settings[force.name].signalDuration
+      if train.state == train_states.wait_signal then
+        trainInfo.alarm.arrived_at_signal = tick
+        local nextUpdate = tick + global.force_settings[force.name].signalDuration
         TickTable.insert(nextUpdate,"updateAlarms",trainInfo)
-      elseif train.state == defines.train_state.on_the_path then
-        if trainInfo.previous_state == defines.train_state.wait_station then
-          trainInfo.alarm.left_station = game.tick
-          local nextUpdate = game.tick + global.force_settings[force.name].stationDuration
-          TickTable.insert(nextUpdate,"updateAlarms",trainInfo)
-        elseif trainInfo.previous_state == defines.train_state.wait_signal then
+      elseif (train.state == train_states.on_the_path or train.state == train_states.stop_for_auto_control) and trainInfo.previous_state == train_states.wait_station then
+        trainInfo.alarm.left_station = tick
+        --log("left_station")
+        --log(serpent.block(trainInfo.alarm, {comment=false}))
+        local nextUpdate = tick + global.force_settings[force.name].stationDuration
+        TickTable.insert(nextUpdate,"updateAlarms",trainInfo)
+      elseif train.state == train_states.on_the_path then
+        if trainInfo.previous_state == train_states.wait_signal then
           if trainInfo.alarm.type and trainInfo.alarm.type == "timeAtSignal" then
             trainInfo.alarm.active = false
             trainInfo.alarm.type = false
@@ -692,13 +691,13 @@ function on_train_changed_state(event)
             trainInfo.alarm.arrived_at_signal = false
           end
         end
-      elseif train.state == defines.train_state.wait_station then
+      elseif train.state == train_states.wait_station then
         local depart_at = false;
         local conditions = train.schedule.records[train.schedule.current].wait_conditions
         if conditions then
           for _, condition in pairs(conditions) do
             if condition.type == "time" then
-              depart_at = game.tick + condition.ticks
+              depart_at = tick + condition.ticks
               break
             end
           end
@@ -709,19 +708,19 @@ function on_train_changed_state(event)
           trainInfo.depart_at = false
         end
         update_cargo = true
-        TickTable.insert(game.tick + update_rate,"updateTrains",trainInfo)
-      elseif train.state == defines.train_state.arrive_station then
+        TickTable.insert(tick + update_rate,"updateTrains",trainInfo)
+      elseif train.state == train_states.arrive_station then
         if trainInfo.alarm.left_station then
           local stationDuration = global.force_settings[force.name].stationDuration
-          if trainInfo.alarm.left_station+stationDuration < game.tick then
+          if trainInfo.alarm.left_station+stationDuration < tick then
             Alerts.set_alert(trainInfo,"timeToStation",stationDuration/3600)
           else
             TrainList.removeAlarms(train)
           end
         end
-      elseif train.state == defines.train_state.path_lost or train.state == defines.train_state.no_path then
+      elseif train.state == train_states.path_lost or train.state == train_states.no_path then
         Alerts.set_alert(trainInfo,"noPath")
-      elseif train.state == defines.train_state.manual_control then
+      elseif train.state == train_states.manual_control then
         Alerts.reset_alarm(trainInfo)
         TrainList.removeAlarms(train)
         TrainList.add_manual(trainInfo)
@@ -1039,10 +1038,10 @@ function findTrains(show)
   findStations(show)
 end
 
-if remote.interfaces.buttons then
-  local buttons = remote.interfaces.buttons
-  buttons.registerButton('fatController', 'main', {})
-end
+--if remote.interfaces.buttons then
+--local buttons = remote.interfaces.buttons
+--buttons.registerButton('fatController', 'main', {})
+--end
 
 interface = {
   get_player_switched_event = function()

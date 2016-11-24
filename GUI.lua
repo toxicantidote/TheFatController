@@ -122,20 +122,20 @@ GUI = {
       local state = defines.train_state
       if not station then station = "" end
       if trainInfo.last_state then
-        if trainInfo.last_state == 1  or trainInfo.last_state == 3 then
+        if trainInfo.last_state == state.no_path  or trainInfo.last_state == state.path_lost then
           topString = {"", {"text-no-path"}}
-        elseif trainInfo.last_state == 2 then
+        elseif trainInfo.last_state == state.no_schedule then
           topString = {"", {"text-no-schedule"}}
-        elseif trainInfo.last_state == 5 then
+        elseif trainInfo.last_state == state.wait_signal then
           topString = {"", {"text-signal"}, " || ", station}
-        elseif (trainInfo.last_state == 8  or trainInfo.last_state == 9   or trainInfo.last_state == 10) then
+        elseif (trainInfo.last_state == state.manual_control_stop  or trainInfo.last_state == state.manual_control) then
           topString = {"", {"text-manual"}, ": "}
           if trainInfo.train.speed == 0 then
             table.insert(topString, {"text-stopped"})
           else
             table.insert(topString, {"text-moving"})
           end
-        elseif trainInfo.last_state == 6 then
+        elseif trainInfo.last_state == state.arrive_station then
           topString = {"", {"text-stopping"}, " -> ", station}
         elseif trainInfo.last_state == state.wait_station then
           topString = {"", {"text-station"}, ": ", station}
