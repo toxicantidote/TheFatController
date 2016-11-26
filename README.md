@@ -28,6 +28,10 @@ Be warned, if the player is not safe he can die, you can also run him over with 
 Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zyecAmcbxtM)
 
 #Changelog
+1.0.2
+
+ - added tooltips to almost all buttons
+
 1.0.1
 
  - fixed time between stations alert not working correctly with SmartTrains goto rules

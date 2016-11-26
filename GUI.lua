@@ -63,7 +63,7 @@ GUI = {
       end
 
       if trainGui.buttons[trainInfo.guiName .. "_toggleManualMode"] == nil then
-        trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleManualMode", caption="", style="fatcontroller_button_style"})
+        trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleManualMode", caption="", style="fatcontroller_button_style", tooltip = {"fat_tooltip_toggle_mode"}})
         local caption = trainInfo.train.manual_mode and ">" or "ll"
         trainGui.buttons[trainInfo.guiName.."_toggleManualMode"].caption = caption
       end
@@ -75,11 +75,11 @@ GUI = {
       end
 
       if trainGui.buttons[trainInfo.guiName .. "_toggleFollowMode"] == nil then
-        trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleFollowMode", caption={"text-controlbutton"}, style="fatcontroller_button_style"})
+        trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleFollowMode", caption={"text-controlbutton"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_controlbutton"}})
       end
 
       if guiSettings.renameTrains then
-        trainGui.buttons.add({type="button", name=trainInfo.guiName.. "_renameTrain", caption = {"text-renamebutton"}, style="fatcontroller_button_style"})
+        trainGui.buttons.add({type="button", name=trainInfo.guiName.. "_renameTrain", caption = {"text-renamebutton"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_renamebutton"}})
       end
 
       if trainInfo.alarm.active then
@@ -361,7 +361,7 @@ GUI = {
 
       local caption = guiSettings.page .. "/" .. guiSettings.pageCount
       if newGui.trainInfoControls.pageButtons.page_number == nil then
-        newGui.trainInfoControls.pageButtons.add({type="button", name="page_number", caption= caption, style="fatcontroller_button_style"})
+        newGui.trainInfoControls.pageButtons.add({type="button", name="page_number", caption= caption, style="fatcontroller_button_style", tooltip = {"fat_tooltip_displayed_trains"}})
       else
         newGui.trainInfoControls.pageButtons.page_number.caption = caption
       end
@@ -376,11 +376,11 @@ GUI = {
 
       if newGui.trainInfoControls.filterButtons.toggleStationFilter == nil then
         local style = (guiSettings.activeFilterList or guiSettings.filter_alarms) and "fatcontroller_selected_button" or "fatcontroller_button_style"
-        newGui.trainInfoControls.filterButtons.add({type="button", name="toggleStationFilter", caption="s", style=style})
+        newGui.trainInfoControls.filterButtons.add({type="button", name="toggleStationFilter", caption={"text-filter-trains"}, style=style, tooltip = {"fat_tooltip_filterbutton"}})
       end
 
       if newGui.trainInfoControls.filterButtons.clearStationFilter == nil then
-        newGui.trainInfoControls.filterButtons.add({type="button", name="clearStationFilter", caption="x", style="fatcontroller_button_style"})
+        newGui.trainInfoControls.filterButtons.add({type="button", name="clearStationFilter", caption={"text-clear-filter"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_clearFilters"}})
       end
 
       if newGui.trainInfoControls.alarm == nil then
@@ -388,7 +388,7 @@ GUI = {
       end
 
       if newGui.trainInfoControls.alarm.alarmButton == nil then
-        newGui.trainInfoControls.alarm.add({type="button", name="alarmButton", caption="!", style="fatcontroller_button_style"})
+        newGui.trainInfoControls.alarm.add({type="button", name="alarmButton", caption= {"text-alarmSettings"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_alarms"}})
       end
 
       if newGui.trainInfoControls.control == nil then
@@ -396,7 +396,7 @@ GUI = {
       end
 
       if newGui.trainInfoControls.control.toggleButton == nil then
-        newGui.trainInfoControls.control.add({type = "button", name="toggleButton", caption=GUI.get_toggleButtonCaption(guiSettings,player), style="fatcontroller_button_style"})
+        newGui.trainInfoControls.control.add({type = "button", name="toggleButton", caption=GUI.get_toggleButtonCaption(guiSettings,player), style="fatcontroller_button_style", tooltip = {"fat_tooltip_stop_all"}})
       end
 
       return newGui
@@ -485,14 +485,14 @@ GUI = {
             end
 
           end
-          window.buttonFlow.add({type="button", name="stationFilterClear", caption={"msg-Clear"}, style="fatcontroller_button_style"})
+          window.buttonFlow.add({type="button", name="stationFilterClear", caption={"msg-Clear"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_clearFilters"}})
           window.buttonFlow.add({type="button", name="stationFilterOK", caption={"msg-OK"} , style="fatcontroller_button_style"})
           local style = guiSettings.filter_alarms and "fatcontroller_selected_button" or "fatcontroller_button_style"
-          pageFlow.add({type="button", name="filterAlarms", caption = {"text-alarms"}, style=style})
+          pageFlow.add({type="button", name="filterAlarms", caption = {"text-alarms"}, style=style, tooltip = {"fat_tooltip_filterAlarms"}})
 
           local buttonflow2 = window.add({type = "flow", name="buttonflow2"})
           local caption = guiSettings.filterModeOr and {"text-filter-or"} or {"text-filter-and"}
-          buttonflow2.add({type = "button", name="toggleFilterMode", caption=caption, style="fatcontroller_button_style"})
+          buttonflow2.add({type = "button", name="toggleFilterMode", caption=caption, style="fatcontroller_button_style", tooltip = {"fat_tooltip_combine"}})
 
           window.add({type="table", name="checkboxGroup", colspan=3})
           local i=0
