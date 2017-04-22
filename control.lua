@@ -260,6 +260,9 @@ local function on_configuration_changed(data)
           GUI.refresh_gui(gui)
         end
       end
+      if oldVersion < "1.0.3" then
+        findStations(true, true)
+      end
     end
     if not oldVersion or oldVersion < "0.4.0" then
       findTrains(true)
@@ -676,6 +679,7 @@ function on_train_changed_state(event)
         TickTable.insert(nextUpdate,"updateAlarms",trainInfo)
       elseif (train.state == train_states.on_the_path or train.state == train_states.stop_for_auto_control) and trainInfo.previous_state == train_states.wait_station then
         trainInfo.alarm.left_station = tick
+        update_cargo = true
         --log("left_station")
         --log(serpent.block(trainInfo.alarm, {comment=false}))
         local nextUpdate = tick + global.force_settings[force.name].stationDuration
@@ -706,6 +710,10 @@ function on_train_changed_state(event)
         trainInfo.depart_at = depart_at
         if train.schedule and #train.schedule.records < 2 then
           trainInfo.depart_at = false
+        end
+        local station = train.station
+        if station and not global.station_count[force.name][station.backer_name] then
+          increaseStationCount(station)
         end
         update_cargo = true
         TickTable.insert(tick + update_rate,"updateTrains",trainInfo)
@@ -996,14 +1004,18 @@ function map_bounds(surface)
   return {{min_x*32,min_y*32},{max_x*32,max_y*32}}
 end
 
-function findStations(show)
+function findStations(show, reset)
   local surface = game.surfaces['nauvis']
   local bounds = map_bounds(surface)
 
   if show then
     debugDump("Searching stations..",true)
   end
-
+  if reset then
+    for force, _ in pairs(game.forces) do
+      global.station_count[force] = {}  
+    end  
+  end
   local count = 0
   for _, station in pairs(surface.find_entities_filtered{area=bounds, type="train-stop"}) do
     count = count + 1

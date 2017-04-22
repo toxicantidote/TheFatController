@@ -564,7 +564,7 @@ GUI = {
 
           local flow3 = window.add({name="flowButtons", type="flow", direction="horizontal"})
           flow3.add({type="button", name="alarmOK", caption={"msg-OK"}})
-          flow3.add({type="button", name="findCharacter", caption="Find character"})
+          flow3.add({type="button", name="scanStations", caption="Update stations", tooltip = "Scans the map for trainstops. Only needed if stations are missing in the filter window."})
 
           stationDuration.text = global.force_settings[game.players[player_index].force.name].stationDuration/3600
           signalDuration.text = global.force_settings[game.players[player_index].force.name].signalDuration/3600
@@ -897,6 +897,10 @@ on_gui_click.findCharacter = function(guiSettings, _, player)
     end
   end)
   if err then debugDump(err,true) end
+end
+
+on_gui_click.scanStations = function( _, _, _)
+  findStations(true, true)
 end
 
 on_gui_click.renameTrains = function(guiSettings, element, _)

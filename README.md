@@ -28,6 +28,13 @@ Be warned, if the player is not safe he can die, you can also run him over with 
 Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zyecAmcbxtM)
 
 #Changelog
+1.0.3
+
+ - update cargo display when leaving a station
+ - fixed missing stations in the filter window
+ - added a button to the alarm settings to refresh the stations in the filter window
+ - added czech translation for tooltips (thanks to EnrichSilen) 
+  
 1.0.2
 
  - added tooltips to almost all buttons
