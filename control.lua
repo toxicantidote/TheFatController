@@ -92,7 +92,6 @@ local function init_global()
   global.PAGE_SIZE = global.PAGE_SIZE or 60
   global.station_count = global.station_count or {}
   global.player_opened = global.player_opened or {}
-  global.opened_name = global.opened_name or {}
   global.items = global.items or {}
   global.force_settings = global.force_settings or {}
 end
@@ -262,6 +261,9 @@ local function on_configuration_changed(data)
       end
       if oldVersion < "1.0.3" then
         findStations(true, true)
+      end
+      if oldVersion < "2.0.1" then
+        global.opened_name = nil
       end
     end
     if not oldVersion or oldVersion < "0.4.0" then
@@ -772,10 +774,10 @@ function increaseStationCount(station)
   return global.station_count[force][name]
 end
 
-function on_station_rename(station, oldName)
-  --log(game.tick.." renamed "..event.old_name.." to "..event.new_name)
-  --if not event.entity.type == "train-stop" then return end
-  --local station, oldName, newName = event.entity, event.old_name, event.new_name
+function on_station_rename(event)
+  log(game.tick.." renamed "..event.old_name.." to "..event.entity.backer_name)
+  if not event.entity.type == "train-stop" then return end
+  local station, oldName = event.entity, event.old_name
   local oldc = decreaseStationCount(station, oldName)
   increaseStationCount(station)
   if oldc == 0 then
@@ -791,8 +793,6 @@ function on_player_opened(event)
     elseif event.entity.type == "cargo-wagon" and event.entity.train then
       --TODO do something here?
       return
-    elseif event.entity.type == "train-stop" then
-      global.opened_name[event.player_index] = event.entity.backer_name
     end
   end
 end
@@ -814,11 +814,6 @@ function on_player_closed(event)
       else
         GUI.update_single_traininfo(ti, true)
       end
-    elseif event.entity.type == "train-stop" then
-      if event.entity.backer_name ~= global.opened_name[event.player_index] then
-        on_station_rename(event.entity, global.opened_name[event.player_index])
-        global.opened_name[event.player_index] = nil
-      end
     end
   end
 end
@@ -832,6 +827,8 @@ end
 
 script.on_event(events.on_player_opened, on_player_opened)
 script.on_event(events.on_player_closed, on_player_closed)
+script.on_event(defines.events.on_entity_renamed, on_station_rename)
+
 
 if remote.interfaces.logistics_railway then
   script.on_event(remote.call("logistics_railway", "get_chest_created_event"), function(event)
