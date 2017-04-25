@@ -788,7 +788,7 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
       return
     end
     if player.vehicle then
-      game.raise_event(getOrLoadSwitchedEvent(), {carriage=player.vehicle})
+      script.raise_event(getOrLoadSwitchedEvent(), {carriage=player.vehicle})
     end
     global.character[element.player_index] = player.character
     swapPlayer(player,newFatControllerEntity(player))
@@ -801,7 +801,7 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
     global.character[element.player_index] = nil
     stop_following(guiSettings, player)
     if player.vehicle and player.vehicle.name == "farl" then
-      game.raise_event(defines.events.on_player_driving_changed_state, {tick=game.tick, player_index = player.index, name=defines.events.on_player_driving_changed_state})
+      script.raise_event(defines.events.on_player_driving_changed_state, {tick=game.tick, player_index = player.index, name=defines.events.on_player_driving_changed_state})
     end
     return
   end

@@ -393,7 +393,7 @@ function on_player_driving_changed_state(event)
           global.character[player.index] = nil
           stop_following(guiSettings, player)
           if player.vehicle and player.vehicle.name == "farl" then
-            game.raise_event(defines.events.on_player_driving_changed_state, {tick=game.tick, player_index = player.index, name=defines.events.on_player_driving_changed_state})
+            script.raise_event(defines.events.on_player_driving_changed_state, {tick=game.tick, player_index = player.index, name=defines.events.on_player_driving_changed_state})
           end
         else
           if not global.to_swap then global.to_swap = {} end
@@ -484,11 +484,11 @@ function on_tick(event)
       for pi, player in pairs(game.players) do
         if player.connected then
           if player.opened ~= nil and not global.player_opened[pi] then
-            game.raise_event(events["on_player_opened"], {entity=player.opened, player_index=pi})
+            script.raise_event(events["on_player_opened"], {entity=player.opened, player_index=pi})
             global.player_opened[pi] = player.opened
           end
           if global.player_opened[pi] and player.opened == nil then
-            game.raise_event(events["on_player_closed"], {entity=global.player_opened[pi], player_index=pi})
+            script.raise_event(events["on_player_closed"], {entity=global.player_opened[pi], player_index=pi})
             global.player_opened[pi] = nil
           end
         end
@@ -697,7 +697,7 @@ function on_train_changed_state(event)
         end
       elseif train.state == train_states.wait_station then
         local depart_at = false;
-        local conditions = train.schedule.records[train.schedule.current].wait_conditions
+        local conditions = train.schedule and train.schedule.records[train.schedule.current].wait_conditions
         if conditions then
           for _, condition in pairs(conditions) do
             if condition.type == "time" then
@@ -736,7 +736,7 @@ function on_train_changed_state(event)
         trainInfo.depart_at = false
       end
       Alerts.check_noFuel(trainInfo)
-      local station = (train.schedule.records and #train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
+      local station = (train.schedule and train.schedule.records and #train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
       trainInfo.current_station = station
       GUI.update_single_traininfo(trainInfo, update_cargo)
     else
@@ -823,7 +823,7 @@ function on_player_closed(event)
   end
 end
 
---alternative for script.on_event/game.raise_event ??
+--alternative for script.on_event/script.raise_event ??
 --remote.call("EventsPlus", "on_event", "on_player_closed", {name="fat", callback="on_player_closed"})
 
 --script.on_event(remote.call("EventsPlus", "getEvent", "on_player_opened"), on_player_opened)

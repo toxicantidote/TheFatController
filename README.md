@@ -28,6 +28,10 @@ Be warned, if the player is not safe he can die, you can also run him over with 
 Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zyecAmcbxtM)
 
 #Changelog
+2.0.0
+
+ - version for Factorio 0.15.x
+
 1.0.3
 
  - update cargo display when leaving a station
