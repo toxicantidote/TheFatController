@@ -775,7 +775,6 @@ function increaseStationCount(station)
 end
 
 function on_station_rename(event)
-  log(game.tick.." renamed "..event.old_name.." to "..event.entity.backer_name)
   if not event.entity.type == "train-stop" then return end
   local station, oldName = event.entity, event.old_name
   local oldc = decreaseStationCount(station, oldName)
@@ -947,9 +946,16 @@ function swapPlayer(player, character)
   if player.character ~= nil and player.character.valid and player.character.name == "fatcontroller" then
     player.character.destroy()
   end
+  --if element then
+  --assert(element.valid)
+  --end
   if character.valid and character ~= player.character then
     player.character = character
   end
+--element becomes invalid if the player is in a vehicle
+  --if element then
+  -- assert(element.valid)
+  --end
 end
 
 function newFatControllerEntity(player)
@@ -1010,8 +1016,8 @@ function findStations(show, reset)
   end
   if reset then
     for force, _ in pairs(game.forces) do
-      global.station_count[force] = {}  
-    end  
+      global.station_count[force] = {}
+    end
   end
   local count = 0
   for _, station in pairs(surface.find_entities_filtered{area=bounds, type="train-stop"}) do
@@ -1118,6 +1124,17 @@ interface = {
     global.station_count = nil
     on_init()
     findStations(true)
+  end,
+
+  fixCharacter = function()
+    local index = game.player.index
+    if global.character[index] then
+      game.player.character = global.character[index]
+      global.character.index = nil
+    else
+      game.player.print("No character found.")
+    end
   end
 }
+commands.add_command("fat_fix_character", "Try to return control to the player after a FatController error.", interface.fixCharacter)
 remote.add_interface("fat", interface)

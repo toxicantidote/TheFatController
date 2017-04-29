@@ -788,7 +788,9 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
       return
     end
     if player.vehicle then
-      script.raise_event(getOrLoadSwitchedEvent(), {carriage=player.vehicle})
+      player.print("Can't follow a train while already in a vehicle. Please leave the train first.")
+      return
+      --script.raise_event(getOrLoadSwitchedEvent(), {carriage=player.vehicle})
     end
     global.character[element.player_index] = player.character
     swapPlayer(player,newFatControllerEntity(player))
