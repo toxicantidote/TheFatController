@@ -83,11 +83,10 @@ GUI = {
       end
 
       if trainInfo.alarm.active then
-        local style = "fatcontroller_icon_" .. trainInfo.alarm.type
-        if trainGui.buttons[trainInfo.guiName .. "_alarm"] == nil then
-          trainGui.buttons.add({type="checkbox", name=trainInfo.guiName .. "_alarm", state=false, style=style})
+        if trainGui.buttons[trainInfo.guiName .. "_alarmButton"] then
+          trainGui.buttons[trainInfo.guiName .. "_alarmButton"].sprite = "fat_" .. trainInfo.alarm.type
         else
-          trainGui.buttons[trainInfo.guiName .. "_alarm"].style = style
+          trainGui.buttons.add({type = "sprite-button", name = trainInfo.guiName .. "_alarmButton", sprite = "fat_" .. trainInfo.alarm.type, style="fatcontroller_sprite_button_style"})
         end
       end
 
@@ -190,16 +189,17 @@ GUI = {
         for _, gui in pairs(trainInfo.opened_guis) do
           if gui and gui.valid then
             if alarm then
-              local style = "fatcontroller_icon_" .. trainInfo.alarm.type
-              --local style = "fatcontroller_icon_timeToStation"
-              if gui.buttons[trainInfo.guiName .. "_alarm"] then
-                gui.buttons[trainInfo.guiName .. "_alarm"].style = style
+              if gui.buttons[trainInfo.guiName .. "_alarmButton"] then
+                gui.buttons[trainInfo.guiName .. "_alarmButton"].sprite = "fat_" .. trainInfo.alarm.type
               else
-                gui.buttons.add({type="checkbox", name=trainInfo.guiName .. "_alarm", state=false, style=style})
+                gui.buttons.add({type = "sprite-button", name = trainInfo.guiName .. "_alarmButton", sprite = "fat_" .. trainInfo.alarm.type, style="fatcontroller_sprite_button_style"})
               end
             else
               if gui.buttons[trainInfo.guiName .. "_alarm"] then
                 gui.buttons[trainInfo.guiName .. "_alarm"].destroy()
+              end
+              if gui.buttons[trainInfo.guiName .. "_alarmButton"] then
+                gui.buttons[trainInfo.guiName .. "_alarmButton"].destroy()
               end
             end
             if update_cargo and not cargo_updated then
@@ -318,7 +318,7 @@ GUI = {
           refreshGui = on_gui_click.toggleFollowMode(guiSettings, event.element, player)
         elseif endsWith(event.element.name,"_stationFilter") then
           refreshGui = on_gui_click.stationFilter(guiSettings, event.element, player)
-        elseif endsWith(event.element.name,"_alarm") then
+        elseif endsWith(event.element.name,"_alarmButton") then
           refreshGui = on_gui_click.unsetAlarm(guiSettings, event.element, player)
         elseif endsWith(event.element.name,"_renameTrain") then
           refreshGui = on_gui_click.renameTrain(guiSettings, event.element, player)

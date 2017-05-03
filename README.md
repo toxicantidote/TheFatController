@@ -28,6 +28,12 @@ Be warned, if the player is not safe he can die, you can also run him over with 
 Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zyecAmcbxtM)
 
 #Changelog
+
+2.0.3
+
+ - increased size of the alarm icons
+ - potential fix for an error when leaving a train
+
 2.0.2
 
  - disabled the ability to follow a train when inside a vehicle, investigating if it's a Factorio bug or not

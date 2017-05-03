@@ -77,6 +77,13 @@ data.raw["gui-style"].default["fatcontroller_button_style"] =
       }
     }
   }
+data.raw["gui-style"].default["fatcontroller_sprite_button_style"] =
+  {
+    type = "button_style",
+    parent = "fatcontroller_button_style",
+    width=32,
+    height=35
+  }
 
 data.raw["gui-style"].default["fatcontroller_main_button_style"] =
   {
@@ -304,34 +311,13 @@ data.raw["gui-style"].default["fatcontroller_icon_style"] =
   }
 local alarms = {"noFuel", "noPath", "timeAtSignal", "timeToStation"}
 for _, icon in pairs(alarms) do
-  local style =
+  data:extend({
     {
-      type = "checkbox_style",
-      parent = "fatcontroller_icon_style",
-      default_background =
-      {
-        filename = "__TheFatController__/graphics/icons/"..icon..".png",
-        width = 32,
-        height = 32
-      },
-      hovered_background =
-      {
-        filename = "__TheFatController__/graphics/icons/"..icon..".png",
-        width = 32,
-        height = 32
-      },
-      checked_background =
-      {
-        filename = "__TheFatController__/graphics/icons/"..icon..".png",
-        width = 32,
-        height = 32
-      },
-      clicked_background =
-      {
-        filename = "__TheFatController__/graphics/icons/"..icon..".png",
-        width = 32,
-        height = 32
-      }
-    }
-  data.raw["gui-style"].default["fatcontroller_icon_"..icon] = style
+      type="sprite",
+      name="fat_" .. icon,
+      filename = "__TheFatController__/graphics/icons/"..icon..".png",
+      priority = "extra-high-no-scale",
+      width = 32,
+      height = 32,
+    }})
 end

@@ -206,6 +206,7 @@ TrainList.get_traininfo = function(force, train)
 end
 
 TrainList.update_stations = function(ti)
+  if not ti.train or not ti.train.valid then return end
   local records = (ti.train.schedule and ti.train.schedule.records and #ti.train.schedule.records > 0) and ti.train.schedule.records or false
   ti.stations = {}
   if not records then return end
