@@ -33,6 +33,7 @@ Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zy
 
  - increased size of the alarm icons
  - potential fix for an error when leaving a train
+ - removed support for [Railtanker](https://mods.factorio.com/mods/Choumiko/RailTanker)
 
 2.0.2
 
