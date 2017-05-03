@@ -32,6 +32,7 @@ Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zy
 
  - disabled the ability to follow a train when inside a vehicle, investigating if it's a Factorio bug or not
  - added console command to try and return control to the player: /fat_fix_character
+
 2.0.0
 
  - version for Factorio 0.15.x

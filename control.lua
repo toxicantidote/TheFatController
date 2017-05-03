@@ -330,30 +330,8 @@ function getHighestInventoryStack(trainInfo)
   if trainInfo and trainInfo.train and trainInfo.train.valid and trainInfo.train.cargo_wagons then
     local itemsCount = 0
     local largestItem = {}
-    local items = {}
-    for i, carriage in pairs(trainInfo.train.cargo_wagons) do
-      if carriage.name == "rail-tanker" then
-        local _, liquid = pcall(remote.call, "railtanker","getLiquidByWagon",carriage)
-        if liquid and liquid.amount then
-          local name = liquid.type
-          if name then
-            local count = math.floor(liquid.amount)
-            if not items[name] then
-              items[name] = 0
-            end
-            items[name] = items[name] + count
-          end
-        end
-      else
-        if trainInfo.proxy_chests and trainInfo.proxy_chests[i] then
-          --wagon is used by logistics railway
-          local contents = trainInfo.proxy_chests[i].get_inventory(defines.inventory.chest).get_contents()
-          items = addInventoryContents(items, contents)
-        else
-          items = addInventoryContents(items,carriage.get_inventory(1).get_contents())
-        end
-      end
-    end
+    local items = trainInfo.train.get_contents()
+		--TODO fluid wagons
     for name, count in pairs(items) do
       if largestItem.count == nil or largestItem.count < count then
         largestItem.name = name
@@ -828,43 +806,6 @@ script.on_event(events.on_player_opened, on_player_opened)
 script.on_event(events.on_player_closed, on_player_closed)
 script.on_event(defines.events.on_entity_renamed, on_station_rename)
 
-
-if remote.interfaces.logistics_railway then
-  script.on_event(remote.call("logistics_railway", "get_chest_created_event"), function(event)
-    local status, err = pcall(function()
-      local chest = event.chest
-      local wagon_index = event.wagon_index
-      local train = event.train
-      --debugDump("Chest: "..util.positiontostr(chest.position),true)
-      local ti = TrainList.get_traininfo(train.carriages[1].force,train)
-      if ti then
-        if not ti.proxy_chests then ti.proxy_chests = {} end
-        ti.proxy_chests[wagon_index] = chest
-      end
-    end)
-    if not status then
-      pauseError(err)
-    end
-  end)
-
-  script.on_event(remote.call("logistics_railway", "get_chest_destroyed_event"), function(event)
-    local status, err = pcall(function()
-      local wagon_index = event.wagon_index
-      local train = event.train
-      --debugDump("destroyed a chest",true)
-      local ti = TrainList.get_traininfo(train.carriages[1].force,train)
-      if ti then
-        if not ti.proxy_chests then return end
-        ti.proxy_chests[wagon_index] = nil
-        if #ti.proxy_chests == 0 then ti.proxy_chests = nil end
-      end
-    end)
-    if not status then
-      pauseError(err)
-    end
-  end)
-end
-
 function getPageCount(guiSettings, player)
   local trains = (guiSettings.activeFilterList or guiSettings.filter_alarms) and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
   if not trains then error("no trains", 2) end
@@ -946,13 +887,22 @@ function swapPlayer(player, character)
   if player.character ~= nil and player.character.valid and player.character.name == "fatcontroller" then
     player.character.destroy()
   end
+  --[[
+/c    local gui = game.player.gui.top.add{type="label", caption="Test12"}
+    local fake_character = game.player.surface.create_entity({name="player", position={x=game.player.position.x,y=game.player.position.y+10}, force=game.player.force})
+    local vehicle = game.player.vehicle
+    local old_character = game.player.character
+    game.player.character = fake_character
+    if vehicle then vehicle.passenger = old_character end
+    if gui.valid then game.player.print("Gui valid") gui.destroy() else game.player.print("Gui invalid") end
+    --]]
   --if element then
   --assert(element.valid)
   --end
   if character.valid and character ~= player.character then
     player.character = character
   end
---element becomes invalid if the player is in a vehicle
+  --element becomes invalid if the player is in a vehicle
   --if element then
   -- assert(element.valid)
   --end
@@ -1136,5 +1086,7 @@ interface = {
     end
   end
 }
+
 commands.add_command("fat_fix_character", "Try to return control to the player after a FatController error.", interface.fixCharacter)
+
 remote.add_interface("fat", interface)
