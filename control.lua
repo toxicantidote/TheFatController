@@ -327,11 +327,24 @@ function addInventoryContents(invA, invB)
 end
 
 function getHighestInventoryStack(trainInfo)
-  if trainInfo and trainInfo.train and trainInfo.train.valid and trainInfo.train.cargo_wagons then
+  if trainInfo and trainInfo.train and trainInfo.train.valid then
     local itemsCount = 0
     local largestItem = {}
-    local items = trainInfo.train.get_contents()
-		--TODO fluid wagons
+    local items = {}
+    items = addInventoryContents(items, trainInfo.train.get_contents())
+    local fluid_wagons = trainInfo.train.fluid_wagons
+    for _, wagon in pairs(fluid_wagons) do
+      for i=1, 3 do
+        local fluidbox = wagon.fluidbox[i]
+        if fluidbox then
+          if not items[fluidbox.type] then
+            items[fluidbox.type] = fluidbox.amount
+          else
+            items[fluidbox.type] = items[fluidbox.type] + fluidbox.amount
+          end
+        end
+      end
+    end
     for name, count in pairs(items) do
       if largestItem.count == nil or largestItem.count < count then
         largestItem.name = name
@@ -339,6 +352,7 @@ function getHighestInventoryStack(trainInfo)
       end
       itemsCount = itemsCount + 1
     end
+    largestItem.count = largestItem.count and math.ceil(largestItem.count)
     return largestItem, itemsCount
   end
 end
@@ -888,13 +902,21 @@ function swapPlayer(player, character)
     player.character.destroy()
   end
   --[[
+
 /c    local gui = game.player.gui.top.add{type="label", caption="Test12"}
+
     local fake_character = game.player.surface.create_entity({name="player", position={x=game.player.position.x,y=game.player.position.y+10}, force=game.player.force})
+
     local vehicle = game.player.vehicle
+
     local old_character = game.player.character
+
     game.player.character = fake_character
+
     if vehicle then vehicle.passenger = old_character end
+
     if gui.valid then game.player.print("Gui valid") gui.destroy() else game.player.print("Gui invalid") end
+
     --]]
   --if element then
   --assert(element.valid)

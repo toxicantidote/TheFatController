@@ -29,6 +29,10 @@ Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zy
 
 #Changelog
 
+2.0.4
+
+ - added display of liquids in fluid wagons
+
 2.0.3
 
  - increased size of the alarm icons
