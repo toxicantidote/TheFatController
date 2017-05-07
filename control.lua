@@ -960,28 +960,8 @@ function saveVar(var, name, varname)
   game.write_file("FAT"..n..".lua", serpent.block(var or global, {name=varname or "global"}))
 end
 
-function map_bounds(surface)
-  -- determine map size
-  local min_x, min_y, max_x, max_y = 0, 0, 0, 0
-  for c in surface.get_chunks() do
-    if c.x < min_x then
-      min_x = c.x
-    elseif c.x > max_x then
-      max_x = c.x
-    end
-    if c.y < min_y then
-      min_y = c.y
-    elseif c.y > max_y then
-      max_y = c.y
-    end
-  end
-  -- create bounding box covering entire generated map
-  return {{min_x*32,min_y*32},{max_x*32,max_y*32}}
-end
-
 function findStations(show, reset)
   local surface = game.surfaces['nauvis']
-  local bounds = map_bounds(surface)
 
   if show then
     debugDump("Searching stations..",true)
@@ -992,7 +972,7 @@ function findStations(show, reset)
     end
   end
   local count = 0
-  for _, station in pairs(surface.find_entities_filtered{area=bounds, type="train-stop"}) do
+  for _, station in pairs(surface.find_entities_filtered{type="train-stop"}) do
     count = count + 1
     increaseStationCount(station)
   end
@@ -1004,16 +984,15 @@ end
 
 function findTrains(show)
   local surface = game.surfaces['nauvis']
-  local bounds = map_bounds(surface)
 
   if show then
     debugDump("Searching trains..",true)
   end
-
-  for _, loco in pairs(surface.find_entities_filtered{area=bounds, type="locomotive"}) do
-    if not TrainList.get_traininfo(loco.force, loco.train) then
-      local trainInfo = TrainList.add_train(loco.train)
-      if loco.train.state == defines.train_state.wait_station then
+  local trains = surface.get_trains()
+  for _, train in pairs(trains) do
+    if not TrainList.get_traininfo(train.carriages[1].force, train) then
+      local trainInfo = TrainList.add_train(train)
+      if train.state == defines.train_state.wait_station then
         TickTable.insert(game.tick+update_rate,"updateTrains",trainInfo)
       end
     end

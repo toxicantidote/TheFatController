@@ -29,6 +29,10 @@ Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zy
 
 #Changelog
 
+2.0.5
+
+ - fixed error when trains get their schedule deleted by another mod
+ 
 2.0.4
 
  - added display of liquids in fluid wagons
@@ -59,19 +63,4 @@ Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zy
 
  - added tooltips to almost all buttons
 
-1.0.1
-
- - fixed time between stations alert not working correctly with SmartTrains goto rules
-
-1.0.0
-
- - version for Factorio 0.14.x
-
-0.4.20
-
- - fixed error with Stop/Resume button
-
-0.4.19
-
- - added graphics for main and player button
- - fixed Stop/Resume all not always working
+ [Full Changelog](https://mods.factorio.com/mods/Choumiko/TheFatController/discussion/11372)

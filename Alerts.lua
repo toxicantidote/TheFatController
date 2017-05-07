@@ -8,7 +8,7 @@ Alerts.set_alert = function(trainInfo, type, time)
   trainInfo.alarm.active = true
   trainInfo.alarm.type = type
   trainInfo.alarm.message = time and ({"msg-alarm-"..type, time}) or {"msg-alarm-"..type}
-  if type == "noPath" and trainInfo.train.schedule.records and #trainInfo.train.schedule.records > 0 then
+  if type == "noPath" and trainInfo.train.schedule and trainInfo.train.schedule.records and #trainInfo.train.schedule.records > 0 then
     local station = trainInfo.train.schedule.records[trainInfo.train.schedule.current].station
     trainInfo.alarm.message = {"msg-alarm-"..type, station}
   end
