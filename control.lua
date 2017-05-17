@@ -265,6 +265,13 @@ local function on_configuration_changed(data)
       if oldVersion < "2.0.1" then
         global.opened_name = nil
       end
+      if oldVersion < "2.0.6" then
+        for _, trains in pairs(global.trainsByForce) do
+          for _, ti in pairs(trains) do
+            Alerts.check_noFuel(ti,true)
+          end
+        end
+      end
     end
     if not oldVersion or oldVersion < "0.4.0" then
       findTrains(true)
