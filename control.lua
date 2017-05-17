@@ -449,15 +449,21 @@ function on_tick(event)
     end
 
     if global.updateTrains[tick] then
+      local fuel_status_changed = false
       for _, ti in pairs(global.updateTrains[tick]) do
         if ti.train and ti.train.valid then
-          Alerts.check_noFuel(ti)
-          GUI.update_single_traininfo(ti, true)
+          fuel_status_changed = fuel_status_changed or Alerts.check_noFuel(ti, true)
+          --GUI.update_single_traininfo(ti, true)
           if ti.last_state == defines.train_state.wait_station then
             TickTable.insert(tick + update_rate,"updateTrains",ti)
           else
             ti.depart_at = false
           end
+        end
+      end
+      if fuel_status_changed then
+        for _, force in pairs(game.forces) do
+          GUI.refreshAllTrainInfoGuis(force)
         end
       end
       global.updateTrains[tick] = nil

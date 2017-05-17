@@ -195,9 +195,6 @@ GUI = {
                 gui.buttons.add({type = "sprite-button", name = trainInfo.guiName .. "_alarmButton", sprite = "fat_" .. trainInfo.alarm.type, style="fatcontroller_sprite_button_style"})
               end
             else
-              if gui.buttons[trainInfo.guiName .. "_alarm"] then
-                gui.buttons[trainInfo.guiName .. "_alarm"].destroy()
-              end
               if gui.buttons[trainInfo.guiName .. "_alarmButton"] then
                 gui.buttons[trainInfo.guiName .. "_alarmButton"].destroy()
               end

@@ -4,7 +4,7 @@
 --- Alerts
 -- @type Alerts
 Alerts = {}
-Alerts.set_alert = function(trainInfo, type, time)
+Alerts.set_alert = function(trainInfo, type, time, skipUpdate)
   trainInfo.alarm.active = true
   trainInfo.alarm.type = type
   trainInfo.alarm.message = time and ({"msg-alarm-"..type, time}) or {"msg-alarm-"..type}
@@ -12,7 +12,9 @@ Alerts.set_alert = function(trainInfo, type, time)
     local station = trainInfo.train.schedule.records[trainInfo.train.schedule.current].station
     trainInfo.alarm.message = {"msg-alarm-"..type, station}
   end
-  Alerts.update_filters()
+  if not skipUpdate then
+    Alerts.update_filters()
+  end
   if type ~= "noFuel" or trainInfo.alarm.last_message+600 < game.tick then
     Alerts.alert_force(trainInfo.force, trainInfo)
   end
@@ -38,32 +40,37 @@ Alerts.check_alerts = function(trainInfo)
   return update
 end
 
-Alerts.check_noFuel = function(trainInfo)
+Alerts.check_noFuel = function(trainInfo, skipUpdate)
   local noFuel = false
   local locos = trainInfo.train.locomotives
   for _,carriage in pairs(locos.front_movers) do
-    if carriage.get_inventory(1).is_empty() then
+    if carriage.get_fuel_inventory().is_empty() then
       noFuel = true
       break
     end
   end
   if not noFuel then
     for _,carriage in pairs(locos.back_movers) do
-      if carriage.get_inventory(1).is_empty() then
+      if carriage.get_fuel_inventory().is_empty() then
         noFuel = true
         break
       end
     end
   end
-  if noFuel then
-    Alerts.set_alert(trainInfo,"noFuel")
-  else
-    if trainInfo.alarm.active and trainInfo.alarm.type == "noFuel" then
-      trainInfo.alarm.active = false
-      trainInfo.alarm.type = false
-      Alerts.update_filters()
+  local old_noFuel = trainInfo.noFuel
+    if noFuel then
+      Alerts.set_alert(trainInfo,"noFuel",false, skipUpdate)
+    else
+      if trainInfo.alarm.active and trainInfo.alarm.type == "noFuel" then
+        trainInfo.alarm.active = false
+        trainInfo.alarm.type = false
+        if not skipUpdate then
+          Alerts.update_filters()
+        end
+      end
     end
-  end
+    trainInfo.noFuel = noFuel
+    return old_noFuel ~= trainInfo.noFuel
 end
 
 Alerts.reset_alarm = function(trainInfo)
@@ -78,13 +85,15 @@ end
 
 Alerts.update_filters = function()
   for _, player in pairs(game.players) do
-    local guiSettings = global.gui[player.index]
-    if guiSettings.filter_alarms then
-      guiSettings.filtered_trains = TrainList.get_filtered_trains(player.force, guiSettings)
-      guiSettings.pageCount = getPageCount(guiSettings, player)
-      if guiSettings.fatControllerGui.trainInfo then
-        GUI.newTrainInfoWindow(guiSettings, player)
-        GUI.refreshTrainInfoGui(guiSettings, player)
+    if player.connected then
+      local guiSettings = global.gui[player.index]
+      if guiSettings.filter_alarms then
+        guiSettings.filtered_trains = TrainList.get_filtered_trains(player.force, guiSettings)
+        guiSettings.pageCount = getPageCount(guiSettings, player)
+        if guiSettings.fatControllerGui.trainInfo then
+          GUI.newTrainInfoWindow(guiSettings, player)
+          GUI.refreshTrainInfoGui(guiSettings, player)
+        end
       end
     end
   end
