@@ -28,6 +28,11 @@ Be warned, if the player is not safe he can die, you can also run him over with 
 Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zyecAmcbxtM)
 
 #Changelog
+2.0.7
+
+ - fixed error when updating the mod
+ - updated russian translation
+
 2.0.6
 
  - fixed performance when filtering by Alarm with a lot of trains

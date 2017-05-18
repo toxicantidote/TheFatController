@@ -268,7 +268,9 @@ local function on_configuration_changed(data)
       if oldVersion < "2.0.6" then
         for _, trains in pairs(global.trainsByForce) do
           for _, ti in pairs(trains) do
-            Alerts.check_noFuel(ti,true)
+            if ti.train and ti.train.valid then
+              Alerts.check_noFuel(ti,true)
+            end
           end
         end
       end
@@ -916,19 +918,35 @@ function swapPlayer(player, character)
   end
   --[[
 
+
+
 /c    local gui = game.player.gui.top.add{type="label", caption="Test12"}
+
+
 
     local fake_character = game.player.surface.create_entity({name="player", position={x=game.player.position.x,y=game.player.position.y+10}, force=game.player.force})
 
+
+
     local vehicle = game.player.vehicle
+
+
 
     local old_character = game.player.character
 
+
+
     game.player.character = fake_character
+
+
 
     if vehicle then vehicle.passenger = old_character end
 
+
+
     if gui.valid then game.player.print("Gui valid") gui.destroy() else game.player.print("Gui invalid") end
+
+
 
     --]]
   --if element then

@@ -41,6 +41,9 @@ Alerts.check_alerts = function(trainInfo)
 end
 
 Alerts.check_noFuel = function(trainInfo, skipUpdate)
+  if not trainInfo.train or not trainInfo.train.valid then
+    return false
+  end
   local noFuel = false
   local locos = trainInfo.train.locomotives
   for _,carriage in pairs(locos.front_movers) do
