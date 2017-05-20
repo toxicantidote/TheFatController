@@ -896,11 +896,16 @@ on_entity_died = function (event)
     end
     return
   end
-  if event.entity.name ~= "fatcontroller" then
+  if event.entity.type == "player" and event.entity.name ~= "fatcontroller" then
+    --game.print(game.tick .. " " .. event.entity.type)
     -- player died
     for i,guiSettings in pairs(global.gui) do
       -- check if character is still valid next tick for players remote controlling a train
       if guiSettings.followEntity then
+        --if event.entity == global.character[i] then
+        --game.print("Player " .. game.players[i].name .. " died!")
+        --game.print(util.distance(game.players[i].position, event.entity.position))
+        --end
         global.dead_players = global.dead_players or {}
         global.dead_players[i] = global.character[i]
       end
@@ -910,44 +915,31 @@ end
 
 script.on_event(defines.events.on_entity_died, on_entity_died)
 
+--function on_pre_player_died(event)
+--game.print("pre " .. serpent.line(event))
+--if event.cause then
+--game.print(serpent.line(event.cause.type))
+--end
+--end
+
+--script.on_event(defines.events.on_pre_player_died, on_pre_player_died)
+
 function swapPlayer(player, character)
   --player.teleport(character.position)
   if not player.connected then return end
+  if player.walking_state.walking then
+    player.walking_state = {walking = false, direction = player.walking_state.direction}
+  end
   if player.character ~= nil and player.character.valid and player.character.name == "fatcontroller" then
     player.character.destroy()
   end
-  --[[
-
-
-
-/c    local gui = game.player.gui.top.add{type="label", caption="Test12"}
-
-
-
+  --[[/c    local gui = game.player.gui.top.add{type="label", caption="Test12"}
     local fake_character = game.player.surface.create_entity({name="player", position={x=game.player.position.x,y=game.player.position.y+10}, force=game.player.force})
-
-
-
     local vehicle = game.player.vehicle
-
-
-
     local old_character = game.player.character
-
-
-
     game.player.character = fake_character
-
-
-
     if vehicle then vehicle.passenger = old_character end
-
-
-
     if gui.valid then game.player.print("Gui valid") gui.destroy() else game.player.print("Gui invalid") end
-
-
-
     --]]
   --if element then
   --assert(element.valid)

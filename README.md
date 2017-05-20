@@ -28,6 +28,10 @@ Be warned, if the player is not safe he can die, you can also run him over with 
 Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zyecAmcbxtM)
 
 #Changelog
+2.0.8
+
+ - stop player movement when starting to follow a train
+
 2.0.7
 
  - fixed error when updating the mod
