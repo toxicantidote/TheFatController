@@ -462,10 +462,11 @@ function on_tick(event)
       for _, ti in pairs(global.updateTrains[tick]) do
         if ti.train and ti.train.valid then
           fuel_status_changed = fuel_status_changed or Alerts.check_noFuel(ti, true)
-          --GUI.update_single_traininfo(ti, true)
           if ti.last_state == defines.train_state.wait_station then
+            GUI.update_single_traininfo(ti, true)
             TickTable.insert(tick + update_rate,"updateTrains",ti)
           else
+            GUI.update_single_traininfo(ti, true)
             ti.depart_at = false
           end
         end

@@ -30,6 +30,7 @@ Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zy
 #Changelog
 2.0.8
 
+ - fixed trains waiting at a station not updating the cargo display
  - stop player movement when starting to follow a train
 
 2.0.7
