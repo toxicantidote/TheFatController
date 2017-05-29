@@ -31,6 +31,7 @@ Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zy
 2.0.9
 
  - fixed error when trying to switch to a train on a different surface
+ - updated czech translation
 
 2.0.8
 
