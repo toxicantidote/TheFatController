@@ -4,7 +4,9 @@ require "Alerts"
 require "TrainList"
 require "GUI"
 
-MOD_NAME = "TheFatController"
+local v = require 'semver'
+
+MOD_NAME = "TheFatController" --luacheck: allow defined top
 
 update_rate = 60
 update_rate_manual = 90
@@ -154,10 +156,15 @@ local function on_configuration_changed(data)
   local oldVersion
   if data.mod_changes[MOD_NAME] then
     newVersion = data.mod_changes[MOD_NAME].new_version
+    newVersion = v(newVersion)
     oldVersion = data.mod_changes[MOD_NAME].old_version
     if oldVersion then
-      debugDump("Updating TheFatController from "..oldVersion.." to "..newVersion,true)
-      if oldVersion < "0.4.0" then
+      oldVersion = v(oldVersion)
+      log(tostring(oldVersion) .. ' < '  .. tostring(newVersion) .. ' ' .. tostring(oldVersion < newVersion))
+      log(tostring(oldVersion) .. ' == ' .. tostring(newVersion) .. ' ' .. tostring(oldVersion == newVersion))
+      log(tostring(oldVersion) .. ' > ' .. tostring(newVersion) .. ' ' .. tostring(oldVersion > newVersion))
+      debugDump("Updating TheFatController from ".. tostring(oldVersion) .. " to " .. tostring(newVersion), true)
+      if oldVersion < v'0.4.0' then
         debugDump("Resetting FatController settings",true)
         local tmp = {}
         for i, _ in pairs(game.players) do
@@ -175,8 +182,8 @@ local function on_configuration_changed(data)
         end
       end
       on_init()
-      if oldVersion > "0.4.0" then
-        if oldVersion < "0.4.12" then
+      if oldVersion > v'0.4.0' then
+        if oldVersion < v'0.4.12' then
           init_forces()
           for _, force in pairs(game.forces) do
             TrainList.remove_invalid(force,true)
@@ -201,7 +208,7 @@ local function on_configuration_changed(data)
             end
           end
         end
-        if oldVersion < "0.4.14" then
+        if oldVersion < v'0.4.14' then
           for _, guiSetting in pairs(global.gui) do
             if guiSetting.renameTrains == nil then
               guiSetting.renameTrains = false
@@ -209,7 +216,7 @@ local function on_configuration_changed(data)
             end
           end
         end
-        if oldVersion < "0.4.15" then
+        if oldVersion < v'0.4.15' then
           for _, guiSetting in pairs(global.gui) do
             if guiSetting.show_names == nil then
               guiSetting.show_names = false
@@ -229,7 +236,7 @@ local function on_configuration_changed(data)
           end
         end
 
-        if oldVersion < "0.4.17" then
+        if oldVersion < v'0.4.17' then
           findTrains(true)
           for _, force in pairs(game.forces) do
             TrainList.remove_invalid(force,true)
@@ -254,18 +261,18 @@ local function on_configuration_changed(data)
         end
       end
 
-      if oldVersion < "0.4.19" then
+      if oldVersion < v'0.4.19' then
         for _, gui in pairs(global.gui) do
           GUI.refresh_gui(gui)
         end
       end
-      if oldVersion < "1.0.3" then
+      if oldVersion < v'1.0.3' then
         findStations(true, true)
       end
-      if oldVersion < "2.0.1" then
+      if oldVersion < v'2.0.1' then
         global.opened_name = nil
       end
-      if oldVersion < "2.0.6" then
+      if oldVersion < v'2.0.6' then
         for _, trains in pairs(global.trainsByForce) do
           for _, ti in pairs(trains) do
             if ti.train and ti.train.valid then
@@ -275,10 +282,10 @@ local function on_configuration_changed(data)
         end
       end
     end
-    if not oldVersion or oldVersion < "0.4.0" then
+    if not oldVersion or oldVersion < v'0.4.0' then
       findTrains(true)
     end
-    global.version = newVersion
+    global.version = tostring(newVersion)
   end
   --reset item cache if a mod has changed
   global.items = {}
@@ -934,14 +941,15 @@ function swapPlayer(player, character)
   if player.character ~= nil and player.character.valid and player.character.name == "fatcontroller" then
     player.character.destroy()
   end
-  --[[/c    local gui = game.player.gui.top.add{type="label", caption="Test12"}
+--[[
+  /c    local gui = game.player.gui.top.add{type="label", caption="Test12"}
     local fake_character = game.player.surface.create_entity({name="player", position={x=game.player.position.x,y=game.player.position.y+10}, force=game.player.force})
     local vehicle = game.player.vehicle
     local old_character = game.player.character
     game.player.character = fake_character
     if vehicle then vehicle.passenger = old_character end
     if gui.valid then game.player.print("Gui valid") gui.destroy() else game.player.print("Gui invalid") end
-    --]]
+--]]
   --if element then
   --assert(element.valid)
   --end

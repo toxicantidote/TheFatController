@@ -75,7 +75,10 @@ GUI = {
       end
 
       if trainGui.buttons[trainInfo.guiName .. "_toggleFollowMode"] == nil then
-        trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleFollowMode", caption={"text-controlbutton"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_controlbutton"}})
+        trainGui.buttons.add({
+          type="button", name=trainInfo.guiName .. "_toggleFollowMode", caption={"text-controlbutton"},
+          style="fatcontroller_button_style", tooltip = {"fat_tooltip_controlbutton"}
+        })
       end
 
       if guiSettings.renameTrains then
@@ -377,7 +380,9 @@ GUI = {
       end
 
       if newGui.trainInfoControls.filterButtons.clearStationFilter == nil then
-        newGui.trainInfoControls.filterButtons.add({type="button", name="clearStationFilter", caption={"text-clear-filter"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_clearFilters"}})
+        newGui.trainInfoControls.filterButtons.add({
+          type="button", name="clearStationFilter", caption={"text-clear-filter"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_clearFilters"}
+        })
       end
 
       if newGui.trainInfoControls.alarm == nil then
@@ -393,7 +398,10 @@ GUI = {
       end
 
       if newGui.trainInfoControls.control.toggleButton == nil then
-        newGui.trainInfoControls.control.add({type = "button", name="toggleButton", caption=GUI.get_toggleButtonCaption(guiSettings,player), style="fatcontroller_button_style", tooltip = {"fat_tooltip_stop_all"}})
+        newGui.trainInfoControls.control.add({
+          type = "button", name="toggleButton", caption=GUI.get_toggleButtonCaption(guiSettings,player),
+          style="fatcontroller_button_style", tooltip = {"fat_tooltip_stop_all"}
+        })
       end
 
       return newGui
@@ -428,7 +436,9 @@ GUI = {
               local trainGui = GUI.new_train_window(gui,trainInfo, guiSettings)
               trainInfo.opened_guis[player.index] = trainGui
             end
-            if character ~= nil and character.name == "fatcontroller" and ((character.vehicle.type == "cargo-wagon" or character.vehicle.type == "locomotive") and trainInfo.train == character.vehicle.train) then
+            if character ~= nil and character.name == "fatcontroller"
+              and ((character.vehicle.type == "cargo-wagon" or character.vehicle.type == "locomotive") and trainInfo.train == character.vehicle.train)
+            then
               gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].style = "fatcontroller_selected_button"
               gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].caption = {"text-followbutton"}
             else
@@ -776,6 +786,11 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
   local carriage = trainInfo.train.speed >= 0 and trainInfo.train.locomotives.front_movers[1] or trainInfo.train.locomotives.back_movers[1]
   if not carriage then
     carriage = trainInfo.train.carriages[1]
+  end
+
+  if player.surface ~= carriage.surface then
+    player.print("Cant't follow a train on a different surface.")
+    return
   end
 
   -- Player is controlling his own character
