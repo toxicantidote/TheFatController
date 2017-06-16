@@ -28,6 +28,11 @@ Be warned, if the player is not safe he can die, you can also run him over with 
 Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zyecAmcbxtM)
 
 #Changelog
+2.0.11
+
+ - fixed error renaming trains
+ - fixed no fuel message for electric trains from [Electric Train](https://mods.factorio.com/mods/magu5026/ElectricTrain) and [RailPowerSystem](https://mods.factorio.com/mods/Hermios/RailPowerSystem)
+
 2.0.10
 
  - fixed station filter showing invalid station names when using copy+paste to rename stations

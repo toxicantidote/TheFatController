@@ -936,15 +936,16 @@ on_gui_click.renameTrain = function(guiSettings, element, player)
         flow.add({type="textfield", name=textfield_name, text=""})
         element.style = "fatcontroller_selected_button"
       else
+        if not flow[textfield_name] then
+            guiSettings.renameTrain[option1] = nil
+            GUI.refreshTrainInfoGui(guiSettings, player)
+            return
+        end
         local name = GUI.sanitizeName((flow[textfield_name].text))
         if name ~= "" then
           for _, locos in pairs(trainInfo.train.locomotives) do
             for _, loco in pairs(locos) do
-              if remote.interfaces.EventsPlus then
-                remote.call("EventsPlus", "rename_entity", loco, name)
-              else
                 loco.backer_name = name
-              end
             end
           end
           if name:len() > 20 then

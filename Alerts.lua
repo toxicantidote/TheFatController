@@ -4,6 +4,12 @@
 --- Alerts
 -- @type Alerts
 Alerts = {}
+Alerts.electric_locomotives = {
+  ['electric-locomotive'] = true,
+  ['electric-locomotive-mk2'] = true,
+  ['electric-locomotive-mk3'] = true,
+  ['hybrid-train'] = true
+}
 Alerts.set_alert = function(trainInfo, type, time, skipUpdate)
   trainInfo.alarm.active = true
   trainInfo.alarm.type = type
@@ -46,15 +52,18 @@ Alerts.check_noFuel = function(trainInfo, skipUpdate)
   end
   local noFuel = false
   local locos = trainInfo.train.locomotives
+  local electric
   for _,carriage in pairs(locos.front_movers) do
-    if carriage.get_fuel_inventory().is_empty() then
+    electric = Alerts.electric_locomotives[carriage.name]
+    if ( not electric and carriage.get_fuel_inventory().is_empty() ) or ( electric and carriage.energy == 0 )then
       noFuel = true
       break
     end
   end
   if not noFuel then
     for _,carriage in pairs(locos.back_movers) do
-      if carriage.get_fuel_inventory().is_empty() then
+      electric = Alerts.electric_locomotives[carriage.name]
+      if ( not electric and carriage.get_fuel_inventory().is_empty() ) or ( electric and carriage.energy == 0 )then
         noFuel = true
         break
       end

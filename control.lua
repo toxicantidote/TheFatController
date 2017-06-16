@@ -841,13 +841,6 @@ function on_player_closed(event)
   end
 end
 
---alternative for script.on_event/script.raise_event ??
---remote.call("EventsPlus", "on_event", "on_player_closed", {name="fat", callback="on_player_closed"})
-
---script.on_event(remote.call("EventsPlus", "getEvent", "on_player_opened"), on_player_opened)
---script.on_event(remote.call("EventsPlus", "getEvent", "on_player_closed"), on_player_closed)
---script.on_event(remote.call("EventsPlus", "getEvent", "on_entity_renamed"), on_station_rename)
-
 script.on_event(events.on_player_opened, on_player_opened)
 script.on_event(events.on_player_closed, on_player_closed)
 script.on_event(defines.events.on_entity_renamed, on_station_rename)
