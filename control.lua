@@ -281,6 +281,9 @@ local function on_configuration_changed(data)
           end
         end
       end
+      if oldVersion < v'2.0.10' then
+        findStations(true, true)
+      end
     end
     if not oldVersion or oldVersion < v'0.4.0' then
       findTrains(true)
@@ -799,6 +802,12 @@ function on_station_rename(event)
   end
 end
 
+function on_pre_entity_settings_pasted(event)
+  if event.source.type == "train-stop" then
+    on_station_rename({entity = event.destination, old_name = event.destination.backer_name})
+  end
+end
+
 function on_player_opened(event)
   if event.entity.valid and game.players[event.player_index].valid then
     if event.entity.type == "locomotive" and event.entity.train then
@@ -842,6 +851,7 @@ end
 script.on_event(events.on_player_opened, on_player_opened)
 script.on_event(events.on_player_closed, on_player_closed)
 script.on_event(defines.events.on_entity_renamed, on_station_rename)
+script.on_event(defines.events.on_pre_entity_settings_pasted, on_pre_entity_settings_pasted)
 
 function getPageCount(guiSettings, player)
   local trains = (guiSettings.activeFilterList or guiSettings.filter_alarms) and guiSettings.filtered_trains or global.trainsByForce[player.force.name]

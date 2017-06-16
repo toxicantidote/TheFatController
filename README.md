@@ -28,6 +28,10 @@ Be warned, if the player is not safe he can die, you can also run him over with 
 Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zyecAmcbxtM)
 
 #Changelog
+2.0.10
+
+ - fixed station filter showing invalid station names when using copy+paste to rename stations
+
 2.0.9
 
  - fixed error when trying to switch to a train on a different surface
