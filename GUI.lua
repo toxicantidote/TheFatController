@@ -23,12 +23,12 @@ local _, err = pcall(function()
   if player.gui.left.farl ~= nil then
     player.gui.left.farl.destroy()
   end
-  return true
   end)
     if err then
         player.print("Remote controlling currently not possible, requires a Factorio bugfix.")
         return false
     end
+    return true
 end
 
 function stop_following(guiSettings)
