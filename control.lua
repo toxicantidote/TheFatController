@@ -354,16 +354,14 @@ function getHighestInventoryStack(trainInfo)
     items = addInventoryContents(items, trainInfo.train.get_contents())
     local fluid_wagons = trainInfo.train.fluid_wagons
     for _, wagon in pairs(fluid_wagons) do
-      for i=1, 3 do
-        local fluidbox = wagon.fluidbox[i]
-        if fluidbox then
-          if not items[fluidbox.type] then
-            items[fluidbox.type] = fluidbox.amount
+        local filter = wagon.fluidbox[1]
+        if filter then
+          if not items[filter.name] then
+            items[filter.name] = filter.amount
           else
-            items[fluidbox.type] = items[fluidbox.type] + fluidbox.amount
+            items[filter.name] = items[filter.name] + filter.amount
           end
         end
-      end
     end
     for name, count in pairs(items) do
       if largestItem.count == nil or largestItem.count < count then
