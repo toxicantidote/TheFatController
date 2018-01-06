@@ -328,6 +328,7 @@ end)
 
 function register_events()
   script.on_event(defines.events.on_gui_click, GUI.onguiclick)
+  script.on_event(defines.events.on_gui_checked_state_changed, GUI.onguiclick)
 end
 
 function addInventoryContents(invA, invB)
@@ -611,7 +612,7 @@ end
 
 script.on_event(defines.events.on_robot_pre_mined, on_robot_pre_mined)
 script.on_event(defines.events.on_robot_built_entity, on_robot_built_entity)
-script.on_event(defines.events.on_preplayer_mined_item, on_preplayer_mined_item)
+script.on_event(defines.events.on_pre_player_mined_item, on_preplayer_mined_item)
 script.on_event(defines.events.on_built_entity, on_built_entity)
 
 function getKeyByValue(tableA, value)

@@ -22,7 +22,7 @@ data.raw["gui-style"].default["fatcontroller_thin_flow"] =
 data.raw["gui-style"].default["fatcontroller_thin_frame"] =
   {
     type = "frame_style",
-    parent="frame_style",
+    parent="frame",
     top_padding  = 4,
     bottom_padding = 2,
   }
@@ -50,7 +50,7 @@ data.raw["gui-style"].default["fatcontroller_top_flow"] =
 data.raw["gui-style"].default["fatcontroller_button_flow"] =
   {
     type = "flow_style",
-    parent="flow_style",
+    parent="flow",
     horizontal_spacing=1,
   }
 
@@ -64,7 +64,7 @@ data.raw["gui-style"].default["fatcontroller_traininfo_button_flow"] =
 data.raw["gui-style"].default["fatcontroller_button_style"] =
   {
     type = "button_style",
-    parent = "button_style",
+    parent = "button",
     top_padding = 1,
     right_padding = 5,
     bottom_padding = 1,
@@ -90,7 +90,7 @@ data.raw["gui-style"].default["fatcontroller_main_button_style"] =
     type = "button_style",
     parent = "fatcontroller_button_style",
     type = "button_style",
-    parent = "button_style",
+    parent = "button",
     width = 33,
     height = 33,
     top_padding = 6,
@@ -139,7 +139,7 @@ data.raw["gui-style"].default["fatcontroller_player_button"] =
     type = "button_style",
     parent = "fatcontroller_button_style",
     type = "button_style",
-    parent = "button_style",
+    parent = "button",
     width = 33,
     height = 33,
     top_padding = 6,
@@ -272,7 +272,7 @@ data.raw["gui-style"].default["fatcontroller_textfield_small"] =
 data.raw["gui-style"].default["fatcontroller_icon_style"] =
   {
     type = "checkbox_style",
-    parent = "checkbox_style",
+    parent = "checkbox",
     width = 32,
     height = 32,
     bottom_padding = 10,
