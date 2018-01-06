@@ -7,6 +7,7 @@ function sanitizeNumber(number, default)
 end
 
 function start_following(carriage, guiSettings, element, player)
+local _, err = pcall(function()
   if guiSettings.followGui and guiSettings.followGui.valid then
     guiSettings.followGui.caption = {"text-controlbutton"}
     guiSettings.followGui.style = "fatcontroller_button_style"
@@ -18,10 +19,16 @@ function start_following(carriage, guiSettings, element, player)
   if not guiSettings.fatControllerButtons.returnToPlayer then
     guiSettings.fatControllerButtons.add({ type="button", name="returnToPlayer", style = "fatcontroller_player_button"})
   end
-  carriage.passenger = player.character
+  carriage.set_driver(player.character)
   if player.gui.left.farl ~= nil then
     player.gui.left.farl.destroy()
   end
+  return true
+  end)
+    if err then
+        player.print("Remote controlling currently not possible, requires a Factorio bugfix.")
+        return false
+    end
 end
 
 function stop_following(guiSettings)
@@ -607,7 +614,7 @@ on_gui_click.returnToPlayer = function(guiSettings, element, player)
   end
   if global.character[element.player_index] ~= nil then
     if player.vehicle ~= nil then
-      player.vehicle.passenger = nil
+      player.vehicle.set_driver(nil)
     end
     swapPlayer(player, global.character[element.player_index])
     global.character[element.player_index] = nil
@@ -795,7 +802,7 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
 
   -- Player is controlling his own character
   if global.character[element.player_index] == nil then
-    if carriage.passenger ~= nil then
+    if carriage.get_driver() ~= nil then
       player.print({"msg-intrain"})
       return
     end
@@ -806,7 +813,11 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
     end
     global.character[element.player_index] = player.character
     swapPlayer(player,newFatControllerEntity(player))
-    start_following(carriage, guiSettings,element,player)
+    if not start_following(carriage, guiSettings,element,player) then
+        swapPlayer(player, global.character[element.player_index])
+        global.character[element.player_index] = nil
+        stop_following(guiSettings)
+    end
     return
   end
   --return to player
@@ -821,12 +832,13 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
   end
   -- switch to another train
   if guiSettings.followEntity then
-    if carriage.passenger ~= nil then
+    if carriage.get_driver() ~= nil then
       player.print({"msg-intrain"})
       return
     end
-    if guiSettings.followEntity.passenger and guiSettings.followEntity.passenger.name == "fatcontroller" then
-      guiSettings.followEntity.passenger.destroy()
+    local driver = guiSettings.followEntity.get_driver()
+    if driver and driver.name == "fatcontroller" then
+      guiSettings.followEntity.get_driver().destroy()
     end
     swapPlayer(player, newFatControllerEntity(player))
     guiSettings.followEntity = nil
@@ -835,7 +847,11 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
       guiSettings.followGui.style = "fatcontroller_button_style"
       guiSettings.followGui = nil
     end
-    start_following(carriage,guiSettings,element,player)
+    if not start_following(carriage,guiSettings,element,player) then
+        swapPlayer(player, global.character[element.player_index])
+        global.character[element.player_index] = nil
+        stop_following(guiSettings)
+    end
   end
 end
 

@@ -28,6 +28,11 @@ Be warned, if the player is not safe he can die, you can also run him over with 
 Videos: [Factorio Mod Spotlight - The Fat Controller 0.0.11](https://youtu.be/zyecAmcbxtM)
 
 #Changelog
+3.0.0
+
+ - Updated for Factorio 0.16
+ - Temporarily disabled remote controlling trains, needs a Factorio fix first
+    
 2.0.11
 
  - fixed error renaming trains

@@ -3,3 +3,4 @@ Version: 3.0.0
 Date: 06. 01. 2018
   Changes:
     - Updated for Factorio 0.16
+    - Temporarily disabled remote controlling trains, needs a Factorio fix first
