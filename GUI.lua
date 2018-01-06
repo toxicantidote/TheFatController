@@ -59,7 +59,7 @@ GUI = {
 
       --Add buttons
       if trainGui.buttons == nil then
-        trainGui.add({type = "flow", name="buttons",  direction="horizontal", style="fatcontroller_traininfo_button_flow"})
+        trainGui.add({type = "flow", name="buttons",  direction="horizontal", style="fatcontroller_traininfo_button_flow_horizontal"})
       end
 
       if trainGui.buttons[trainInfo.guiName .. "_toggleManualMode"] == nil then
@@ -262,12 +262,12 @@ GUI = {
       local player_gui = global.gui[player.index]
 
       if player.gui.left.fatController == nil then
-        player_gui.fatControllerGui = player.gui.left.add{ type="flow", name="fatController", direction="vertical", style="fatcontroller_main_flow"} --caption="Fat Controller",
+        player_gui.fatControllerGui = player.gui.left.add{ type="flow", name="fatController", direction="vertical", style="fatcontroller_main_flow_vertical"} --caption="Fat Controller",
       else
         player_gui.fatControllerGui = player.gui.left.fatController
       end
       if player.gui.top.fatControllerButtons == nil then
-        player_gui.fatControllerButtons = player.gui.top.add({ type="flow", name="fatControllerButtons", direction="horizontal", style="fatcontroller_main_flow"})
+        player_gui.fatControllerButtons = player.gui.top.add({ type="flow", name="fatControllerButtons", direction="horizontal", style="fatcontroller_main_flow_horizontal"})
       else
         player_gui.fatControllerButtons = player.gui.top.fatControllerButtons
       end
@@ -296,7 +296,7 @@ GUI = {
           gui.fatControllerButtons.add({ type="button", name="returnToPlayer", style = "fatcontroller_player_button"})
         end
         if gui.fatControllerGui and gui.fatControllerGui.valid then
-          gui.fatControllerGui.style = "fatcontroller_main_flow"
+          gui.fatControllerGui.style = "fatcontroller_main_flow_vertical"
         end
       end
     end,
@@ -344,7 +344,7 @@ GUI = {
         newGui = gui.trainInfo
         debugDump("foo",true)
       else
-        newGui = gui.add({ type="flow", name="trainInfo", direction="vertical", style="fatcontroller_main_flow"})
+        newGui = gui.add({ type="flow", name="trainInfo", direction="vertical", style="fatcontroller_main_flow_vertical"})
       end
 
       if newGui.trainInfoControls == nil then
@@ -352,7 +352,7 @@ GUI = {
       end
 
       if newGui.trainInfoControls.pageButtons == nil then
-        newGui.trainInfoControls.add({type = "flow", name="pageButtons",  direction="horizontal", style="fatcontroller_button_flow"})
+        newGui.trainInfoControls.add({type = "flow", name="pageButtons",  direction="horizontal", style="fatcontroller_button_flow_horizontal"})
       end
 
       if newGui.trainInfoControls.pageButtons.page_back == nil then
@@ -371,7 +371,7 @@ GUI = {
       end
 
       if newGui.trainInfoControls.filterButtons == nil then
-        newGui.trainInfoControls.add({type = "flow", name="filterButtons",  direction="horizontal", style="fatcontroller_button_flow"})
+        newGui.trainInfoControls.add({type = "flow", name="filterButtons",  direction="horizontal", style="fatcontroller_button_flow_horizontal"})
       end
 
       if newGui.trainInfoControls.filterButtons.toggleStationFilter == nil then
@@ -386,7 +386,7 @@ GUI = {
       end
 
       if newGui.trainInfoControls.alarm == nil then
-        newGui.trainInfoControls.add({type = "flow", name="alarm",  direction="horizontal", style="fatcontroller_button_flow"})
+        newGui.trainInfoControls.add({type = "flow", name="alarm",  direction="horizontal", style="fatcontroller_button_flow_horizontal"})
       end
 
       if newGui.trainInfoControls.alarm.alarmButton == nil then
@@ -394,7 +394,7 @@ GUI = {
       end
 
       if newGui.trainInfoControls.control == nil then
-        newGui.trainInfoControls.add({type = "flow", name="control", direction="horizontal", style="fatcontroller_button_flow"})
+        newGui.trainInfoControls.add({type = "flow", name="control", direction="horizontal", style="fatcontroller_button_flow_horizontal"})
       end
 
       if newGui.trainInfoControls.control.toggleButton == nil then
@@ -458,12 +458,12 @@ GUI = {
       if gui ~= nil then
         if gui.stationFilterWindow == nil then
           --local sortedList = table.sort(a)
-          local window = gui.add({type="frame", name="stationFilterWindow", caption={"msg-stationFilter"}, direction="vertical" }) --style="fatcontroller_thin_frame"})
+          local window = gui.add({type="frame", name="stationFilterWindow", caption={"msg-stationFilter"}, direction="vertical", style="fatcontroller_thin_frame"})
           window.add({type="flow", name="buttonFlow"})
 
           local pageFlow
           if window.buttonFlow.filter_pageButtons == nil then
-            pageFlow = window.buttonFlow.add({type = "flow", name="filter_pageButtons",  direction="horizontal", style="fatcontroller_button_flow"})
+            pageFlow = window.buttonFlow.add({type = "flow", name="filter_pageButtons",  direction="horizontal", style="fatcontroller_button_flow_horizontal"})
           else
             pageFlow = window.buttonFlow.filter_pageButtons
           end
@@ -501,7 +501,7 @@ GUI = {
           local caption = guiSettings.filterModeOr and {"text-filter-or"} or {"text-filter-and"}
           buttonflow2.add({type = "button", name="toggleFilterMode", caption=caption, style="fatcontroller_button_style", tooltip = {"fat_tooltip_combine"}})
 
-          window.add({type="table", name="checkboxGroup", colspan=3})
+          window.add({type="table", name="checkboxGroup", column_count=3})
           local i=0
           local upper = guiSettings.filter_page*global.PAGE_SIZE
           local lower = guiSettings.filter_page*global.PAGE_SIZE-global.PAGE_SIZE

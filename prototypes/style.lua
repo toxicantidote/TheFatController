@@ -11,7 +11,7 @@ data:extend(
 
 data.raw["gui-style"].default["fatcontroller_thin_flow"] =
   {
-    type = "flow_style",
+    type = "vertical_flow_style",
     horizontal_spacing = 0,
     vertical_spacing = 0,
     max_on_row = 0,
@@ -27,9 +27,9 @@ data.raw["gui-style"].default["fatcontroller_thin_frame"] =
     bottom_padding = 2,
   }
 
-data.raw["gui-style"].default["fatcontroller_main_flow"] =
+data.raw["gui-style"].default["fatcontroller_main_flow_vertical"] =
   {
-    type = "flow_style",
+    type = "vertical_flow_style",
     top_padding  = 0,
     bottom_padding = 0,
     left_padding = 5,
@@ -39,25 +39,39 @@ data.raw["gui-style"].default["fatcontroller_main_flow"] =
     max_on_row = 0,
     resize_row_to_width = true,
   }
+data.raw["gui-style"].default["fatcontroller_main_flow_horizontal"] =
+  {
+    type = "horizontal_flow_style",
+    top_padding  = 0,
+    bottom_padding = 0,
+    left_padding = 5,
+    right_padding = 5,
+    horizontal_spacing = 0,
+    vertical_spacing = 0,
+    max_on_row = 0,
+    resize_row_to_width = true,
+  }
+
+
 data.raw["gui-style"].default["fatcontroller_top_flow"] =
   {
-    type = "flow_style",
-    parent = "fatcontroller_main_flow",
+    type = "horizontal_flow_style",
+    parent = "fatcontroller_main_flow_horizontal",
     top_padding  = 0,
     left_padding = 0
   }
 
-data.raw["gui-style"].default["fatcontroller_button_flow"] =
+data.raw["gui-style"].default["fatcontroller_button_flow_horizontal"] =
   {
-    type = "flow_style",
-    parent="flow",
+    type = "horizontal_flow_style",
+    parent="horizontal_flow",
     horizontal_spacing=1,
   }
 
-data.raw["gui-style"].default["fatcontroller_traininfo_button_flow"] =
+data.raw["gui-style"].default["fatcontroller_traininfo_button_flow_horizontal"] =
   {
-    type = "flow_style",
-    parent="fatcontroller_button_flow",
+    type = "horizontal_flow_style",
+    parent="fatcontroller_button_flow_horizontal",
     top_padding  = 4,
   }
 
