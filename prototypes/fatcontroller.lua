@@ -17,9 +17,16 @@ function copyPrototype(type, name, newName, change_results)
   return p
 end
 
-data:extend({
+function merge(prototype, changed_data)
+    for k, v in pairs(changed_data) do
+        prototype[k] = v
+    end
+    return prototype
+end
 
-    {
+local fatcontroller = 
+
+{
       type = "player",
       name = "fatcontroller",
       icon = "__base__/graphics/icons/player.png",
@@ -46,7 +53,8 @@ data:extend({
       item_pickup_distance = 0,
       loot_pickup_distance = 0,
       ticks_to_stay_in_combat = 0,
-
+      enter_vehicle_distance = 0,
+      
       subgroup = "creatures",
       order="z",
       eat =
@@ -67,12 +75,12 @@ data:extend({
       mining_with_hands_particles_animation_positions = {0, 0},
       mining_with_tool_particles_animation_positions = {0},
       running_sound_animation_positions = {0, 0}
-    },
-
+    }
+data:extend({merge(copyPrototype("player", "player", fatcontroller, false), fatcontroller)})
+log(serpent.block(data.raw["player"]["fatcontroller"]))
 -- {
 -- type = "achievement",
 -- name = "self-termination",
 -- order = "g[secret]-b[self-termination]",
 -- icon = "__base__/graphics/achievement/so-long-and-thanks-for-all-the-fish.png"
 -- }
-})
