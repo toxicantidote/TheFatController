@@ -328,7 +328,7 @@ end)
 
 function register_events()
   script.on_event(defines.events.on_gui_click, GUI.onguiclick)
-  script.on_event(defines.events.on_gui_checked_state_changed, GUI.onguiclick)
+  --script.on_event(defines.events.on_gui_checked_state_changed, GUI.onguiclick)
 end
 
 function addInventoryContents(invA, invB)
