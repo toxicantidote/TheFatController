@@ -501,7 +501,7 @@ function on_tick(event)
 
     if tick%10==7  then
       for pi, player in pairs(game.players) do
-        if player.connected then
+        if player.connected and (player.opened_gui_type == defines.gui_type.none or player.opened_gui_type == defines.gui_type.entity) then
           if player.opened ~= nil and not global.player_opened[pi] then
             script.raise_event(events["on_player_opened"], {entity=player.opened, player_index=pi})
             global.player_opened[pi] = player.opened
