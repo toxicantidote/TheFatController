@@ -1,12 +1,12 @@
-data:extend(
-  {
-    {
-      type = "font",
-      name = "fatcontroller_small",
-      from = "default",
-      size = 13
-    },
-  })
+-- data:extend(
+--   {
+--     {
+--       type = "font",
+--       name = "fatcontroller_small",
+--       parent = "default",
+--       from = "default",
+--     },
+--   })
 
 
 data.raw["gui-style"].default["fatcontroller_thin_flow"] =
@@ -79,122 +79,23 @@ data.raw["gui-style"].default["fatcontroller_button_style"] =
   {
     type = "button_style",
     parent = "button",
-    top_padding = 1,
     right_padding = 5,
-    bottom_padding = 1,
     left_padding = 5,
-    left_click_sound =
-    {
-      {
-        filename = "__core__/sound/gui-click.ogg",
-        volume = 1
-      }
-    }
   }
 data.raw["gui-style"].default["fatcontroller_sprite_button_style"] =
   {
     type = "button_style",
     parent = "fatcontroller_button_style",
     width=32,
-    height=35
+    height=35,
+    right_padding = 0,
+    left_padding = 0,
   }
 
 data.raw["gui-style"].default["fatcontroller_main_button_style"] =
   {
     type = "button_style",
-    parent = "fatcontroller_button_style",
-    type = "button_style",
-    parent = "button",
-    width = 33,
-    height = 33,
-    top_padding = 6,
-    right_padding = 5,
-    bottom_padding = 0,
-    left_padding = 0,
-    default_graphical_set =
-    {
-      type = "monolith",
-      monolith_image =
-      {
-        filename = "__TheFatController__/graphics/gui.png",
-        priority = "extra-high-no-scale",
-        width = 32,
-        height = 32,
-        x = 64
-      }
-    },
-    hovered_graphical_set =
-    {
-      type = "monolith",
-      monolith_image =
-      {
-        filename = "__TheFatController__/graphics/gui.png",
-        priority = "extra-high-no-scale",
-        width = 32,
-        height = 32,
-        x = 96
-      }
-    },
-    clicked_graphical_set =
-    {
-      type = "monolith",
-      monolith_image =
-      {
-        filename = "__TheFatController__/graphics/gui.png",
-        width = 32,
-        height = 32,
-        x = 96
-      }
-    }
-  }
-
-data.raw["gui-style"].default["fatcontroller_player_button"] =
-  {
-    type = "button_style",
-    parent = "fatcontroller_button_style",
-    type = "button_style",
-    parent = "button",
-    width = 33,
-    height = 33,
-    top_padding = 6,
-    right_padding = 5,
-    bottom_padding = 0,
-    left_padding = 0,
-    default_graphical_set =
-    {
-      type = "monolith",
-      monolith_image =
-      {
-        filename = "__TheFatController__/graphics/guiPlayer.png",
-        priority = "extra-high-no-scale",
-        width = 32,
-        height = 32,
-        x = 96
-      }
-    },
-    hovered_graphical_set =
-    {
-      type = "monolith",
-      monolith_image =
-      {
-        filename = "__TheFatController__/graphics/guiPlayer.png",
-        priority = "extra-high-no-scale",
-        width = 32,
-        height = 32,
-        x = 64
-      }
-    },
-    clicked_graphical_set =
-    {
-      type = "monolith",
-      monolith_image =
-      {
-        filename = "__TheFatController__/graphics/guiPlayer.png",
-        width = 32,
-        height = 32,
-        x = 64
-      }
-    }
+    parent = "mod_gui_button",
   }
 
 data.raw["gui-style"].default["fatcontroller_disabled_button"] =
@@ -223,13 +124,11 @@ data.raw["gui-style"].default["fatcontroller_disabled_button"] =
     },
   }
 
-
 data.raw["gui-style"].default["fatcontroller_selected_button"] =
   {
     type = "button_style",
     parent = "fatcontroller_button_style",
 
-    default_font_color={r=0, g=0, b=0},
     default_graphical_set =
     {
       type = "composition",
@@ -237,8 +136,6 @@ data.raw["gui-style"].default["fatcontroller_selected_button"] =
       corner_size = {3, 3},
       position = {0, 8}
     },
-
-
 
     hovered_font_color={r=1, g=1, b=1},
     hovered_graphical_set =
@@ -249,7 +146,6 @@ data.raw["gui-style"].default["fatcontroller_selected_button"] =
       position = {0, 16}
     },
 
-    clicked_font_color={r=0, g=0, b=0},
     clicked_graphical_set =
     {
       type = "composition",
@@ -259,28 +155,66 @@ data.raw["gui-style"].default["fatcontroller_selected_button"] =
     },
   }
 
-data.raw["gui-style"].default["fatcontroller_label_style"] =
+
+
+data.raw["gui-style"].default["fatcontroller_button_style_bold"] =
   {
-    type = "label_style",
-    font = "default",
-    font_color = {r=1, g=1, b=1},
-    top_padding = 0,
-    bottom_padding = 0,
+    type = "button_style",
+    parent = "button",
+    right_padding = 3,
+    left_padding = 3,
   }
+
+  data.raw["gui-style"].default["fatcontroller_disabled_button_bold"] =
+  {
+    type = "button_style",
+    parent = "st_disabled_button",
+    font = "default-semibold",
+    default_font_color={r=0.5, g=0.5, b=0.5},
+    hovered_font_color={r=0.5, g=0.5, b=0.5},
+  }
+
+data.raw["gui-style"].default["fatcontroller_page_button"] =
+  {
+    type = "button_style",
+    parent = "fatcontroller_button_style_bold",
+    horizontal_spacing = 0,
+    width = 50,
+  }
+
+data.raw["gui-style"].default["fatcontroller_page_button_selected"] =
+  {
+    type = "button_style",
+    parent = "fatcontroller_selected_button",
+    horizontal_spacing = 0,
+    width = 50,
+  }
+
+data.raw["gui-style"].default["fatcontroller_page_button_disabled"] =
+  {
+    type = "button_style",
+    parent = "fatcontroller_disabled_button_bold",
+    horizontal_spacing = 0,
+    width = 50,
+  }
+
+ data.raw["gui-style"].default["fatcontroller_label_style"] =
+   {
+     type = "label_style",
+     parent = "label"
+   }
 
 data.raw["gui-style"].default["fatcontroller_label_style_small"] =
   {
     type = "label_style",
     parent = "fatcontroller_label_style",
-    font = "fatcontroller_small",
   }
 
 data.raw["gui-style"].default["fatcontroller_textfield_small"] =
   {
-    type = "textfield_style",
-    left_padding = 3,
-    right_padding = 2,
-    minimal_width = 30,
+    type = "textbox_style",
+    parent = "short_number_textfield",
+    horizontal_align = "center"
   }
 
 data.raw["gui-style"].default["fatcontroller_icon_style"] =
@@ -323,6 +257,17 @@ data.raw["gui-style"].default["fatcontroller_icon_style"] =
       x = 111
     }
   }
+
+data:extend({
+  {
+    type="sprite",
+    name="fat_return_to_player",
+    filename = "__TheFatController__/graphics/guiPlayer.png",
+    priority = "extra-high-no-scale",
+    width = 128,
+    height = 128,
+  }})
+
 local alarms = {"noFuel", "noPath", "timeAtSignal", "timeToStation"}
 for _, icon in pairs(alarms) do
   data:extend({
