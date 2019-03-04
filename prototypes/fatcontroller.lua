@@ -76,7 +76,7 @@ local fatcontroller =
       running_sound_animation_positions = {0, 0}
     }
 data:extend({merge(copyPrototype("player", "player", fatcontroller, false), fatcontroller)})
-log(serpent.block(data.raw["player"]["fatcontroller"]))
+--log(serpent.block(data.raw["player"]["fatcontroller"]))
 -- {
 -- type = "achievement",
 -- name = "self-termination",

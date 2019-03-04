@@ -95,11 +95,8 @@ GUI = {
       end
 
       if trainInfo.alarm.active then
-        if trainGui.buttons[trainInfo.guiName .. "_alarmButton"] then
-          trainGui.buttons[trainInfo.guiName .. "_alarmButton"].sprite = "fat_" .. trainInfo.alarm.type
-        else
-          trainGui.buttons.add({type = "sprite-button", name = trainInfo.guiName .. "_alarmButton", sprite = "fat_" .. trainInfo.alarm.type, style="fatcontroller_sprite_button_style"})
-        end
+        local alarmButton = trainGui.buttons[trainInfo.guiName .. "_alarmButton"] or trainGui.buttons.add({type = "sprite-button", name = trainInfo.guiName .. "_alarmButton", style="fatcontroller_sprite_button_style"})
+        alarmButton.sprite = "fat_" .. trainInfo.alarm.type
       end
 
 
@@ -203,11 +200,8 @@ GUI = {
         for _, gui in pairs(trainInfo.opened_guis) do
           if gui and gui.valid then
             if alarm then
-              if gui.buttons[trainInfo.guiName .. "_alarmButton"] then
-                gui.buttons[trainInfo.guiName .. "_alarmButton"].sprite = "fat_" .. trainInfo.alarm.type
-              else
-                gui.buttons.add({type = "sprite-button", name = trainInfo.guiName .. "_alarmButton", sprite = "fat_" .. trainInfo.alarm.type, style="fatcontroller_sprite_button_style"})
-              end
+                local alarmButton = gui.buttons[trainInfo.guiName .. "_alarmButton"] or gui.buttons.add({type = "sprite-button", name = trainInfo.guiName .. "_alarmButton", style="fatcontroller_sprite_button_style"})
+                alarmButton.sprite = "fat_" .. trainInfo.alarm.type
             else
               if gui.buttons[trainInfo.guiName .. "_alarmButton"] then
                 gui.buttons[trainInfo.guiName .. "_alarmButton"].destroy()

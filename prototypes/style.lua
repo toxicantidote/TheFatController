@@ -87,8 +87,8 @@ data.raw["gui-style"].default["fatcontroller_sprite_button_style"] =
   {
     type = "button_style",
     parent = "fatcontroller_button_style",
-    width=32,
-    height=35,
+    width=36,
+    height=36,
     right_padding = 0,
     left_padding = 0,
   }
@@ -286,3 +286,11 @@ for _, icon in pairs(alarms) do
       height = 32,
     }})
 end
+
+data.raw.sprite.fat_noPath.filename = "__core__/graphics/danger-icon.png"
+data.raw.sprite.fat_noPath.width = 64
+data.raw.sprite.fat_noPath.height = 64
+
+data.raw.sprite.fat_noPath.filename = "__core__/graphics/fuel-icon-red.png"
+data.raw.sprite.fat_noPath.width = 64
+data.raw.sprite.fat_noPath.height = 64
