@@ -10,14 +10,14 @@ function start_following(carriage, guiSettings, element, player)
 local _, err = pcall(function()
   if guiSettings.followGui and guiSettings.followGui.valid then
     guiSettings.followGui.caption = {"text-controlbutton"}
-    guiSettings.followGui.style = "fatcontroller_button_style"
+    guiSettings.followGui.style = "fatcontroller_page_button"
   end
-  element.style = "fatcontroller_selected_button"
+  element.style = "fatcontroller_page_button_selected"
   element.caption = {"text-followbutton"}
   guiSettings.followEntity = carriage
   guiSettings.followGui = element
   if not guiSettings.fatControllerButtons.returnToPlayer then
-    guiSettings.fatControllerButtons.add({ type="button", name="returnToPlayer", style = "fatcontroller_player_button"})
+    guiSettings.fatControllerButtons.add({ type="sprite-button", sprite = "fat_return_to_player", name="returnToPlayer", style = "fatcontroller_main_button_style"})
   end
   carriage.set_driver(player.character)
   if player.gui.left.farl ~= nil then
@@ -35,7 +35,7 @@ function stop_following(guiSettings)
   guiSettings.followEntity = nil
   if guiSettings.followGui and guiSettings.followGui.valid then
     guiSettings.followGui.caption = {"text-controlbutton"}
-    guiSettings.followGui.style = "fatcontroller_button_style"
+    guiSettings.followGui.style = "fatcontroller_page_button"
     guiSettings.followGui = nil
   end
   if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.returnToPlayer ~= nil then
@@ -52,9 +52,9 @@ GUI = {
 
     get_page_button_style = function(direction, current_page, page_count)
       if direction == "back" then
-        return current_page > 1 and "fatcontroller_button_style" or "fatcontroller_disabled_button"
+        return current_page > 1 and "fatcontroller_page_button" or "fatcontroller_page_button"
       else
-        return current_page < page_count and "fatcontroller_button_style" or "fatcontroller_disabled_button"
+        return current_page < page_count and "fatcontroller_page_button" or "fatcontroller_page_button"
       end
     end,
 
@@ -70,7 +70,7 @@ GUI = {
       end
 
       if trainGui.buttons[trainInfo.guiName .. "_toggleManualMode"] == nil then
-        trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleManualMode", caption="", style="fatcontroller_button_style", tooltip = {"fat_tooltip_toggle_mode"}})
+        trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleManualMode", caption="", style="fatcontroller_page_button", tooltip = {"fat_tooltip_toggle_mode"}})
         local caption = trainInfo.train.manual_mode and ">" or "ll"
         trainGui.buttons[trainInfo.guiName.."_toggleManualMode"].caption = caption
       end
@@ -84,12 +84,12 @@ GUI = {
       if trainGui.buttons[trainInfo.guiName .. "_toggleFollowMode"] == nil then
         trainGui.buttons.add({
           type="button", name=trainInfo.guiName .. "_toggleFollowMode", caption={"text-controlbutton"},
-          style="fatcontroller_button_style", tooltip = {"fat_tooltip_controlbutton"}
+          style="fatcontroller_page_button", tooltip = {"fat_tooltip_controlbutton"}
         })
       end
 
       if guiSettings.renameTrains then
-        trainGui.buttons.add({type="button", name=trainInfo.guiName.. "_renameTrain", caption = {"text-renamebutton"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_renamebutton"}})
+        trainGui.buttons.add({type="button", name=trainInfo.guiName.. "_renameTrain", caption = {"text-renamebutton"}, style="fatcontroller_page_button", tooltip = {"fat_tooltip_renamebutton"}})
       end
 
       if trainInfo.alarm.active then
@@ -137,6 +137,7 @@ GUI = {
           topString = {"", {"text-no-schedule"}}
         elseif trainInfo.last_state == state.wait_signal then
           topString = {"", {"text-signal"}, " || ", station}
+          --topString = {"", "[item=rail-signal]", " || ", station}
         elseif (trainInfo.last_state == state.manual_control_stop  or trainInfo.last_state == state.manual_control) then
           topString = {"", {"text-manual"}, ": "}
           if trainInfo.train.speed == 0 then
@@ -148,6 +149,7 @@ GUI = {
           topString = {"", {"text-stopping"}, " -> ", station}
         elseif trainInfo.last_state == state.wait_station then
           topString = {"", {"text-station"}, ": ", station}
+          --topString = {"", "[item=train-stop]", ": ", station}
           if trainInfo.depart_at and trainInfo.depart_at > 0 then
             table.insert(topString, "(".. util.formattime(trainInfo.depart_at - game.tick) .. ")")
           end
@@ -279,7 +281,7 @@ GUI = {
         player_gui.fatControllerButtons = player.gui.top.fatControllerButtons
       end
       if player_gui.fatControllerButtons.toggleTrainInfo == nil then
-        player_gui.fatControllerButtons.add({type="button", name="toggleTrainInfo", style="fatcontroller_main_button_style"})
+        player_gui.fatControllerButtons.add({type="sprite-button", sprite= "item/locomotive",name="toggleTrainInfo", style="fatcontroller_main_button_style"})
       end
 
       if player_gui.fatControllerGui.trainInfo ~= nil then
@@ -296,11 +298,11 @@ GUI = {
         gui.fatControllerButtons.style = "fatcontroller_top_flow"
         if gui.fatControllerButtons.toggleTrainInfo and gui.fatControllerButtons.toggleTrainInfo.valid then
           gui.fatControllerButtons.toggleTrainInfo.destroy()
-          gui.fatControllerButtons.add({type="button", name="toggleTrainInfo", style="fatcontroller_main_button_style"})
+          gui.fatControllerButtons.add({type="sprite-button", sprite="item/locomotive", name="toggleTrainInfo", style="fatcontroller_main_button_style"})
         end
         if gui.fatControllerButtons.returnToPlayer and gui.fatControllerButtons.returnToPlayer.valid then
           gui.fatControllerButtons.returnToPlayer.destroy()
-          gui.fatControllerButtons.add({ type="button", name="returnToPlayer", style = "fatcontroller_player_button"})
+          gui.fatControllerButtons.add({ type="sprite-button", sprite = "fat_return_to_player", name="returnToPlayer", style = "fatcontroller_main_button_style"})
         end
         if gui.fatControllerGui and gui.fatControllerGui.valid then
           gui.fatControllerGui.style = "fatcontroller_main_flow_vertical"
@@ -310,6 +312,9 @@ GUI = {
 
     onguiclick = function(event)
       local _, err = pcall(function()
+        if event.element.type == "checkbox" then
+            return
+        end
         local refreshGui = false
         local player_index = event.element.player_index
         local guiSettings = global.gui[player_index]
@@ -318,13 +323,13 @@ GUI = {
         --debugDump("CLICK! " .. event.element.name .. game.tick,true)
 
         if on_gui_click[event.element.name] then
+          log("click: " .. event.element.name)
           refreshGui = on_gui_click[event.element.name](guiSettings, event.element, player)
+          log("click end: ")
         elseif endsWith(event.element.name,"_toggleManualMode") then
           refreshGui = on_gui_click.toggleManualMode(guiSettings, event.element, player)
         elseif endsWith(event.element.name,"_toggleFollowMode") then
           refreshGui = on_gui_click.toggleFollowMode(guiSettings, event.element, player)
-        elseif endsWith(event.element.name,"_stationFilter") then
-          refreshGui = on_gui_click.stationFilter(guiSettings, event.element, player)
         elseif endsWith(event.element.name,"_alarmButton") then
           refreshGui = on_gui_click.unsetAlarm(guiSettings, event.element, player)
         elseif endsWith(event.element.name,"_renameTrain") then
@@ -336,7 +341,41 @@ GUI = {
           GUI.refreshTrainInfoGui(guiSettings, player)
         end
       end)
-      if err then debugDump(err,true) end
+      if err then
+        debugDump(err,true)
+        log(serpent.dump(err))
+      end
+    end,
+
+    on_gui_checked_state_changed = function(event)
+        local _, err = pcall(function()
+        if event.element.type ~= "checkbox" then
+            return
+        end
+        local refreshGui = false
+        local player_index = event.element.player_index
+        local guiSettings = global.gui[player_index]
+        local player = game.players[player_index]
+        if not player.connected then return end
+        --debugDump("CLICK! " .. event.element.name .. game.tick,true)
+
+        if on_gui_click[event.element.name] then
+            log("checked: " .. event.element.name)
+                refreshGui = on_gui_click[event.element.name](guiSettings, event.element, player)
+            log("checked end: ")
+        elseif endsWith(event.element.name,"_stationFilter") then
+            refreshGui = on_gui_click.stationFilter(guiSettings, event.element, player)
+        end
+
+        if refreshGui then
+            GUI.newTrainInfoWindow(guiSettings, player)
+            GUI.refreshTrainInfoGui(guiSettings, player)
+        end
+        end)
+        if err then
+            debugDump(err,true)
+            log(serpent.dump(err))
+        end
     end,
 
     -- control buttons only
@@ -363,18 +402,21 @@ GUI = {
       end
 
       if newGui.trainInfoControls.pageButtons.page_back == nil then
-        newGui.trainInfoControls.pageButtons.add({type="button", name="page_back", caption="<", style=GUI.get_page_button_style("back",guiSettings.page)})
+        local pb = newGui.trainInfoControls.pageButtons.add({type="button", name="page_back", caption="<", style= "fatcontroller_page_button"})
+        pb.enabled = guiSettings.page > 1
       end
 
-      local caption = guiSettings.page .. "/" .. guiSettings.pageCount
+      local caption = guiSettings.page .. "0/" .. guiSettings.pageCount .. "0"
       if newGui.trainInfoControls.pageButtons.page_number == nil then
-        newGui.trainInfoControls.pageButtons.add({type="button", name="page_number", caption= caption, style="fatcontroller_button_style", tooltip = {"fat_tooltip_displayed_trains"}})
-      else
+        newGui.trainInfoControls.pageButtons.add({type="button", name="page_number", caption= caption, enabled = false, style="fatcontroller_pagenumber_button", tooltip = {"fat_tooltip_displayed_trains"}})
+    else
         newGui.trainInfoControls.pageButtons.page_number.caption = caption
       end
 
       if newGui.trainInfoControls.pageButtons.page_forward == nil then
-        newGui.trainInfoControls.pageButtons.add({type="button", name="page_forward", caption=">", style=GUI.get_page_button_style("forward",guiSettings.page,guiSettings.pageCount)})
+        local pb = newGui.trainInfoControls.pageButtons.add({
+            type="button", name="page_forward", caption=">", style="fatcontroller_page_button"})
+        pb.enabled = guiSettings.page < guiSettings.pageCount
       end
 
       if newGui.trainInfoControls.filterButtons == nil then
@@ -382,13 +424,13 @@ GUI = {
       end
 
       if newGui.trainInfoControls.filterButtons.toggleStationFilter == nil then
-        local style = (guiSettings.activeFilterList or guiSettings.filter_alarms) and "fatcontroller_selected_button" or "fatcontroller_button_style"
+        local style = (guiSettings.activeFilterList or guiSettings.filter_alarms) and "fatcontroller_page_button_selected" or "fatcontroller_page_button"
         newGui.trainInfoControls.filterButtons.add({type="button", name="toggleStationFilter", caption={"text-filter-trains"}, style=style, tooltip = {"fat_tooltip_filterbutton"}})
       end
 
       if newGui.trainInfoControls.filterButtons.clearStationFilter == nil then
         newGui.trainInfoControls.filterButtons.add({
-          type="button", name="clearStationFilter", caption={"text-clear-filter"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_clearFilters"}
+          type="button", name="clearStationFilter", caption={"text-clear-filter"}, style="fatcontroller_page_button", tooltip = {"fat_tooltip_clearFilters"}
         })
       end
 
@@ -397,7 +439,7 @@ GUI = {
       end
 
       if newGui.trainInfoControls.alarm.alarmButton == nil then
-        newGui.trainInfoControls.alarm.add({type="button", name="alarmButton", caption= {"text-alarmSettings"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_alarms"}})
+        newGui.trainInfoControls.alarm.add({type="button", name="alarmButton", caption= {"text-alarmSettings"}, style="fatcontroller_page_button", tooltip = {"fat_tooltip_alarms"}})
       end
 
       if newGui.trainInfoControls.control == nil then
@@ -446,10 +488,10 @@ GUI = {
             if character ~= nil and character.name == "fatcontroller"
               and ((character.vehicle.type == "cargo-wagon" or character.vehicle.type == "locomotive") and trainInfo.train == character.vehicle.train)
             then
-              gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].style = "fatcontroller_selected_button"
+              gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].style = "fatcontroller_page_button_selected"
               gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].caption = {"text-followbutton"}
             else
-              gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].style = "fatcontroller_button_style"
+              gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].style = "fatcontroller_page_button"
               gui[newGuiName].buttons[newGuiName .. "_toggleFollowMode"].caption = {"text-controlbutton"}
             end
             trainInfo.guiName = newGuiName
@@ -477,27 +519,19 @@ GUI = {
 
 
           if pageFlow.filter_page_back == nil then
-
-            if guiSettings.filter_page > 1 then
-              pageFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_button_style"})
-            else
-              pageFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_disabled_button"})
-            end
+            local pb = pageFlow.add({type="button", name="filter_page_back", caption="<", style="fatcontroller_page_button"})
+            pb.enabled = guiSettings.filter_page > 1
           end
           local pageCount = get_filter_PageCount(player.force)
           if pageFlow.filter_page_number == nil then
-            pageFlow.add({type="button", name="filter_page_number", caption=guiSettings.filter_page .. "/" ..pageCount , style="fatcontroller_disabled_button"})
+            pageFlow.add({type="button", name="filter_page_number", enabled = false, caption = guiSettings.filter_page .. "0/" ..pageCount.."0" , style="fatcontroller_pagenumber_button"})
           else
             pageFlow.filter_page_number.caption = guiSettings.filter_page .. "/" .. pageCount
           end
 
           if pageFlow.filter_page_forward == nil then
-            if guiSettings.filter_page < pageCount then
-              pageFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_button_style"})
-            else
-              pageFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_disabled_button"})
-            end
-
+            local pb = pageFlow.add({type="button", name="filter_page_forward", caption=">", style="fatcontroller_page_button"})
+            pb.enabled = guiSettings.filter_page < pageCount
           end
           window.buttonFlow.add({type="button", name="stationFilterClear", caption={"msg-Clear"}, style="fatcontroller_button_style", tooltip = {"fat_tooltip_clearFilters"}})
           window.buttonFlow.add({type="button", name="stationFilterOK", caption={"msg-OK"} , style="fatcontroller_button_style"})
@@ -613,12 +647,19 @@ on_gui_click.returnToPlayer = function(guiSettings, element, player)
     return
   end
   if global.character[element.player_index] ~= nil then
+    --local player_index = element.player_index
     if player.vehicle ~= nil then
+      log("before" .. serpent.block(element.valid))
       player.vehicle.set_driver(nil)
+      log("after" .. serpent.block(element.valid))
+      log("hello")
     end
-    swapPlayer(player, global.character[element.player_index])
-    global.character[element.player_index] = nil
-    element.destroy()
+    log("h3")
+    log(serpent.block(element.valid))
+    --swapPlayer(player, global.character[player_index])
+    log("h4")
+    --global.character[element.player_index] = nil
+    --element.destroy()
     stop_following(guiSettings, player)
   end
 end
@@ -778,9 +819,10 @@ on_gui_click.toggleManualMode = function(_, element, player)
 end
 
 on_gui_click.toggleFollowMode = function(guiSettings, element, player)
-  if player.opened then
-    player.print("Close the train UI before trying to change follower mode")
-    return
+  if player.opened or player.opened_self then
+    player.opened = nil
+    --player.print("Close the train UI before trying to change follower mode")
+    --return
   end
   local trains = global.trainsByForce[player.force.name]
   local option1 = element.name:match("Info(%w+)_")
@@ -844,7 +886,7 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
     guiSettings.followEntity = nil
     if guiSettings.followGui and guiSettings.followGui.valid then
       guiSettings.followGui.caption = {"text-controlbutton"}
-      guiSettings.followGui.style = "fatcontroller_button_style"
+      guiSettings.followGui.style = "fatcontroller_page_button"
       guiSettings.followGui = nil
     end
     if not start_following(carriage,guiSettings,element,player) then
@@ -917,7 +959,7 @@ on_gui_click.findCharacter = function(guiSettings, _, player)
           guiSettings.followEntity = nil
           if guiSettings.followGui and guiSettings.followGui.valid then
             guiSettings.followGui.caption = {"text-controlbutton"}
-            guiSettings.followGui.style = "fatcontroller_button_style"
+            guiSettings.followGui.style = "fatcontroller_page_button"
             guiSettings.followGui = nil
           end
           TrainList.reset_manual(global.gui[player.index].vehicle)
@@ -950,7 +992,7 @@ on_gui_click.renameTrain = function(guiSettings, element, player)
     if flow and flow.valid then
       if guiSettings.renameTrain[option1] then
         flow.add({type="textfield", name=textfield_name, text=""})
-        element.style = "fatcontroller_selected_button"
+        element.style = "fatcontroller_page_button_selected"
       else
         if not flow[textfield_name] then
             guiSettings.renameTrain[option1] = nil
@@ -971,7 +1013,7 @@ on_gui_click.renameTrain = function(guiSettings, element, player)
           end
         end
         flow[textfield_name].destroy()
-        element.style = "fatcontroller_button_style"
+        element.style = "fatcontroller_page_button"
       end
     end
     GUI.update_single_traininfo(trainInfo)

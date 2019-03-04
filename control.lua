@@ -8,33 +8,33 @@ local v = require 'semver'
 
 MOD_NAME = "TheFatController" --luacheck: allow defined top
 
-update_rate = 60
-update_rate_manual = 90
+update_rate = 60 --luacheck: allow defined top
+update_rate_manual = 90 --luacheck: allow defined top
 
 -- myevent = game.generateeventname()
 -- the name and tick are filled for the event automatically
 -- this event is raised with extra parameter foo with value "bar"
 --game.raiseevent(myevent, {foo="bar"})
-events = {}
+events = {} --luacheck: allow defined top
 events["on_player_opened"] = script.generate_event_name()
 events["on_player_closed"] = script.generate_event_name()
 
 local on_player_switched_from_train = nil
 
-function getOrLoadSwitchedEvent()
+function getOrLoadSwitchedEvent() --luacheck: allow defined top
   if on_player_switched_from_train == nil then
     on_player_switched_from_train = script.generate_event_name()
   end
   return on_player_switched_from_train
 end
 
-function generateEvents()
+function generateEvents() --luacheck: allow defined top
   getOrLoadSwitchedEvent()
 end
 
-defaults = {stationDuration = 10, signalDuration = 2}
+defaults = {stationDuration = 10, signalDuration = 2} --luacheck: allow defined top
 
-defaultGuiSettings = {
+defaultGuiSettings = { --luacheck: allow defined top
   alarm = {noPath = true, noFuel = false, timeAtSignal = true, timeToStation = true},
   displayCount = 10,
   fatControllerButtons = {},
@@ -55,7 +55,7 @@ defaultGuiSettings = {
 
 -- character_blacklist = { ["orbital-uplink"] = true, ["yarm-remote-viewer"] = true, }
 
-function debugDump(var, force)
+function debugDump(var, force) --luacheck: allow defined top
   if false or force then
     local msg
     if type(var) == "string" then
@@ -69,7 +69,7 @@ function debugDump(var, force)
   end
 end
 
-function pauseError(err)
+function pauseError(err) --luacheck: allow defined top
   if game then
     debugDump("Error in FatController " .. serpent.line(global.version, {comment=false}), true)
     debugDump(err,true)
@@ -77,6 +77,11 @@ function pauseError(err)
     log("Error in FatController " .. serpent.line(global.version, {comment=false}))
     log(serpent.line(global.version, {comment=false}) .. " " .. err)
   end
+end
+
+function register_events() --luacheck: allow defined top
+    script.on_event(defines.events.on_gui_click, GUI.onguiclick)
+    script.on_event(defines.events.on_gui_checked_state_changed, GUI.on_gui_checked_state_changed)
 end
 
 local function init_global()
@@ -284,6 +289,13 @@ local function on_configuration_changed(data)
       if oldVersion < v'2.0.10' then
         findStations(true, true)
       end
+      if oldVersion < v'4.0.0' then
+        findTrains(true)
+        for _, gui in pairs(global.gui) do
+            GUI.refresh_gui(gui)
+        end
+      end
+
     end
     if not oldVersion or oldVersion < v'0.4.0' then
       findTrains(true)
@@ -325,11 +337,6 @@ script.on_event(defines.events.on_research_finished, function(event)
   local _, err = pcall(on_research_finished, event)
   if err then pauseError(err,true) end
 end)
-
-function register_events()
-  script.on_event(defines.events.on_gui_click, GUI.onguiclick)
-  --script.on_event(defines.events.on_gui_checked_state_changed, GUI.onguiclick)
-end
 
 function addInventoryContents(invA, invB)
   local res = {}
@@ -380,9 +387,10 @@ function getHighestInventoryCount(trainInfo)
   local largestItem, itemsCount = getHighestInventoryStack(trainInfo)
   if largestItem.name ~= nil then
     local isItem = game.item_prototypes[largestItem.name] or game.fluid_prototypes[largestItem.name]
-    local displayName = isItem and isItem.localised_name or largestItem.name
+    local displayName = isItem and "[item="..largestItem.name.."]" or largestItem.name --isItem.localised_name or largestItem.name
+    --local displayName = isItem and isItem.localised_name or largestItem.name
     local suffix = itemsCount > 1 and "..." or ""
-    inventory = {"", displayName,": ",largestItem.count, suffix}
+    inventory = {"", displayName, " ", largestItem.count, suffix}
   end
   return inventory
 end
@@ -398,6 +406,7 @@ function on_player_driving_changed_state(event)
       end
     end
     if player.vehicle == nil then
+      --log("changed_state")
       if global.gui[player.index].followEntity then
         local guiSettings = global.gui[player.index]
         if player.connected then
@@ -415,6 +424,7 @@ function on_player_driving_changed_state(event)
       TrainList.remove_invalid(player.force, true)
       TrainList.reset_manual(global.gui[player.index].vehicle)
       global.gui[player.index].vehicle = false
+      --log("changed_state2")
     end
   end)
   if err then pauseError(err) end
@@ -856,7 +866,7 @@ function getPageCount(guiSettings, player)
   return p
 end
 
-function update_pageCount(force)
+function update_pageCount(force) --luacheck: allow defined top
   for _, p in pairs(force.players) do
     local guiSettings = global.gui[p.index]
     guiSettings.pageCount = getPageCount(guiSettings,p)
@@ -935,6 +945,7 @@ script.on_event(defines.events.on_entity_died, on_entity_died)
 --script.on_event(defines.events.on_pre_player_died, on_pre_player_died)
 
 function swapPlayer(player, character)
+--  log("h1")
   --player.teleport(character.position)
   if not player.connected then return end
   if player.walking_state.walking then
@@ -958,6 +969,7 @@ function swapPlayer(player, character)
   if character.valid and character ~= player.character then
     player.character = character
   end
+--  log("h2")
   --element becomes invalid if the player is in a vehicle
   --if element then
   -- assert(element.valid)
@@ -965,6 +977,7 @@ function swapPlayer(player, character)
 end
 
 function newFatControllerEntity(player)
+    --assert(not global.character[player.index])
   return player.surface.create_entity({name="fatcontroller", position=player.position, force=player.force})
 end
 
