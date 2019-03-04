@@ -1,5 +1,5 @@
 require ("prototypes.fatcontroller_annimation")
-function copyPrototype(type, name, newName, change_results)
+function copyPrototype(type, name, newName, change_results) --luacheck: allow defined top
   if not data.raw[type][name] then error("type "..type.." "..name.." doesn't exist") end
   local p = table.deepcopy(data.raw[type][name])
   p.name = newName
@@ -17,14 +17,14 @@ function copyPrototype(type, name, newName, change_results)
   return p
 end
 
-function merge(prototype, changed_data)
+function merge(prototype, changed_data) --luacheck: allow defined top
     for k, v in pairs(changed_data) do
         prototype[k] = v
     end
     return prototype
 end
 
-local fatcontroller = 
+local fatcontroller =
 
 {
       type = "player",
@@ -54,7 +54,6 @@ local fatcontroller =
       loot_pickup_distance = 0,
       ticks_to_stay_in_combat = 0,
       enter_vehicle_distance = 0,
-      
       subgroup = "creatures",
       order="z",
       eat =
@@ -70,7 +69,7 @@ local fatcontroller =
           filename = "__TheFatController__/sound/empty.ogg"
         }
       },
-      animations = fcanimations,
+      animations = fcanimations, --luacheck: ignore
       mining_speed = 0,
       mining_with_hands_particles_animation_positions = {0, 0},
       mining_with_tool_particles_animation_positions = {0},

@@ -23,8 +23,9 @@ data.raw["gui-style"].default["fatcontroller_thin_frame"] =
   {
     type = "frame_style",
     parent="frame",
-    top_padding  = 4,
+    top_padding  = 2,
     bottom_padding = 2,
+    horizontally_stretchable = "on"
   }
 
 data.raw["gui-style"].default["fatcontroller_main_flow_vertical"] =
@@ -161,8 +162,6 @@ data.raw["gui-style"].default["fatcontroller_button_style_bold"] =
   {
     type = "button_style",
     parent = "button",
-    right_padding = 3,
-    left_padding = 3,
   }
 
   data.raw["gui-style"].default["fatcontroller_disabled_button_bold"] =
@@ -179,7 +178,18 @@ data.raw["gui-style"].default["fatcontroller_page_button"] =
     type = "button_style",
     parent = "fatcontroller_button_style_bold",
     horizontal_spacing = 0,
-    width = 50,
+    width = 25,
+    height = 36,
+    left_padding = 0,
+    right_padding = 0,
+    vertically_stretchable = "on"
+  }
+
+  data.raw["gui-style"].default["fatcontroller_pagenumber_button"] =
+  {
+    type = "button_style",
+    parent = "fatcontroller_page_button",
+    width = 46,
   }
 
 data.raw["gui-style"].default["fatcontroller_page_button_selected"] =
@@ -187,18 +197,14 @@ data.raw["gui-style"].default["fatcontroller_page_button_selected"] =
     type = "button_style",
     parent = "fatcontroller_selected_button",
     horizontal_spacing = 0,
-    width = 50,
+    width = 25,
+    height = 36,
+    left_padding = 0,
+    right_padding = 0,
+    vertically_stretchable = "on"
   }
 
-data.raw["gui-style"].default["fatcontroller_page_button_disabled"] =
-  {
-    type = "button_style",
-    parent = "fatcontroller_disabled_button_bold",
-    horizontal_spacing = 0,
-    width = 50,
-  }
-
- data.raw["gui-style"].default["fatcontroller_label_style"] =
+data.raw["gui-style"].default["fatcontroller_label_style"] =
    {
      type = "label_style",
      parent = "label"

@@ -1,4 +1,4 @@
-fcEmptyAnimations =       { filename = "__TheFatController__/graphics/trans1.png",
+fcEmptyAnimations =       { filename = "__TheFatController__/graphics/trans1.png", --luacheck: allow defined top
       priority = "medium",
       width = 1,
       height = 1,
@@ -9,7 +9,7 @@ fcEmptyAnimations =       { filename = "__TheFatController__/graphics/trans1.png
       axially_symmetrical = true
 	 }
 
-fcEmptyLevel = {
+fcEmptyLevel = {--luacheck: allow defined top
     idle = fcEmptyAnimations,
     idle_with_gun = fcEmptyAnimations,
     running = fcEmptyAnimations,
@@ -24,9 +24,9 @@ fcEmptyLevel = {
     running_mask = fcEmptyAnimations
   }
 
-fcanimations =
+fcanimations =--luacheck: ignore
 {
-  level1 = fcEmptyLevel, 
-  level2addon = nil, 
+  level1 = fcEmptyLevel,
+  level2addon = nil,
   level3addon = nil
 }
