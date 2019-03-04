@@ -167,7 +167,7 @@ data.raw["gui-style"].default["fatcontroller_button_style_bold"] =
   data.raw["gui-style"].default["fatcontroller_disabled_button_bold"] =
   {
     type = "button_style",
-    parent = "st_disabled_button",
+    parent = "fatcontroller_disabled_button",
     font = "default-semibold",
     default_font_color={r=0.5, g=0.5, b=0.5},
     hovered_font_color={r=0.5, g=0.5, b=0.5},
