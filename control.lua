@@ -966,7 +966,7 @@ function swapPlayer(player, character)
   --if element then
   --assert(element.valid)
   --end
-  if character.valid and character ~= player.character then
+  if character and character.valid and character ~= player.character then
     player.character = character
   end
 --  log("h2")

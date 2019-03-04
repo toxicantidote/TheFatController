@@ -7,6 +7,7 @@ function sanitizeNumber(number, default)
 end
 
 function start_following(carriage, guiSettings, element, player)
+    --log("start_following")
 local _, err = pcall(function()
   if guiSettings.followGui and guiSettings.followGui.valid then
     guiSettings.followGui.caption = {"text-controlbutton"}
@@ -32,6 +33,7 @@ local _, err = pcall(function()
 end
 
 function stop_following(guiSettings)
+    --log("stop_following")
   guiSettings.followEntity = nil
   if guiSettings.followGui and guiSettings.followGui.valid then
     guiSettings.followGui.caption = {"text-controlbutton"}
@@ -406,7 +408,7 @@ GUI = {
         pb.enabled = guiSettings.page > 1
       end
 
-      local caption = guiSettings.page .. "0/" .. guiSettings.pageCount .. "0"
+      local caption = guiSettings.page .. "/" .. guiSettings.pageCount
       if newGui.trainInfoControls.pageButtons.page_number == nil then
         newGui.trainInfoControls.pageButtons.add({type="button", name="page_number", caption= caption, enabled = false, style="fatcontroller_pagenumber_button", tooltip = {"fat_tooltip_displayed_trains"}})
     else
@@ -524,7 +526,7 @@ GUI = {
           end
           local pageCount = get_filter_PageCount(player.force)
           if pageFlow.filter_page_number == nil then
-            pageFlow.add({type="button", name="filter_page_number", enabled = false, caption = guiSettings.filter_page .. "0/" ..pageCount.."0" , style="fatcontroller_pagenumber_button"})
+            pageFlow.add({type="button", name="filter_page_number", enabled = false, caption = guiSettings.filter_page .. "/" ..pageCount , style="fatcontroller_pagenumber_button"})
           else
             pageFlow.filter_page_number.caption = guiSettings.filter_page .. "/" .. pageCount
           end
@@ -649,15 +651,14 @@ on_gui_click.returnToPlayer = function(guiSettings, element, player)
   if global.character[element.player_index] ~= nil then
     --local player_index = element.player_index
     if player.vehicle ~= nil then
-      log("before" .. serpent.block(element.valid))
+      --log("before set_driver(nil) " .. serpent.block(element.valid))
       player.vehicle.set_driver(nil)
-      log("after" .. serpent.block(element.valid))
-      log("hello")
+      --log("after " .. serpent.block(element.valid))
     end
-    log("h3")
-    log(serpent.block(element.valid))
+    --log("h3")
+    --log(serpent.block(element.valid))
     --swapPlayer(player, global.character[player_index])
-    log("h4")
+    --log("h4")
     --global.character[element.player_index] = nil
     --element.destroy()
     stop_following(guiSettings, player)
