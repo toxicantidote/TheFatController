@@ -289,7 +289,12 @@ local function on_configuration_changed(data)
       if oldVersion < v'2.0.10' then
         findStations(true, true)
       end
-      if oldVersion < v'4.0.0' then
+      if oldVersion < v'4.0.1' then
+        for _, player in pairs(game.players) do
+            if player.character  and player.vehicle and player.vehicle.get_driver() == player.character and player.character.name == "fatcontroller" then
+                player.vehicle.set_driver(nil)
+            end
+        end
         findTrains(true)
         for _, gui in pairs(global.gui) do
             GUI.refresh_gui(gui)

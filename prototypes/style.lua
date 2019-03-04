@@ -274,23 +274,43 @@ data:extend({
     height = 128,
   }})
 
-local alarms = {"noFuel", "noPath", "timeAtSignal", "timeToStation"}
-for _, icon in pairs(alarms) do
-  data:extend({
+
+data:extend({
     {
       type="sprite",
-      name="fat_" .. icon,
-      filename = "__TheFatController__/graphics/icons/"..icon..".png",
+      name="fat_timeAtSignal",
+      filename = "__TheFatController__/graphics/icons/timeAtSignal.png",
       priority = "extra-high-no-scale",
       width = 32,
       height = 32,
-    }})
-end
+}})
 
-data.raw.sprite.fat_noPath.filename = "__core__/graphics/danger-icon.png"
-data.raw.sprite.fat_noPath.width = 64
-data.raw.sprite.fat_noPath.height = 64
+data:extend({
+    {
+      type="sprite",
+      name="fat_timeToStation",
+      filename = "__TheFatController__/graphics/icons/timeAtSignal.png",
+      priority = "extra-high-no-scale",
+      width = 32,
+      height = 32,
+}})
 
-data.raw.sprite.fat_noPath.filename = "__core__/graphics/fuel-icon-red.png"
-data.raw.sprite.fat_noPath.width = 64
-data.raw.sprite.fat_noPath.height = 64
+data:extend({
+    {
+      type="sprite",
+      name="fat_noPath",
+      filename = "__core__/graphics/danger-icon.png",
+      priority = "extra-high-no-scale",
+      width = 64,
+      height = 64,
+}})
+
+data:extend({
+    {
+      type="sprite",
+      name="fat_noFuel",
+      filename = "__core__/graphics/fuel-icon-red.png",
+      priority = "extra-high-no-scale",
+      width = 64,
+      height = 64,
+}})
