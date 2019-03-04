@@ -319,9 +319,9 @@ GUI = {
         --debugDump("CLICK! " .. event.element.name .. game.tick,true)
 
         if on_gui_click[event.element.name] then
-          log("click: " .. event.element.name)
+          --log("click: " .. event.element.name)
           refreshGui = on_gui_click[event.element.name](guiSettings, event.element, player)
-          log("click end: ")
+          --log("click end: ")
         elseif endsWith(event.element.name,"_toggleManualMode") then
           refreshGui = on_gui_click.toggleManualMode(guiSettings, event.element, player)
         elseif endsWith(event.element.name,"_toggleFollowMode") then
@@ -356,9 +356,9 @@ GUI = {
         --debugDump("CLICK! " .. event.element.name .. game.tick,true)
 
         if on_gui_click[event.element.name] then
-            log("checked: " .. event.element.name)
+            --log("checked: " .. event.element.name)
                 refreshGui = on_gui_click[event.element.name](guiSettings, event.element, player)
-            log("checked end: ")
+            --log("checked end: ")
         elseif endsWith(event.element.name,"_stationFilter") then
             refreshGui = on_gui_click.stationFilter(guiSettings, event.element, player)
         end
