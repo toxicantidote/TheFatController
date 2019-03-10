@@ -1,4 +1,4 @@
-require ("prototypes.fatcontroller_annimation")
+require ("__TheFatController__/prototypes/fatcontroller_annimation")
 function copyPrototype(type, name, newName, change_results) --luacheck: allow defined top
   if not data.raw[type][name] then error("type "..type.." "..name.." doesn't exist") end
   local p = table.deepcopy(data.raw[type][name])

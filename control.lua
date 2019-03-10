@@ -1,10 +1,10 @@
-require "util"
-require "TickTable"
-require "Alerts"
-require "TrainList"
-require "GUI"
+require "__core__/lualib/util"
+require "__TheFatController__/TickTable"
+require "__TheFatController__/Alerts"
+require "__TheFatController__/TrainList"
+require "__TheFatController__/GUI"
 
-local v = require 'semver'
+local v = require '__TheFatController__/semver'
 
 MOD_NAME = "TheFatController" --luacheck: allow defined top
 
