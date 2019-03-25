@@ -404,7 +404,7 @@ GUI = {
 
       local caption = guiSettings.page .. "/" .. guiSettings.pageCount
       if newGui.trainInfoControls.pageButtons.page_number == nil then
-        newGui.trainInfoControls.pageButtons.add({type="button", name="page_number", caption= caption, enabled = false, style="fatcontroller_pagenumber_button", tooltip = {"fat_tooltip_displayed_trains"}})
+        newGui.trainInfoControls.pageButtons.add({type="button", name="page_number", caption= caption, style="fatcontroller_pagenumber_button", tooltip = {"fat_tooltip_displayed_trains"}})
     else
         newGui.trainInfoControls.pageButtons.page_number.caption = caption
       end

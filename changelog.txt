@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 4.0.4
+Date: 25. 03. 2018
+  Bugfixes:
+    - fixed not being able to change the number of displayed trains with the page number button
+---------------------------------------------------------------------------------------------------
 Version: 4.0.3
 Date: 04. 03. 2018
   Bugfixes:
