@@ -390,9 +390,12 @@ end
 function getHighestInventoryCount(trainInfo)
   local inventory = ""
   local largestItem, itemsCount = getHighestInventoryStack(trainInfo)
-  if largestItem.name ~= nil then
-    local isItem = game.item_prototypes[largestItem.name] or game.fluid_prototypes[largestItem.name]
-    local displayName = isItem and "[item="..largestItem.name.."]" or largestItem.name --isItem.localised_name or largestItem.name
+  local name = largestItem.name
+  if name ~= nil then
+    local isFluid = game.fluid_prototypes[name]
+    local isItem = game.item_prototypes[name]
+    local prefix = isItem and "item" or isFluid and "fluid"
+    local displayName = (isItem or isFluid) and "[" .. prefix .. "=" .. name .. "]" or name --isItem.localised_name or largestItem.name
     --local displayName = isItem and isItem.localised_name or largestItem.name
     local suffix = itemsCount > 1 and "..." or ""
     inventory = {"", displayName, " ", largestItem.count, suffix}
