@@ -122,6 +122,7 @@ local function init_force(force)
   global.station_count[force.name] = global.station_count[force.name] or {}
   global.automatedCount[force.name] = global.automatedCount[force.name] or 0
   global.force_settings[force.name] = global.force_settings[force.name] or {signalDuration=defaults.signalDuration*3600,stationDuration=defaults.stationDuration*3600}
+  global.unlockedByForce[force.name] = global.unlockedByForce[force.name] or false
   if force.technologies["rail-signals"].researched then
     global.unlockedByForce[force.name] = true
     global.unlocked = true
@@ -165,10 +166,7 @@ local function on_configuration_changed(data)
     oldVersion = data.mod_changes[MOD_NAME].old_version
     if oldVersion then
       oldVersion = v(oldVersion)
-      log(tostring(oldVersion) .. ' < '  .. tostring(newVersion) .. ' ' .. tostring(oldVersion < newVersion))
-      log(tostring(oldVersion) .. ' == ' .. tostring(newVersion) .. ' ' .. tostring(oldVersion == newVersion))
-      log(tostring(oldVersion) .. ' > ' .. tostring(newVersion) .. ' ' .. tostring(oldVersion > newVersion))
-      debugDump("Updating TheFatController from ".. tostring(oldVersion) .. " to " .. tostring(newVersion), true)
+      log("Updating TheFatController from ".. tostring(oldVersion) .. " to " .. tostring(newVersion))
       if oldVersion < v'0.4.0' then
         debugDump("Resetting FatController settings",true)
         local tmp = {}
@@ -435,7 +433,10 @@ function on_player_driving_changed_state(event)
       --log("changed_state2")
     end
   end)
-  if err then pauseError(err) end
+  if err then
+    pauseError(err)
+    GUI.revalidate(game.get_player(event.player_index))
+  end
 end
 script.on_event(defines.events.on_player_driving_changed_state, on_player_driving_changed_state)
 
@@ -532,7 +533,9 @@ function on_tick(event)
       end
     end
   end)
-  if err then pauseError(err) end
+  if err then
+    pauseError(err)
+  end
 end
 
 script.on_event(defines.events.on_tick, on_tick)
@@ -611,6 +614,7 @@ function on_preplayer_mined_item(event)
   end)
   if not status then
     pauseError(err, "on_pre_player_mined_item")
+    GUI.revalidate(game.get_player(event.player_index))
   end
 end
 
@@ -1065,6 +1069,18 @@ end
 --end
 
 interface = {
+    mess_up = function()
+        global.gui[game.player.index].fatControllerGui = nil
+    end,
+mess_up2 = function()
+        global.gui[game.player.index].fatControllerGui.destroy()
+    end,
+    mess_up3 = function()
+        global.gui[game.player.index].fatControllerButtons = nil
+    end,
+    mess_up4 = function()
+        global.gui[game.player.index].fatControllerButtons.destroy()
+    end,
   get_player_switched_event = function()
     return getOrLoadSwitchedEvent()
   end,

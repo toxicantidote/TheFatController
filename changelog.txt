@@ -1,21 +1,26 @@
 ---------------------------------------------------------------------------------------------------
+Version: 4.0.6
+Date: 26. 04. 2019
+  Bugfixes:
+    - fixed errors when gui root became invalid
+---------------------------------------------------------------------------------------------------
 Version: 4.0.5
-Date: 28. 03. 2018
+Date: 28. 03. 2019
   Bugfixes:
     - fixed fluid icons not being shown in the train info
 ---------------------------------------------------------------------------------------------------
 Version: 4.0.4
-Date: 25. 03. 2018
+Date: 25. 03. 2019
   Bugfixes:
     - fixed not being able to change the number of displayed trains with the page number button
 ---------------------------------------------------------------------------------------------------
 Version: 4.0.3
-Date: 04. 03. 2018
+Date: 04. 03. 2019
   Bugfixes:
     - fixed loading error without SmartTrains mod
 ---------------------------------------------------------------------------------------------------
 Version: 4.0.0
-Date: 04. 03. 2018
+Date: 04. 03. 2019
   Changes:
     - updated for Factorio 0.17
     - updated 2 alarm icons

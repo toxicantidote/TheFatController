@@ -48,6 +48,41 @@ end
 on_gui_click = {}
 GUI = {
 
+    valid = function(element)
+        return (element and element.valid) and element
+    end,
+
+    revalidate = function(player)
+        local guiSettings = global.gui[player.index]
+        if GUI.valid(guiSettings.fatControllerGui) and GUI.valid(guiSettings.fatControllerButtons) then
+            return
+        end
+        local init = false
+        local player_gui = player.gui
+        if not GUI.valid(guiSettings.fatControllerGui) then
+            if GUI.valid(player_gui.left.fatController) then
+                log("Fixing fatControllerGui")
+                guiSettings.fatControllerGui = player_gui.left.fatController
+            else
+                init = true
+            end
+        end
+        if not GUI.valid(guiSettings.fatControllerButtons) then
+            if GUI.valid(player_gui.top.fatControllerButtons) then
+                log("Fixing fatControllerButtons")
+                guiSettings.fatControllerButtons = player_gui.top.fatControllerButtons
+            else
+                init = true
+            end
+        end
+        if init and global.unlockedByForce[player.force.name] then
+            log("Fixing gui")
+            GUI.init_gui(player, true)
+            init = true
+        end
+        return init
+    end,
+
     sanitizeName = function(name)
       return (name:gsub("^%s*(.-)%s*$", "%1"))
     end,
@@ -258,29 +293,29 @@ GUI = {
       end
     end,
 
-    init_gui = function(player)
+    init_gui = function(player, force)
       --debugDump("Init: " .. player.name .. " - " .. player.force.name,true)
-      if player.gui.top.fatControllerButtons ~= nil then
+      if not force and GUI.valid(player.gui.top.fatControllerButtons) and GUI.valid(player.gui.left.fatController) then
         return
       end
 
       local player_gui = global.gui[player.index]
 
-      if player.gui.left.fatController == nil then
+      if not GUI.valid(player.gui.left.fatController) then
         player_gui.fatControllerGui = player.gui.left.add{ type="flow", name="fatController", direction="vertical", style="fatcontroller_main_flow_vertical"} --caption="Fat Controller",
       else
         player_gui.fatControllerGui = player.gui.left.fatController
       end
-      if player.gui.top.fatControllerButtons == nil then
+      if not GUI.valid(player.gui.top.fatControllerButtons) then
         player_gui.fatControllerButtons = player.gui.top.add({ type="flow", name="fatControllerButtons", direction="horizontal", style="fatcontroller_main_flow_horizontal"})
       else
         player_gui.fatControllerButtons = player.gui.top.fatControllerButtons
       end
-      if player_gui.fatControllerButtons.toggleTrainInfo == nil then
+      if not GUI.valid(player_gui.fatControllerButtons.toggleTrainInfo) then
         player_gui.fatControllerButtons.add({type="sprite-button", sprite= "item/locomotive",name="toggleTrainInfo", style="fatcontroller_main_button_style"})
       end
 
-      if player_gui.fatControllerGui.trainInfo ~= nil then
+      if GUI.valid(player_gui.fatControllerGui.trainInfo) then
         GUI.newTrainInfoWindow(player_gui, player)
       end
 
@@ -314,9 +349,12 @@ GUI = {
         local refreshGui = false
         local player_index = event.element.player_index
         local guiSettings = global.gui[player_index]
-        local player = game.players[player_index]
+        local player = game.get_player(player_index)
         if not player.connected then return end
         --debugDump("CLICK! " .. event.element.name .. game.tick,true)
+        --log(serpent.block({guiSettings.fatControllerGui, guiSettings.fatControllerGui.valid}))
+
+        if GUI.revalidate(player) then return end
 
         if on_gui_click[event.element.name] then
           --log("click: " .. event.element.name)
@@ -455,11 +493,11 @@ GUI = {
     refreshTrainInfoGui = function(guiSettings, player)
       if not player.connected then return end
       local character = player.character
-      local gui = guiSettings.fatControllerGui.trainInfo
+      local gui = (guiSettings.fatControllerGui and guiSettings.fatControllerGui.valid) and guiSettings.fatControllerGui.trainInfo
       local trains = (guiSettings.activeFilterList or guiSettings.filter_alarms) and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
       if guiSettings.page > guiSettings.pageCount then guiSettings.page = guiSettings.pageCount end
       guiSettings.page = guiSettings.page > 0 and guiSettings.page or 1
-      if gui ~= nil and trains ~= nil then
+      if gui ~= nil and gui.valid and trains ~= nil then
         --local pageStart = ((guiSettings.page - 1) * guiSettings.displayCount) + 1
         local pageStart = ((guiSettings.page - 1) * guiSettings.displayCount) + 1
         local remove_invalid = false

@@ -102,7 +102,7 @@ Alerts.update_filters = function()
             if guiSettings.filter_alarms then
                 guiSettings.filtered_trains = TrainList.get_filtered_trains(player.force, guiSettings)
                 guiSettings.pageCount = getPageCount(guiSettings, player)
-                if guiSettings.fatControllerGui.trainInfo then
+                if guiSettings.fatControllerGui and guiSettings.fatControllerGui.valid and guiSettings.fatControllerGui.trainInfo then
                     GUI.newTrainInfoWindow(guiSettings, player)
                     GUI.refreshTrainInfoGui(guiSettings, player)
                 end
