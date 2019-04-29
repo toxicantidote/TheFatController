@@ -53,9 +53,12 @@ Alerts.check_noFuel = function(trainInfo, skipUpdate)
     local noFuel = false
     local locos = trainInfo.train.locomotives
     local electric
+    local fuel_inventory
     for _,carriage in pairs(locos.front_movers) do
         electric = Alerts.electric_locomotives[carriage.name]
-        if ( not electric and carriage.get_fuel_inventory().is_empty() ) or ( electric and carriage.energy == 0 )then
+        fuel_inventory = carriage.get_fuel_inventory()
+        if ( not electric and fuel_inventory and fuel_inventory.is_empty())
+        or ( electric and carriage.energy == 0 ) then
             noFuel = true
             break
         end
@@ -63,7 +66,9 @@ Alerts.check_noFuel = function(trainInfo, skipUpdate)
     if not noFuel then
         for _,carriage in pairs(locos.back_movers) do
             electric = Alerts.electric_locomotives[carriage.name]
-            if ( not electric and carriage.get_fuel_inventory().is_empty() ) or ( electric and carriage.energy == 0 )then
+            fuel_inventory = carriage.get_fuel_inventory()
+            if ( not electric and fuel_inventory and fuel_inventory.is_empty())
+            or ( electric and carriage.energy == 0 ) then
                 noFuel = true
                 break
             end
