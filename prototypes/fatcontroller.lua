@@ -24,10 +24,11 @@ function merge(prototype, changed_data) --luacheck: allow defined top
     return prototype
 end
 
+local player_name = mods.base < '0.17.35' and "player" or "character" --TODO: remove in a while
 local fatcontroller =
 
 {
-      type = "player",
+      type = player_name,
       name = "fatcontroller",
       icon = "__base__/graphics/icons/player.png",
       icon_size = 32,
@@ -75,8 +76,8 @@ local fatcontroller =
       mining_with_tool_particles_animation_positions = {0},
       running_sound_animation_positions = {0, 0}
     }
-data:extend({merge(copyPrototype("player", "player", fatcontroller, false), fatcontroller)})
---log(serpent.block(data.raw["player"]["fatcontroller"]))
+
+data:extend({merge(copyPrototype(player_name, player_name, fatcontroller, false), fatcontroller)})
 -- {
 -- type = "achievement",
 -- name = "self-termination",
