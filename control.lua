@@ -50,6 +50,7 @@ defaultGuiSettings = { --luacheck: allow defined top
   displayed_trains = {},
   renameTrains = false,
   show_names = false,
+  indicators = false,
   renameTrain = {},
 }
 
@@ -298,6 +299,12 @@ local function on_configuration_changed(data)
             GUI.refresh_gui(gui)
         end
       end
+
+        if oldVersion < v'4.0.10' then
+            for _, guiSetting in pairs(global.gui) do
+                guiSetting.indicators = false
+            end
+        end
 
     end
     if not oldVersion or oldVersion < v'0.4.0' then

@@ -106,6 +106,13 @@ GUI = {
         trainGui.add({type = "flow", name="buttons",  direction="horizontal", style="fatcontroller_traininfo_button_flow_horizontal"})
       end
 
+    if guiSettings.indicators then
+        local indicator = trainGui.buttons.indicator or trainGui.buttons.add{type = "progressbar", name = "indicator", value = 1, style = "fatcontroller_indicator_style"}
+        local t = trainInfo.train.locomotives.front_movers and trainInfo.train.locomotives.front_movers[1]
+        t = t or trainInfo.train.locomotives.back_movers and trainInfo.train.locomotives.back_movers[1]
+        indicator.style.color = t.color or game.entity_prototypes[t.name].color
+    end
+
       if trainGui.buttons[trainInfo.guiName .. "_toggleManualMode"] == nil then
         trainGui.buttons.add({type="button", name=trainInfo.guiName .. "_toggleManualMode", caption="", style="fatcontroller_page_button", tooltip = {"fat_tooltip_toggle_mode"}})
         local caption = trainInfo.train.manual_mode and ">" or "ll"
@@ -133,7 +140,6 @@ GUI = {
         local alarmButton = trainGui.buttons[trainInfo.guiName .. "_alarmButton"] or trainGui.buttons.add({type = "sprite-button", name = trainInfo.guiName .. "_alarmButton", style="fatcontroller_sprite_button_style"})
         alarmButton.sprite = "fat_" .. trainInfo.alarm.type
       end
-
 
       --Add info
       if trainGui.info == nil then
@@ -245,6 +251,12 @@ GUI = {
             if update_cargo and not cargo_updated then
               trainInfo.inventory = getHighestInventoryCount(trainInfo)
               cargo_updated = true
+            end
+
+            if gui.buttons.indicator then
+                local t = trainInfo.train.locomotives.front_movers and trainInfo.train.locomotives.front_movers[1]
+                t = t or trainInfo.train.locomotives.back_movers and trainInfo.train.locomotives.back_movers[1]
+                gui.buttons.indicator.style.color = t.color or game.entity_prototypes[t.name].color
             end
 
             local show_name = global.gui[gui.player_index].show_names
@@ -643,6 +655,7 @@ GUI = {
           window.add({type="checkbox", name="alarmNoFuel", caption={"text-alarmtimenofuel"}, state=stateNoFuel})
           window.add({type="checkbox", name="renameTrains", caption = {"text-rename-trains"}, state=guiSettings.renameTrains})
           window.add({type="checkbox", name="showNames", caption = {"text-show-names"}, state=guiSettings.show_names})
+          window.add({type="checkbox", name="indicators", caption = {"text-indicators"}, state=guiSettings.indicators})
 
           local flow3 = window.add({name="flowButtons", type="flow", direction="horizontal"})
           flow3.add({type="button", name="alarmOK", caption={"msg-OK"}})
@@ -1055,5 +1068,10 @@ end
 
 on_gui_click.showNames = function(guiSettings, _, _)
   guiSettings.show_names = not guiSettings.show_names
+  return guiSettings.fatControllerGui.trainInfo ~= nil
+end
+
+on_gui_click.indicators = function(guiSettings, _, _)
+  guiSettings.indicators = not guiSettings.indicators
   return guiSettings.fatControllerGui.trainInfo ~= nil
 end

@@ -92,6 +92,31 @@ data.raw["gui-style"].default["fatcontroller_sprite_button_style"] =
     right_padding = 0,
     left_padding = 0,
   }
+data.raw["gui-style"].default["fatcontroller_indicator_style"] =
+  {
+    type = "progressbar_style",
+    --parent = "progressbar",
+    bar_width = 36,
+    bar =
+      {
+        filename = "__core__/graphics/gui.png",
+        position = {221, 0},
+        size = {1, 1},
+        scale = 1
+      },
+    bar_background =
+      {
+        filename = "__core__/graphics/gui.png",
+        position = {225, 0},
+        size = {1, 13},
+        scale = 1
+      },
+    width=14,
+    height=35,
+    right_padding = 0,
+    left_padding = 0,
+    bottom_padding = 2
+  }
 
 data.raw["gui-style"].default["fatcontroller_main_button_style"] =
   {
