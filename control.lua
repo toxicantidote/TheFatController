@@ -903,10 +903,6 @@ function get_filter_PageCount(force)
 end
 
 on_entity_died = function (event)
-  local entities = {locomotive=true, ["cargo-wagon"]=true, player=true}
-  if not entities[event.entity.type] then
-    return
-  end
   if event.entity.type == "locomotive" or event.entity.type == "cargo-wagon" then
     local ent = event.entity
     local oldTrain = ent.train
@@ -937,15 +933,15 @@ on_entity_died = function (event)
   end
   local name = game.active_mods.base < '0.17.35' and "player" or "character" --TODO remove in a while
   if event.entity.type == name and event.entity.name ~= "fatcontroller" then
-    --game.print(game.tick .. " " .. event.entity.type)
+    -- game.print(game.tick .. " " .. event.entity.type)
     -- player died
     for i,guiSettings in pairs(global.gui) do
       -- check if character is still valid next tick for players remote controlling a train
       if guiSettings.followEntity then
-        --if event.entity == global.character[i] then
-        --game.print("Player " .. game.players[i].name .. " died!")
-        --game.print(util.distance(game.players[i].position, event.entity.position))
-        --end
+        -- if event.entity == global.character[i] then
+        --   game.print("Player " .. game.players[i].name .. " died!")
+        --   game.print(util.distance(game.players[i].position, event.entity.position))
+        -- end
         global.dead_players = global.dead_players or {}
         global.dead_players[i] = global.character[i]
       end

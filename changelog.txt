@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 4.0.11
+Date: 26. 05. 2019
+  Bugfixes:
+    - fixed player ending up as a god controller when the original character died while remote controlling a train
+---------------------------------------------------------------------------------------------------
 Version: 4.0.10
 Date: 22. 05. 2019
   Changes:
