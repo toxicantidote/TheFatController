@@ -1,13 +1,14 @@
-fcEmptyAnimations =       { filename = "__TheFatController__/graphics/trans1.png", --luacheck: allow defined top
-      priority = "medium",
-      width = 1,
-      height = 1,
-      direction_count = 18,
-      frame_count = 1,
-      animation_speed = 0.15,
-      shift = {0.0, 0.0},
-      axially_symmetrical = true
-	 }
+fcEmptyAnimations = {--luacheck: allow defined top
+    filename = "__TheFatController__/graphics/trans1.png",
+    priority = "medium",
+    width = 1,
+    height = 1,
+    direction_count = 18,
+    frame_count = 1,
+    animation_speed = 0.15,
+    shift = {0.0, 0.0},
+    axially_symmetrical = true
+}
 
 fcEmptyLevel = {--luacheck: allow defined top
     idle = fcEmptyAnimations,
@@ -22,11 +23,10 @@ fcEmptyLevel = {--luacheck: allow defined top
     mining_with_tool_mask = fcEmptyAnimations,
     running_with_gun_mask = fcEmptyAnimations,
     running_mask = fcEmptyAnimations
-  }
+}
 
-fcanimations =--luacheck: ignore
-{
-  level1 = fcEmptyLevel,
-  level2addon = nil,
-  level3addon = nil
+fcanimations = {--luacheck: ignore
+    level1 = fcEmptyLevel,
+    level2addon = nil,
+    level3addon = nil
 }

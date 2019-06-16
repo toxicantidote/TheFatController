@@ -5,6 +5,5 @@
 	"factorio_version": "0.17",
 	"title":"The Fat Controller",
 	"homepage":"https://forums.factorio.com/viewtopic.php?f=92&t=4504",
-	"description":"A conductor of trains.",
-	"dependencies": []
+	"description":"A conductor of trains.\nRemote control your Trains\nDisplay alerts for various train states"
 }

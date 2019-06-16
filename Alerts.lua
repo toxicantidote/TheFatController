@@ -5,23 +5,23 @@
 -- @type Alerts
 Alerts = {}
 Alerts.electric_locomotives = {
-    ['electric-locomotive-mk1'] = true,
-    ['electric-locomotive-mk2'] = true,
-    ['electric-locomotive-mk3'] = true,
-    ['hybrid-train'] = true
+    ["electric-locomotive-mk1"] = true,
+    ["electric-locomotive-mk2"] = true,
+    ["electric-locomotive-mk3"] = true,
+    ["hybrid-train"] = true
 }
 Alerts.set_alert = function(trainInfo, type, time, skipUpdate)
     trainInfo.alarm.active = true
     trainInfo.alarm.type = type
-    trainInfo.alarm.message = time and ({"msg-alarm-"..type, time}) or {"msg-alarm-"..type}
+    trainInfo.alarm.message = time and ({"msg-alarm-" .. type, time}) or {"msg-alarm-" .. type}
     if type == "noPath" and trainInfo.train.schedule and trainInfo.train.schedule.records and #trainInfo.train.schedule.records > 0 then
         local station = trainInfo.train.schedule.records[trainInfo.train.schedule.current].station
-        trainInfo.alarm.message = {"msg-alarm-"..type, station}
+        trainInfo.alarm.message = {"msg-alarm-" .. type, station}
     end
     if not skipUpdate then
         Alerts.update_filters()
     end
-    if type ~= "noFuel" or trainInfo.alarm.last_message+600 < game.tick then
+    if type ~= "noFuel" or trainInfo.alarm.last_message + 600 < game.tick then
         Alerts.alert_force(trainInfo.force, trainInfo)
     end
 end
@@ -32,14 +32,14 @@ Alerts.check_alerts = function(trainInfo)
     if trainInfo.alarm.arrived_at_signal then
         local signalDuration = global.force_settings[force.name].signalDuration
         if trainInfo.last_state == defines.train_state.wait_signal and trainInfo.alarm.arrived_at_signal == game.tick - signalDuration then
-            Alerts.set_alert(trainInfo,"timeAtSignal",signalDuration/3600)
+            Alerts.set_alert(trainInfo, "timeAtSignal", signalDuration / 3600)
             update = true
         end
     end
     if trainInfo.alarm.left_station then
         local stationDuration = global.force_settings[force.name].stationDuration
-        if trainInfo.alarm.left_station+stationDuration <= game.tick then
-            Alerts.set_alert(trainInfo,"timeToStation",stationDuration/3600)
+        if trainInfo.alarm.left_station + stationDuration <= game.tick then
+            Alerts.set_alert(trainInfo, "timeToStation", stationDuration / 3600)
             update = true
         end
     end
@@ -54,21 +54,21 @@ Alerts.check_noFuel = function(trainInfo, skipUpdate)
     local locos = trainInfo.train.locomotives
     local electric
     local fuel_inventory
-    for _,carriage in pairs(locos.front_movers) do
+    for _, carriage in pairs(locos.front_movers) do
         electric = Alerts.electric_locomotives[carriage.name]
         fuel_inventory = carriage.get_fuel_inventory()
-        if ( not electric and fuel_inventory and fuel_inventory.is_empty())
-        or ( electric and carriage.energy == 0 ) then
+        if (not electric and fuel_inventory and fuel_inventory.is_empty()) or (electric and carriage.energy == 0) then
             noFuel = true
             break
         end
     end
     if not noFuel then
-        for _,carriage in pairs(locos.back_movers) do
+        for _, carriage in pairs(locos.back_movers) do
             electric = Alerts.electric_locomotives[carriage.name]
             fuel_inventory = carriage.get_fuel_inventory()
-            if ( not electric and fuel_inventory and fuel_inventory.is_empty())
-            or ( electric and carriage.energy == 0 ) then
+            if (not electric and fuel_inventory and fuel_inventory.is_empty())
+            or (electric and carriage.energy == 0)
+            then
                 noFuel = true
                 break
             end
@@ -76,7 +76,7 @@ Alerts.check_noFuel = function(trainInfo, skipUpdate)
     end
     local old_noFuel = trainInfo.noFuel
     if noFuel then
-        Alerts.set_alert(trainInfo,"noFuel",false, skipUpdate)
+        Alerts.set_alert(trainInfo, "noFuel", false, skipUpdate)
     else
         if trainInfo.alarm.active and trainInfo.alarm.type == "noFuel" then
             trainInfo.alarm.active = false
