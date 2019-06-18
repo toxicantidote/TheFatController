@@ -54,4 +54,5 @@ install_mod:
 		cp -R build/$(OUTPUT_NAME) factorio_mods ; \
 	fi;
 tag:
-	git tag -f $(VERSION_STRING)    
+	git tag -f $(VERSION_STRING)
+	git push --tags
