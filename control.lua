@@ -192,7 +192,7 @@ local function on_configuration_changed(data)
                     for _, force in pairs(game.forces) do
                         TrainList.remove_invalid(force, true)
                         for _, ti in pairs(global.trainsByForce[force.name]) do
-                            ti.automated = ti.train.state ~= defines.train_state.manual_control and ti.train.state ~= defines.train_state.stop_for_auto_control
+                            ti.automated = ti.train.state ~= defines.train_state.manual_control and ti.train.state ~= defines.train_state.manual_control_stop
                             if ti.automated then
                                 global.automatedCount[force.name] = global.automatedCount[force.name] + 1
                             end
@@ -245,7 +245,7 @@ local function on_configuration_changed(data)
                     for _, force in pairs(game.forces) do
                         TrainList.remove_invalid(force, true)
                         for _, ti in pairs(global.trainsByForce[force.name]) do
-                            ti.automated = (ti.train.state ~= defines.train_state.manual_control and ti.train.state ~= defines.train_state.stop_for_auto_control)
+                            ti.automated = (ti.train.state ~= defines.train_state.manual_control and ti.train.state ~= defines.train_state.manual_control_stop)
                             if ti.automated then
                                 global.automatedCount[force.name] = global.automatedCount[force.name] + 1
                             end
@@ -594,6 +594,32 @@ function on_preplayer_mined_item(event)
         local ent = event.entity
         local ctype = ent.type
         if ctype == "locomotive" or ctype == "cargo-wagon" then
+            local driver = ent.get_driver()
+            local player_index
+            if driver and driver.name == "fatcontroller" then
+                for pi, pdata in pairs(global.gui) do
+                    if pdata.followEntity == ent then
+                        player_index = pi
+                        break
+                    end
+                end
+            end
+            if player_index then
+                if global.gui[player_index].followEntity then
+                    local guiSettings = global.gui[player_index]
+                    local player = game.get_player(player_index)
+                    if player.connected then
+                        swapPlayer(game.players[player_index], global.character[player_index])
+                        global.character[player_index] = nil
+                        stop_following(guiSettings, player)
+                    else
+                        if not global.to_swap then
+                            global.to_swap = {}
+                        end
+                        table.insert(global.to_swap, {index = player.index, character = global.character[player.index]})
+                    end
+                end
+            end
             local oldTrain = ent.train
             -- an existing train can be shortened or split in two trains or be removed completely
             local length = #oldTrain.carriages
@@ -639,18 +665,12 @@ function on_robot_built_entity(event)
     end
 end
 
-function on_robot_pre_mined(event)
-    if event.entity.type == "train-stop" then
-        decreaseStationCount(event.entity, event.entity.backer_name)
-    end
-end
-
-script.on_event(defines.events.on_robot_pre_mined, on_robot_pre_mined)
+script.on_event(defines.events.on_robot_pre_mined, on_preplayer_mined_item)
 script.on_event(defines.events.on_robot_built_entity, on_robot_built_entity)
 script.on_event(defines.events.on_pre_player_mined_item, on_preplayer_mined_item)
 script.on_event(defines.events.on_built_entity, on_built_entity)
 
-function getKeyByValue(tableA, value)
+function getKeyByValue(tableA, value)--luacheck: ignore
     for i, c in pairs(tableA) do
         if c == value then
             return i
@@ -729,7 +749,7 @@ function on_train_changed_state(event)
                 trainInfo.alarm.arrived_at_signal = tick
                 local nextUpdate = tick + global.force_settings[force.name].signalDuration
                 TickTable.insert(nextUpdate, "updateAlarms", trainInfo)
-            elseif (train.state == train_states.on_the_path or train.state == train_states.stop_for_auto_control) and trainInfo.previous_state == train_states.wait_station then
+            elseif (train.state == train_states.on_the_path or train.state == train_states.manual_control_stop) and trainInfo.previous_state == train_states.wait_station then
                 trainInfo.alarm.left_station = tick
                 update_cargo = true
                 --log("left_station")

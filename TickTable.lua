@@ -3,7 +3,7 @@
 
 --- TickTable
 -- @type TickTable
-TickTable = {}
+TickTable = {}--luacheck: allow defined top
 
 function TickTable.insert(tick, key, value)
     global[key][tick] = global[key][tick] or {}

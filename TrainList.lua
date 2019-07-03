@@ -3,7 +3,7 @@
 
 --- Train info
 -- @type TrainInfo
-TrainInfo = {
+local TrainInfo = {
     name = "", -- name of the train
     current_station = false, --name of current station
     depart_at = 0, --tick when train will depart the station
@@ -40,7 +40,7 @@ TrainInfo = {
 
 --- foo
 -- @type TrainList
-TrainList = {}
+TrainList = {}--luacheck: allow defined top
 
 --- add a train to the list
 -- @return #TrainInfo description
@@ -160,8 +160,8 @@ TrainList.createTrainInfo = function(train, no_alarm)
 
     ti.last_state = ti.train.state
     ti.last_update = 0
-    ti.inventory = getHighestInventoryCount(ti)
-    ti.automated = train.state ~= defines.train_state.manual_control and train.state ~= defines.train_state.stop_for_auto_control
+    ti.inventory = getHighestInventoryCount(ti)--luacheck: ignore
+    ti.automated = train.state ~= defines.train_state.manual_control and train.state ~= defines.train_state.manual_control_stop
     TrainList.update_stations(ti)
     local station = (train.schedule and train.schedule.records and #train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
     ti.current_station = station
@@ -350,7 +350,7 @@ end
 TrainList.automatedCount = function(force)
     local c = 0
     for _, t in pairs(global.trainsByForce[force.name]) do
-        if t.train.valid and (t.train.state ~= defines.train_state.manual_control and t.train.state ~= defines.train_state.stop_for_auto_control) then
+        if t.train.valid and (t.train.state ~= defines.train_state.manual_control and t.train.state ~= defines.train_state.manual_control_stop) then
             c = c + 1
         end
     end

@@ -3,7 +3,7 @@
 
 --- Alerts
 -- @type Alerts
-Alerts = {}
+Alerts = {}--luacheck: allow defined top
 Alerts.electric_locomotives = {
     ["electric-locomotive-mk1"] = true,
     ["electric-locomotive-mk2"] = true,
