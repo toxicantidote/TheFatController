@@ -808,7 +808,7 @@ function on_train_changed_state(event)
                 trainInfo.depart_at = false
             end
             Alerts.check_noFuel(trainInfo)
-            local station = (train.schedule and train.schedule.records and #train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
+            local station = (train.schedule and train.schedule.records and #train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or "Temporary"
             trainInfo.current_station = station
             GUI.update_single_traininfo(trainInfo, update_cargo)
         else

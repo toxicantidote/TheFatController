@@ -10,10 +10,7 @@
 
 data.raw["gui-style"].default["fatcontroller_thin_flow"] = {
     type = "vertical_flow_style",
-    horizontal_spacing = 0,
     vertical_spacing = 0,
-    max_on_row = 0,
-    resize_row_to_width = true
 }
 
 data.raw["gui-style"].default["fatcontroller_thin_frame"] = {
@@ -30,10 +27,7 @@ data.raw["gui-style"].default["fatcontroller_main_flow_vertical"] = {
     bottom_padding = 0,
     left_padding = 5,
     right_padding = 5,
-    horizontal_spacing = 0,
     vertical_spacing = 0,
-    max_on_row = 0,
-    resize_row_to_width = true
 }
 data.raw["gui-style"].default["fatcontroller_main_flow_horizontal"] = {
     type = "horizontal_flow_style",
@@ -42,9 +36,6 @@ data.raw["gui-style"].default["fatcontroller_main_flow_horizontal"] = {
     left_padding = 5,
     right_padding = 5,
     horizontal_spacing = 0,
-    vertical_spacing = 0,
-    max_on_row = 0,
-    resize_row_to_width = true
 }
 
 data.raw["gui-style"].default["fatcontroller_top_flow"] = {
@@ -168,7 +159,6 @@ data.raw["gui-style"].default["fatcontroller_disabled_button_bold"] = {
 data.raw["gui-style"].default["fatcontroller_page_button"] = {
     type = "button_style",
     parent = "fatcontroller_button_style_bold",
-    horizontal_spacing = 0,
     width = 25,
     height = 36,
     left_padding = 0,
@@ -185,7 +175,6 @@ data.raw["gui-style"].default["fatcontroller_pagenumber_button"] = {
 data.raw["gui-style"].default["fatcontroller_page_button_selected"] = {
     type = "button_style",
     parent = "fatcontroller_selected_button",
-    horizontal_spacing = 0,
     width = 25,
     height = 36,
     left_padding = 0,
@@ -215,34 +204,6 @@ data.raw["gui-style"].default["fatcontroller_icon_style"] = {
     width = 32,
     height = 32,
     bottom_padding = 10,
-    default_background = {
-        filename = "__core__/graphics/gui.png",
-        priority = "extra-high-no-scale",
-        width = 32,
-        height = 32,
-        x = 111
-    },
-    hovered_background = {
-        filename = "__core__/graphics/gui.png",
-        priority = "extra-high-no-scale",
-        width = 32,
-        height = 32,
-        x = 111
-    },
-    clicked_background = {
-        filename = "__core__/graphics/gui.png",
-        priority = "extra-high-no-scale",
-        width = 32,
-        height = 32,
-        x = 111
-    },
-    checked = {
-        filename = "__core__/graphics/gui.png",
-        priority = "extra-high-no-scale",
-        width = 32,
-        height = 32,
-        x = 111
-    }
 }
 
 data:extend({

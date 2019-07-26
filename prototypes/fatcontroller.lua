@@ -64,7 +64,6 @@ local fatcontroller = {
     }},
     animations = fcanimations, --luacheck: ignore
     mining_speed = 0,
-    mining_with_hands_particles_animation_positions = {0, 0},
     mining_with_tool_particles_animation_positions = {0},
     running_sound_animation_positions = {0, 0}
 }

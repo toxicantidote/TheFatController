@@ -16,13 +16,6 @@ fcEmptyLevel = {--luacheck: allow defined top
     running = fcEmptyAnimations,
     running_with_gun = fcEmptyAnimations,
     mining_with_tool = fcEmptyAnimations,
-    idle_mask = fcEmptyAnimations,
-    idle_with_gun_mask = fcEmptyAnimations,
-    mining_with_hands = fcEmptyAnimations,
-    mining_with_hands_mask = fcEmptyAnimations,
-    mining_with_tool_mask = fcEmptyAnimations,
-    running_with_gun_mask = fcEmptyAnimations,
-    running_mask = fcEmptyAnimations
 }
 
 fcanimations = {--luacheck: ignore

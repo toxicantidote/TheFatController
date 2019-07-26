@@ -163,7 +163,8 @@ TrainList.createTrainInfo = function(train, no_alarm)
     ti.inventory = getHighestInventoryCount(ti)--luacheck: ignore
     ti.automated = train.state ~= defines.train_state.manual_control and train.state ~= defines.train_state.manual_control_stop
     TrainList.update_stations(ti)
-    local station = (train.schedule and train.schedule.records and #train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or false
+    local record = (train.schedule and train.schedule.records and #train.schedule.records > 0) and train.schedule.records and train.schedule.records[train.schedule.current]
+    local station = record and record.station or "Temporary"
     ti.current_station = station
     if ti.train.state == defines.train_state.wait_station and train.schedule and #train.schedule.records > 1 then
         ti.depart_at = game.tick
@@ -210,7 +211,7 @@ TrainList.update_stations = function(ti)
     ti.stations = {}
     if not records then return end
     for _, record in pairs(records) do
-        ti.stations[record.station] = true
+        ti.stations[record.station or "Temporary"] = true
     end
 end
 
