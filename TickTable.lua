@@ -35,7 +35,7 @@ function TickTable.remove_from_tick(tick, key, train)
     if global[key][tick] then
         for i = #global[key][tick], 1, -1 do
             local ti = global[key][tick][i]
-            if ti.train == train then
+            if ti and ti.train == train then
                 table.remove(global[key][tick], i)
                 return true
             end
