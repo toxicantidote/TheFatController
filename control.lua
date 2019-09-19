@@ -325,7 +325,7 @@ local function on_force_created(event)
 end
 
 function on_research_finished(event)
-    if event.research.name == "rail-signals" then
+    if event.research.name == "rail-signals" or event.research.name == "automated-rail-transportation" then
         global.unlockedByForce[event.research.force.name] = true
         global.unlocked = true
         register_events()

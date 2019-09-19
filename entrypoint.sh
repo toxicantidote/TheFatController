@@ -19,7 +19,7 @@ if ! [[ "${INFO_VERSION}" == "${TAG}" ]]; then
     echo "Tag version ${TAG} doesn't match info.json version ${INFO_VERSION} (or info.json is invalid), failed"
     exit 1
 fi
-echo ${INFO_VERSION}
+# echo ${INFO_VERSION}
 # Pull the mod name from info.json
 NAME=$(jq -r '.name' info.json)
 PACKAGE_FILE="${NAME}_${INFO_VERSION}.zip"
