@@ -124,7 +124,7 @@ local function init_force(force)
     global.automatedCount[force.name] = global.automatedCount[force.name] or 0
     global.force_settings[force.name] = global.force_settings[force.name] or {signalDuration = defaults.signalDuration * 3600, stationDuration = defaults.stationDuration * 3600}
     global.unlockedByForce[force.name] = global.unlockedByForce[force.name] or false
-    if force.technologies["rail-signals"].researched then
+    if force.technologies["rail-signals"].researched or force.technologies["automated-rail-transportation"].researched then
         global.unlockedByForce[force.name] = true
         global.unlocked = true
         register_events()
@@ -304,6 +304,9 @@ local function on_configuration_changed(data)
                 for _, guiSetting in pairs(global.gui) do
                     guiSetting.indicators = false
                 end
+            end
+            if oldVersion < v'4.0.17' then
+                init_forces()
             end
         end
         if not oldVersion or oldVersion < v'0.4.0' then
@@ -804,6 +807,9 @@ function on_train_changed_state(event)
                 Alerts.reset_alarm(trainInfo)
                 TrainList.removeAlarms(train)
                 TrainList.add_manual(trainInfo)
+            elseif train.state == train_states.no_schedule then
+                Alerts.reset_alarm(trainInfo)
+                TrainList.removeAlarms(train)
             else
                 trainInfo.depart_at = false
             end
