@@ -243,7 +243,7 @@ data:extend({
     {
         type = "sprite",
         name = "fat_noPath",
-        filename = "__core__/graphics/danger-icon.png",
+        filename = "__core__/graphics/icons/alerts/danger-icon.png",
         priority = "extra-high-no-scale",
         width = 64,
         height = 64
@@ -254,7 +254,7 @@ data:extend({
     {
         type = "sprite",
         name = "fat_noFuel",
-        filename = "__core__/graphics/fuel-icon-red.png",
+        filename = "__core__/graphics/icons/alerts/fuel-icon-red.png",
         priority = "extra-high-no-scale",
         width = 64,
         height = 64
