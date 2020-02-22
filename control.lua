@@ -308,6 +308,9 @@ local function on_configuration_changed(data)
             if oldVersion < v'4.0.17' then
                 init_forces()
             end
+            if oldVersion < v'5.0.1' then
+                findStations(true, true)
+            end
         end
         if not oldVersion or oldVersion < v'0.4.0' then
             findTrains(true)
@@ -854,18 +857,19 @@ end
 
 function on_station_rename(event)
     if not event.entity.type == "train-stop" then return end
-    local station, oldName = event.entity, event.old_name
-    local oldc = decreaseStationCount(station, oldName)
-    increaseStationCount(station)
-    if oldc == 0 then
-        global.station_count[station.force.name][oldName] = nil
+    local _, err = pcall(function()
+        local station, oldName = event.entity, event.old_name
+        local oldc = decreaseStationCount(station, oldName)
+        increaseStationCount(station)
+        if oldc == 0 then
+            global.station_count[station.force.name][oldName] = nil
+        end
+    end)
+    if err then
+        pauseError(err, true)
+        findStations(true, true)
     end
-end
 
-function on_pre_entity_settings_pasted(event)
-    if event.source.type == "train-stop" then
-        on_station_rename({entity = event.destination, old_name = event.destination.backer_name})
-    end
 end
 
 function on_player_opened(event)
@@ -904,7 +908,6 @@ end
 script.on_event(events.on_player_opened, on_player_opened)
 script.on_event(events.on_player_closed, on_player_closed)
 script.on_event(defines.events.on_entity_renamed, on_station_rename)
-script.on_event(defines.events.on_pre_entity_settings_pasted, on_pre_entity_settings_pasted)
 
 function getPageCount(guiSettings, player)
     local trains = (guiSettings.activeFilterList or guiSettings.filter_alarms) and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
@@ -963,8 +966,7 @@ on_entity_died = function(event)
         end
         return
     end
-    local name = game.active_mods.base < "0.17.35" and "player" or "character" --TODO remove in a while
-    if event.entity.type == name and event.entity.name ~= "fatcontroller" then
+    if event.entity.type == "character" and event.entity.name ~= "fatcontroller" then
         -- game.print(game.tick .. " " .. event.entity.type)
         -- player died
         for i, guiSettings in pairs(global.gui) do
