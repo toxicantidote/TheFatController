@@ -854,17 +854,17 @@ end
 
 function on_station_rename(event)
     if not event.entity.type == "train-stop" then return end
-    local station, oldName = event.entity, event.old_name
-    local oldc = decreaseStationCount(station, oldName)
-    increaseStationCount(station)
-    if oldc == 0 then
-        global.station_count[station.force.name][oldName] = nil
-    end
-end
-
-function on_pre_entity_settings_pasted(event)
-    if event.source.type == "train-stop" then
-        on_station_rename({entity = event.destination, old_name = event.destination.backer_name})
+    local _, err = pcall(function()
+        local station, oldName = event.entity, event.old_name
+        local oldc = decreaseStationCount(station, oldName)
+        increaseStationCount(station)
+        if oldc == 0 then
+            global.station_count[station.force.name][oldName] = nil
+        end
+    end)
+    if err then
+        pauseError(err, true)
+        findStations(true, true)
     end
 end
 
@@ -904,7 +904,6 @@ end
 script.on_event(events.on_player_opened, on_player_opened)
 script.on_event(events.on_player_closed, on_player_closed)
 script.on_event(defines.events.on_entity_renamed, on_station_rename)
-script.on_event(defines.events.on_pre_entity_settings_pasted, on_pre_entity_settings_pasted)
 
 function getPageCount(guiSettings, player)
     local trains = (guiSettings.activeFilterList or guiSettings.filter_alarms) and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
