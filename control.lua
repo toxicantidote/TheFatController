@@ -99,7 +99,6 @@ local function init_global()
     global.automatedCount = global.automatedCount or {}
     global.PAGE_SIZE = global.PAGE_SIZE or 60
     global.station_count = global.station_count or {}
-    global.player_opened = global.player_opened or {}
     global.items = global.items or {}
     global.force_settings = global.force_settings or {}
 end
@@ -439,9 +438,10 @@ function on_player_driving_changed_state(event)
                     swapPlayer(game.players[player.index], global.character[player.index])
                     global.character[player.index] = nil
                     stop_following(guiSettings, player)
-                    if player.vehicle and player.vehicle.name == "farl" then
-                        script.raise_event(defines.events.on_player_driving_changed_state, {tick = game.tick, player_index = player.index, name = defines.events.on_player_driving_changed_state})
-                    end
+                    --TODO find replacement?
+                    -- if player.vehicle and player.vehicle.name == "farl" then
+                    --     script.raise_event(defines.events.on_player_driving_changed_state, {tick = game.tick, player_index = player.index, name = defines.events.on_player_driving_changed_state})
+                    -- end
                 else
                     if not global.to_swap then
                         global.to_swap = {}
@@ -537,20 +537,6 @@ function on_tick(event)
             global.updateAlarms[tick] = nil
         end
 
-        if tick % 10 == 7 then
-            for pi, player in pairs(game.players) do
-                if player.connected and (player.opened_gui_type == defines.gui_type.none or player.opened_gui_type == defines.gui_type.entity) then
-                    if player.opened ~= nil and not global.player_opened[pi] then
-                        script.raise_event(events["on_player_opened"], {entity = player.opened, player_index = pi})
-                        global.player_opened[pi] = player.opened
-                    end
-                    if global.player_opened[pi] and player.opened == nil then
-                        script.raise_event(events["on_player_closed"], {entity = global.player_opened[pi], player_index = pi})
-                        global.player_opened[pi] = nil
-                    end
-                end
-            end
-        end
     end)
     if err then
         pauseError(err)
@@ -872,20 +858,20 @@ function on_station_rename(event)
 
 end
 
-function on_player_opened(event)
-    if event.entity.valid and game.players[event.player_index].valid then
-        if event.entity.type == "locomotive" and event.entity.train then
-            --TODO do something here?
-            return
-        elseif event.entity.type == "cargo-wagon" and event.entity.train then
-            --TODO do something here?
-            return
-        end
-    end
-end
+-- function on_player_opened(event)
+--     if event.entity.valid and game.players[event.player_index].valid then
+--         if event.entity.type == "locomotive" and event.entity.train then
+--             --TODO do something here?
+--             return
+--         elseif event.entity.type == "cargo-wagon" and event.entity.train then
+--             --TODO do something here?
+--             return
+--         end
+--     end
+-- end
 
 function on_player_closed(event)
-    if event.entity.valid and game.players[event.player_index].valid then
+    if event.entity and event.entity.valid and game.players[event.player_index].valid then
         if event.entity.type == "locomotive" and event.entity.train then
             local ti = TrainList.get_traininfo(event.entity.force, event.entity.train)
             if not ti then
@@ -905,8 +891,8 @@ function on_player_closed(event)
     end
 end
 
-script.on_event(events.on_player_opened, on_player_opened)
-script.on_event(events.on_player_closed, on_player_closed)
+--script.on_event(events.on_player_opened, on_player_opened)
+script.on_event(defines.events.on_gui_closed, on_player_closed)
 script.on_event(defines.events.on_entity_renamed, on_station_rename)
 
 function getPageCount(guiSettings, player)

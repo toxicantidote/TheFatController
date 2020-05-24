@@ -914,9 +914,10 @@ on_gui_click.toggleFollowMode = function(guiSettings, element, player)
         swapPlayer(player, global.character[element.player_index])
         global.character[element.player_index] = nil
         stop_following(guiSettings, player)
-        if player.vehicle and player.vehicle.name == "farl" then
-            script.raise_event(defines.events.on_player_driving_changed_state, {tick = game.tick, player_index = player.index, name = defines.events.on_player_driving_changed_state})
-        end
+        --TODO find replacement?
+        -- if player.vehicle and player.vehicle.name == "farl" then
+        --     script.raise_event(defines.events.on_player_driving_changed_state, {tick = game.tick, player_index = player.index, name = defines.events.on_player_driving_changed_state})
+        -- end
         return
     end
     -- switch to another train
