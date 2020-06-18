@@ -14,9 +14,17 @@ Alerts.set_alert = function(trainInfo, type, time, skipUpdate)
     trainInfo.alarm.active = true
     trainInfo.alarm.type = type
     trainInfo.alarm.message = time and ({"msg-alarm-" .. type, time}) or {"msg-alarm-" .. type}
-    if type == "noPath" and trainInfo.train.schedule and trainInfo.train.schedule.records and #trainInfo.train.schedule.records > 0 then
-        local station = trainInfo.train.schedule.records[trainInfo.train.schedule.current].station or "Temporary"
-        trainInfo.alarm.message = {"msg-alarm-" .. type, station}
+    local schedule = trainInfo.train.schedule
+    if schedule and schedule.records and table_size(schedule.records) > 0 then
+        local current = schedule.current
+        if type == "noPath" then
+            local station = schedule.records[current].station or "Temporary"
+            trainInfo.alarm.message = {"msg-alarm-" .. type, station}
+        end
+        if type == "timeToStation" then
+            local prev = current == 1 and table_size(schedule.records) or current - 1
+            trainInfo.alarm.message = {"msg-alarm-" .. type, time, schedule.records[prev].station, schedule.records[current].station}
+        end
     end
     if not skipUpdate then
         Alerts.update_filters()
