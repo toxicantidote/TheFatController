@@ -3,6 +3,19 @@
 
 --- Alerts
 -- @type Alerts
+
+local function temporary_station_name(record)
+    if record.temporary then
+        if record.rail and record.rail.valid then
+            return {"gui-train.temporary", util.positiontostr(record.rail.position)}
+        else
+            return "Temporary"
+        end
+    else
+        return record.station
+    end
+end
+
 Alerts = {}--luacheck: allow defined top
 Alerts.electric_locomotives = {
     ["electric-locomotive-mk1"] = true,
@@ -15,15 +28,18 @@ Alerts.set_alert = function(trainInfo, type, time, skipUpdate)
     trainInfo.alarm.type = type
     trainInfo.alarm.message = time and ({"msg-alarm-" .. type, time}) or {"msg-alarm-" .. type}
     local schedule = trainInfo.train.schedule
-    if schedule and schedule.records and table_size(schedule.records) > 0 then
+    local records = schedule and schedule.records
+    if records and table_size(records) > 0 then
         local current = schedule.current
+        local current_record = records[current]
+
         if type == "noPath" then
-            local station = schedule.records[current].station or "Temporary"
+            local station = temporary_station_name(current_record)
             trainInfo.alarm.message = {"msg-alarm-" .. type, station}
         end
         if type == "timeToStation" then
             local prev = current == 1 and table_size(schedule.records) or current - 1
-            trainInfo.alarm.message = {"msg-alarm-" .. type, time, schedule.records[prev].station, schedule.records[current].station}
+            trainInfo.alarm.message = {"msg-alarm-" .. type, time, temporary_station_name(records[prev]), temporary_station_name(records[current])}
         end
     end
     if not skipUpdate then
