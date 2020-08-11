@@ -668,7 +668,7 @@ function on_robot_built_entity(event)
     end
 end
 
-script.on_event(defines.events.on_robot_pre_mined, on_preplayer_mined_item)
+script.on_event(defines.events.on_robot_mined_entity, on_preplayer_mined_item)
 script.on_event(defines.events.on_robot_built_entity, on_robot_built_entity)
 script.on_event(defines.events.on_pre_player_mined_item, on_preplayer_mined_item)
 script.on_event(defines.events.on_built_entity, on_built_entity)
