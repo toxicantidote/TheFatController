@@ -647,7 +647,9 @@ function on_preplayer_mined_item(event)
     end)
     if not status then
         pauseError(err, "on_pre_player_mined_item")
-        GUI.revalidate(game.get_player(event.player_index))
+        if event.player_index then
+            GUI.revalidate(game.get_player(event.player_index))
+        end
     end
 end
 
@@ -657,7 +659,7 @@ function on_robot_built_entity(event)
     end
 end
 
-script.on_event(defines.events.on_robot_pre_mined, on_preplayer_mined_item)
+script.on_event(defines.events.on_robot_mined_entity, on_preplayer_mined_item)
 script.on_event(defines.events.on_robot_built_entity, on_robot_built_entity)
 script.on_event(defines.events.on_pre_player_mined_item, on_preplayer_mined_item)
 script.on_event(defines.events.on_built_entity, on_built_entity)
@@ -1163,5 +1165,4 @@ interface = {
 }
 
 commands.add_command("fat_fix_character", "Try to return control to the player after a FatController error.", interface.fixCharacter)
-
 remote.add_interface("fat", interface)
