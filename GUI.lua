@@ -26,7 +26,8 @@ function start_following(carriage, guiSettings, element, player)
         end
     end)
     if err then
-        player.print("Remote controlling currently not possible, requires a Factorio bugfix.")
+        player.print("Error trying to remote control a train:")
+        player.print(serpent.block(err))
         return false
     end
     return true
