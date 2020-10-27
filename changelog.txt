@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 5.0.6
-Date: ????
+Date: 2020-10-27
   Changes:
     - Proper error message when trying to remote control a train and an error happens
     - Players stop remote controlling a train when disconnecting in multiplayer
