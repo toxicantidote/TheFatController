@@ -20,6 +20,7 @@ function start_following(carriage, guiSettings, element, player)
         if not guiSettings.fatControllerButtons.returnToPlayer then
             guiSettings.fatControllerButtons.add({type = "sprite-button", sprite = "fat_return_to_player", name = "returnToPlayer", style = "fatcontroller_main_button_style"})
         end
+        --TODO: check for same force or LuaForce.get_friend(player.force)
         carriage.set_driver(player.character)
         if player.gui.left.farl ~= nil then
             player.gui.left.farl.destroy()
@@ -35,13 +36,15 @@ end
 
 function stop_following(guiSettings)
     --log("stop_following")
+    if not guiSettings then return end
     guiSettings.followEntity = nil
     if guiSettings.followGui and guiSettings.followGui.valid then
         guiSettings.followGui.caption = {"text-controlbutton"}
         guiSettings.followGui.style = "fatcontroller_page_button"
         guiSettings.followGui = nil
     end
-    if guiSettings.fatControllerButtons ~= nil and guiSettings.fatControllerButtons.returnToPlayer ~= nil then
+    local buttons = guiSettings.fatControllerButtons
+    if buttons and buttons.valid and buttons.returnToPlayer and buttons.returnToPlayer.valid then
         guiSettings.fatControllerButtons.returnToPlayer.destroy()
     end
 end

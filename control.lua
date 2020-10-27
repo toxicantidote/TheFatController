@@ -316,6 +316,18 @@ local function on_configuration_changed(data)
         end
         global.version = tostring(newVersion)
     end
+    -- if data.mod_changes["GuiPlayground"] then
+    --     if __DebugAdapter then
+    --         __DebugAdapter.breakpoint()
+    --         for i, character in pairs(global.character) do
+    --             if swapPlayer(game.get_player(i), character) then
+    --                 local guiSettings = global.gui[i]
+    --                 global.character[i] = nil
+    --                 stop_following(guiSettings)
+    --             end
+    --         end
+    --     end
+    -- end
     --reset item cache if a mod has changed
     global.items = {}
     --check for other mods
@@ -324,6 +336,29 @@ end
 local function on_player_created(event)
     init_player(game.players[event.player_index])
 end
+
+local function on_pre_player_left_game(e)
+    local player = game.get_player(e.player_index)
+    if global.character[e.player_index] then
+        if swapPlayer(player, global.character[e.player_index]) then
+            global.character[e.player_index] = nil
+            stop_following(global.gui[e.player_index])
+        end
+    end
+end
+script.on_event(defines.events.on_pre_player_left_game, on_pre_player_left_game)
+
+script.on_event(defines.events.on_pre_player_removed,function(e)
+    on_pre_player_left_game(e)
+    global.character[e.player_index] = nil
+    global.gui = global.gui or {}
+    for _, force_trains in pairs(global.trainsByForce) do
+        for _, t in pairs(force_trains) do
+            t.opened_guis[e.player_index] = nil
+            t.follower_index = nil
+        end
+    end
+end)
 
 local function on_force_created(event)
     init_force(event.force)
@@ -993,6 +1028,7 @@ function swapPlayer(player, character)
 
     if character and character.valid and character ~= player.character then
         player.character = character
+        return true
     end
 end
 

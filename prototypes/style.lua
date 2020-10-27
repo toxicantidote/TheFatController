@@ -232,7 +232,7 @@ data:extend({
     {
         type = "sprite",
         name = "fat_timeToStation",
-        filename = "__TheFatController__/graphics/icons/timeAtSignal.png",
+        filename = "__TheFatController__/graphics/icons/timeToStation.png",
         priority = "extra-high-no-scale",
         width = 32,
         height = 32
