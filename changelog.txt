@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 5.0.7
-Date: ????
+Date: 2020-11-05
   Changes:
     - When using LTN and the train is moving to a temporary station it displays the next station in the schedule instead
 ---------------------------------------------------------------------------------------------------
