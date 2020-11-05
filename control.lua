@@ -840,7 +840,25 @@ function on_train_changed_state(event)
                 trainInfo.depart_at = false
             end
             Alerts.check_noFuel(trainInfo)
-            local station = (train.schedule and train.schedule.records and #train.schedule.records > 0) and train.schedule.records[train.schedule.current].station or "Temporary"
+            local records = train.schedule and train.schedule.records
+            local record = (records and #records > 0) and records[train.schedule.current]
+            local station = record and record.station
+            if not station then
+                if record and record.temporary and record.rail then
+                    local wait_cond = record.wait_conditions and record.wait_conditions[1]
+                    if wait_cond and wait_cond.type == "time" then
+                        if wait_cond.ticks == 0 then
+                            local next_stop = records[train.schedule.current + 1]
+                            station = next_stop and next_stop.station or "Temporary"
+                        else
+                            station = "Temporary"
+                        end
+                    end
+                else
+                    station = "Temporary"
+                end
+            end
+
             trainInfo.current_station = station
             GUI.update_single_traininfo(trainInfo, update_cargo)
         else
