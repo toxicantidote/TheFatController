@@ -33,8 +33,8 @@ data.raw["gui-style"].default["fatcontroller_main_flow_horizontal"] = {
     type = "horizontal_flow_style",
     top_padding = 0,
     bottom_padding = 0,
-    left_padding = 5,
-    right_padding = 5,
+    left_padding = 0,
+    right_padding = 0,
     horizontal_spacing = 0,
 }
 

@@ -167,7 +167,7 @@ local function on_configuration_changed(data)
         if oldVersion then
             oldVersion = v(oldVersion)
             log("Updating TheFatController from " .. tostring(oldVersion) .. " to " .. tostring(newVersion))
-            if oldVersion < v'0.4.0' then
+            if oldVersion < v'5.0.0' then
                 debugDump("Resetting FatController settings", true)
                 local tmp = {}
                 for i, _ in pairs(game.players) do
@@ -185,108 +185,7 @@ local function on_configuration_changed(data)
                 end
             end
             on_init()
-            if oldVersion > v'0.4.0' then
-                if oldVersion < v'0.4.12' then
-                    init_forces()
-                    for _, force in pairs(game.forces) do
-                        TrainList.remove_invalid(force, true)
-                        for _, ti in pairs(global.trainsByForce[force.name]) do
-                            ti.automated = ti.train.state ~= defines.train_state.manual_control and ti.train.state ~= defines.train_state.manual_control_stop
-                            if ti.automated then
-                                global.automatedCount[force.name] = global.automatedCount[force.name] + 1
-                            end
-                        end
-                    end
-                    for i, _ in pairs(game.players) do
-                        global.gui[i].filterModeOr = false
-                        global.gui[i].automatedCount = 0
-                        global.gui[i].filteredIndex = {}
-                        if global.gui[i].filtered_trains then
-                            for _, ti in pairs(global.gui[i].filtered_trains) do
-                                global.gui[i].filteredIndex[ti.mainIndex] = true
-                                if ti.automated then
-                                    global.gui[i].automatedCount = global.gui[i].automatedCount + 1
-                                end
-                            end
-                        end
-                    end
-                end
-                if oldVersion < v'0.4.14' then
-                    for _, guiSetting in pairs(global.gui) do
-                        if guiSetting.renameTrains == nil then
-                            guiSetting.renameTrains = false
-                            guiSetting.renameTrain = {}
-                        end
-                    end
-                end
-                if oldVersion < v'0.4.15' then
-                    for _, guiSetting in pairs(global.gui) do
-                        if guiSetting.show_names == nil then
-                            guiSetting.show_names = false
-                        end
-                    end
-                    for _, trains in pairs(global.trainsByForce) do
-                        for _, ti in pairs(trains) do
-                            if #ti.train.locomotives.front_movers > 0 then
-                                ti.name = ti.train.locomotives.front_movers[1].backer_name
-                            else
-                                ti.name = ti.train.locomotives.back_movers[1].backer_name
-                            end
-                            if ti.name:len() > 20 then
-                                ti.name = ti.name:sub(1, 20) .. "..."
-                            end
-                        end
-                    end
-                end
 
-                if oldVersion < v'0.4.17' then
-                    findTrains(true)
-                    for _, force in pairs(game.forces) do
-                        TrainList.remove_invalid(force, true)
-                        for _, ti in pairs(global.trainsByForce[force.name]) do
-                            ti.automated = (ti.train.state ~= defines.train_state.manual_control and ti.train.state ~= defines.train_state.manual_control_stop)
-                            if ti.automated then
-                                global.automatedCount[force.name] = global.automatedCount[force.name] + 1
-                            end
-                        end
-                    end
-                    for i, _ in pairs(game.players) do
-                        global.gui[i].automatedCount = 0
-                        if global.gui[i].filtered_trains then
-                            for _, ti in pairs(global.gui[i].filtered_trains) do
-                                global.gui[i].filteredIndex[ti.mainIndex] = true
-                                if ti.automated then
-                                    global.gui[i].automatedCount = global.gui[i].automatedCount + 1
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-
-            if oldVersion < v'0.4.19' then
-                for _, gui in pairs(global.gui) do
-                    GUI.refresh_gui(gui)
-                end
-            end
-            if oldVersion < v'1.0.3' then
-                findStations(true, true)
-            end
-            if oldVersion < v'2.0.1' then
-                global.opened_name = nil
-            end
-            if oldVersion < v'2.0.6' then
-                for _, trains in pairs(global.trainsByForce) do
-                    for _, ti in pairs(trains) do
-                        if ti.train and ti.train.valid then
-                            Alerts.check_noFuel(ti, true)
-                        end
-                    end
-                end
-            end
-            if oldVersion < v'2.0.10' then
-                findStations(true, true)
-            end
             if oldVersion < v'4.0.1' then
                 for _, player in pairs(game.players) do
                     if player.character and player.vehicle and player.vehicle.get_driver() == player.character and player.character.name == "fatcontroller" then
@@ -298,17 +197,16 @@ local function on_configuration_changed(data)
                     GUI.refresh_gui(gui)
                 end
             end
-
-            if oldVersion < v'4.0.10' then
-                for _, guiSetting in pairs(global.gui) do
-                    guiSetting.indicators = false
-                end
-            end
-            if oldVersion < v'4.0.17' then
-                init_forces()
-            end
             if oldVersion < v'5.0.1' then
                 findStations(true, true)
+            end
+            if oldVersion < v'5.1.1' then
+                for _, player in pairs(game.players) do
+                    if player.gui.top.fatControllerButtons and player.gui.top.fatControllerButtons.valid then
+                        player.gui.top.fatControllerButtons.destroy()
+                        GUI.init_gui(player, true)
+                    end
+                end
             end
         end
         if not oldVersion or oldVersion < v'0.4.0' then

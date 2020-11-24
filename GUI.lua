@@ -1,3 +1,4 @@
+local mod_gui = require("__core__.lualib.mod-gui")
 function endsWith(String, End)
     return End == "" or string.sub(String, -string.len(End)) == End
 end
@@ -70,9 +71,10 @@ GUI = {
             end
         end
         if not GUI.valid(guiSettings.fatControllerButtons) then
-            if GUI.valid(player_gui.top.fatControllerButtons) then
+            local mod_gui_flow = mod_gui.get_button_flow(player)
+            if GUI.valid(mod_gui_flow.fatControllerButtons) then
                 log("Fixing fatControllerButtons")
-                guiSettings.fatControllerButtons = player_gui.top.fatControllerButtons
+                guiSettings.fatControllerButtons = mod_gui_flow.fatControllerButtons
             else
                 init = true
             end
@@ -303,8 +305,8 @@ GUI = {
         end
     end,
     init_gui = function(player, force)
-        --debugDump("Init: " .. player.name .. " - " .. player.force.name,true)
-        if not force and GUI.valid(player.gui.top.fatControllerButtons) and GUI.valid(player.gui.left.fatController) then
+        local mod_gui_flow = mod_gui.get_button_flow(player)
+        if not force and GUI.valid(mod_gui_flow.fatControllerButtons) and GUI.valid(player.gui.left.fatController) then
             return
         end
 
@@ -315,10 +317,10 @@ GUI = {
         else
             player_gui.fatControllerGui = player.gui.left.fatController
         end
-        if not GUI.valid(player.gui.top.fatControllerButtons) then
-            player_gui.fatControllerButtons = player.gui.top.add({type = "flow", name = "fatControllerButtons", direction = "horizontal", style = "fatcontroller_main_flow_horizontal"})
+        if not GUI.valid(mod_gui_flow.fatControllerButtons) then
+            player_gui.fatControllerButtons = mod_gui_flow.add({type = "flow", name = "fatControllerButtons", direction = "horizontal", style = "fatcontroller_main_flow_horizontal"})
         else
-            player_gui.fatControllerButtons = player.gui.top.fatControllerButtons
+            player_gui.fatControllerButtons = mod_gui_flow.fatControllerButtons
         end
         if not GUI.valid(player_gui.fatControllerButtons.toggleTrainInfo) then
             player_gui.fatControllerButtons.add({type = "sprite-button", sprite = "item/locomotive", name = "toggleTrainInfo", style = "fatcontroller_main_button_style"})
