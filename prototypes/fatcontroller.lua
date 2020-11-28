@@ -26,9 +26,8 @@ function merge(prototype, changed_data) --luacheck: allow defined top
     return prototype
 end
 
-local player_name = mods.base < "0.17.35" and "player" or "character" --TODO: remove in a while
 local fatcontroller = {
-    type = player_name,
+    type = "character",
     name = "fatcontroller",
     flags = {"placeable-player", "placeable-off-grid", "not-repairable", "not-on-map"},
     max_health = 100,
@@ -68,7 +67,7 @@ local fatcontroller = {
     running_sound_animation_positions = {0, 0}
 }
 
-data:extend({merge(copyPrototype(player_name, player_name, fatcontroller, false), fatcontroller)})
+data:extend({merge(copyPrototype("character", "character", fatcontroller, false), fatcontroller)})
 -- {
 -- type = "achievement",
 -- name = "self-termination",

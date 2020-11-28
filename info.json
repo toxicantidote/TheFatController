@@ -1,10 +1,11 @@
 {
 	"name":"TheFatController",
 	"version": "5.1.2",
-	"author":"Choumiko, JamesOFarrell",
+    "author":"Choumiko, JamesOFarrell",
+    "contact": "Discord: Choumiko#6179",
 	"factorio_version": "1.1",
 	"title":"The Fat Controller",
-	"homepage":"https://forums.factorio.com/viewtopic.php?f=92&t=4504",
+	"homepage":"https://mods.factorio.com/mod/TheFatController",
     "description":"A conductor of trains.\nRemote control your Trains\nDisplay alerts for various train states",
     "package":{
         "ignore":[ "*.zip", "*.xcf" ]

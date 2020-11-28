@@ -622,8 +622,8 @@ GUI = {
         if gui ~= nil then
             if gui.pageSelect == nil then
                 local window = gui.add({type = "frame", name = "pageSelect", caption = {"msg-displayCount"}, direction = "vertical"}) --style="fatcontroller_thin_frame"})
-                window.add({type = "textfield", name = "pageSelectValue", text = guiSettings.displayCount .. ""})
-                window.pageSelectValue.text = guiSettings.displayCount .. ""
+                window.add({type = "textfield", name = "pageSelectValue", text =tostring(guiSettings.displayCount)})
+                window.pageSelectValue.text = tostring(guiSettings.displayCount)
                 window.add({type = "button", name = "pageSelectOK", caption = {"msg-OK"}})
             else
                 gui.pageSelect.destroy()
@@ -669,8 +669,8 @@ GUI = {
                 flow3.add({type = "button", name = "alarmOK", caption = {"msg-OK"}})
                 flow3.add({type = "button", name = "scanStations", caption = "Update stations", tooltip = "Scans the map for trainstops. Only needed if stations are missing in the filter window."})
 
-                stationDuration.text = global.force_settings[game.players[player_index].force.name].stationDuration / 3600
-                signalDuration.text = global.force_settings[game.players[player_index].force.name].signalDuration / 3600
+                stationDuration.text = tostring(global.force_settings[game.players[player_index].force.name].stationDuration / 3600)
+                signalDuration.text = tostring(global.force_settings[game.players[player_index].force.name].signalDuration / 3600)
             else
                 gui.alarmWindow.destroy()
             end
