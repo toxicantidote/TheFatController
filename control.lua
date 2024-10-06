@@ -795,20 +795,20 @@ function increaseStationCount(station)
 end
 
 function on_station_rename(event)
-    if not event.entity.type == "train-stop" then return end
-    local _, err = pcall(function()
-        local station, oldName = event.entity, event.old_name
-        local oldc = decreaseStationCount(station, oldName)
-        increaseStationCount(station)
-        if oldc == 0 then
-            global.station_count[station.force.name][oldName] = nil
+    if event.entity.type == "train-stop" then
+        local _, err = pcall(function()
+            local station, oldName = event.entity, event.old_name
+            local oldc = decreaseStationCount(station, oldName)
+            increaseStationCount(station)
+            if oldc == 0 then
+                global.station_count[station.force.name][oldName] = nil
+            end
+        end)
+        if err then
+            pauseError(err, true)
+            findStations(true, true)
         end
-    end)
-    if err then
-        pauseError(err, true)
-        findStations(true, true)
     end
-
 end
 
 -- function on_player_opened(event)
