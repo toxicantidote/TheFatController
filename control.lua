@@ -615,7 +615,7 @@ function on_train_changed_state(event)
         local force = train.carriages[1].force
         --debugDump(game.tick.." state:"..train.state,true)
         local trainInfo = TrainList.get_traininfo(force, train)
-        if not trainInfo then
+        if not trainInfo or not trainInfo.train.valid then
             TrainList.remove_invalid(force)
             if not TrainList.get_traininfo(force, train) then
                 trainInfo = TrainList.add_train(train)
@@ -851,8 +851,15 @@ script.on_event(defines.events.on_entity_renamed, on_station_rename)
 function getPageCount(guiSettings, player)
     local trains = (guiSettings.activeFilterList or guiSettings.filter_alarms) and guiSettings.filtered_trains or global.trainsByForce[player.force.name]
     if not trains then error("no trains", 2) end
-    local trainCount
-    trainCount = #trains or 0
+    local trainCount = 0
+    for i, t in pairs(trains) do
+        if t.train.valid then
+            trainCount = trainCount + 1
+        else
+            table.remove(trains, i)
+        end
+    end
+
     local p = math.floor((trainCount - 1) / guiSettings.displayCount) + 1
     p = p > 0 and p or 1
     guiSettings.page = guiSettings.page > p and p or guiSettings.page

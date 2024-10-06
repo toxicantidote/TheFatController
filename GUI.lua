@@ -389,6 +389,7 @@ GUI = {
             end
         end)
         if err then
+            TrainList.remove_invalid(game.forces.player)
             debugDump(err, true)
             log(serpent.dump(err))
         end
